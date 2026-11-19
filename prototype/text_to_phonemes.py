@@ -507,6 +507,13 @@ EXCEPTIONS = {
     'CARDIAC': 'K AA1 R D IY0 AE2 K',   # CAR-dee-ack, a full but unstressed IY; rules: K AA R D IH AE K, the IH swallowed
     'FATHER': 'F AA1 DH ER0',          # rules: F AE DH ER
     'HAGELBARGER': 'HH EY1 G AX0 L B AA2 R G ER0',   # HAIG-uhl-bar-grr; rules give soft Gs
+    'LIVED': 'L IH1 V D',            # rules: L AY V D
+    'HAPPENED': 'HH AE1 P AX0 N D',  # rules: HH AE P IY N D
+    'UNLEASHED': 'AH0 N L IY1 SH T', # rules: AH N AX L IY SH T, stressed on UN
+    'MILLIONS': 'M IH1 L Y AX0 N Z', # rules: M IH L IH AX N Z
+    'MILLION': 'M IH1 L Y AX0 N',
+    'DOESN\'T': 'D AH1 Z AX0 N T',  # rules: D AH Z N T
+    'IMAGINATION': 'IH0 M AE2 JH IH0 N EY1 SH AX0 N',   # rules put the stress on the first syllable
     'HELLO': 'HH AX0 L OW1',         # rules: HH EH L OW (stress would land on the first syllable)
     'WANT': 'W AA1 N T',             # rules: W AE N T
     'WANTS': 'W AA1 N T S',
