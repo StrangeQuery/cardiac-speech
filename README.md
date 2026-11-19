@@ -2,21 +2,22 @@
 
 cardiac-speech is text to speech that runs on CARDIACs. You give it a line of ASCII text and it gives you speech as
 raw 8 kHz audio. Every step of the work, from finding the words in the text to the last sample of sound, is done by
-65 CARDIAC programs running under [heartburn](https://github.com/StrangeQuery/heartburn), the CARDIAC engine. The
-host program only moves cards between the machines: it deals the text and the decks the machines read, carries each
-machine's output cards on to the machines that read them, and writes the samples out.
+79 CARDIAC programs running under [heartburn](https://github.com/StrangeQuery/heartburn), the CARDIAC engine. Each
+machine has one card reader and one punch, as a real CARDIAC has. The host program only moves cards between the
+machines: it deals the text and the decks the machines read, carries each machine's output cards on to the machines
+that read them, and writes the samples out.
 
 There are two versions, side by side, which give the same speech sample for sample:
 
-- **This one**, in this folder: 65 machines written by hand in CARDIAC's assembly language ([`text/`](text/),
-  [`front/`](front/), [`voice/`](voice/)), with the host in [`src/`](src/). Its host gives a machine several card
-  readers and punches: it routes each card a machine reads by the cell of the INP waiting for it, and each card a
-  machine punches by the cell of the OUT that punched it.
+- **This one**, in this folder: 79 machines written by hand in CARDIAC's assembly language ([`text/`](text/),
+  [`front/`](front/), [`voice/`](voice/)), with the host in [`src/`](src/).
 - **The Rust version**, in [`rust/`](rust/): 89 machines, 83 of them written in Rust and compiled for CARDIAC with
   [rust-cardiac](https://github.com/StrangeQuery/rust-cardiac), and 6 written by hand (the lattice filter and the
-  output stage, where Rust is far slower). Each machine has one reader and one punch, as a real CARDIAC has, and the
-  host only deals, copies, collates, merges decks in fixed orders and fetches table records. Its
-  [README](rust/README.md) has the details.
+  output stage, where Rust is far slower). Its [README](rust/README.md) has the details.
+
+In both, each machine reads one deck and punches one stream of cards, and the host only deals, copies, collates,
+merges decks in fixed orders and fetches table records ([What the host does](#what-the-host-does-and-doesnt-do)).
+The two hosts feed their machines the same way, and the two versions read the same decks.
 
 The rest of this README is about the first version.
 
@@ -54,8 +55,8 @@ the speech as a WAV file instead:
 The other two programs run parts of the pipeline on their own. `talk-phonemes` reads phoneme cards and prints frame
 cards, and `talk-frames` reads frame cards and writes samples. They are there for testing.
 
-On this Mac (an Apple M5 Ultra) the sentence above, 7.83 seconds of speech, takes 0.080 seconds to work out: a
-real-time factor of 0.0102.
+On this Mac (an Apple M5 Ultra) the sentence above, 7.83 seconds of speech, takes about 0.078 seconds to work out:
+a real-time factor of about 0.010.
 
 ## The inspiration: the Speak & Spell
 
@@ -91,7 +92,7 @@ The work is done in three parts, which the diagram shows from left to right.
 
 ### Text to phonemes: the NRL rules
 
-Nineteen machines turn the text into phonemes. `scan` reads the text twice, first to see whether it is all
+Twenty-five machines turn the text into phonemes. `scan` reads the text twice, first to see whether it is all
 capitals, and then to sort each character into letters, digits and punctuation. Numbers become number words (years
 from 1100 to 1999 are read in pairs, as "nineteen sixty eight"). All-capital words such as MTV are spelled out by
 the names of their letters. A short list of function words and exceptions is looked up next, and everything else
@@ -100,10 +101,12 @@ goes to the letter-to-sound rules.
 The rules are the Naval Research Laboratory's, from Elovitz, Johnson, McHugh and Shore's 1976 report
 [[Elovitz 1976]](#references). Each rule says that a group of letters, between a left context and a right context,
 is spoken as certain phonemes. The rules for a letter are tried in order, and the first one that matches wins. On
-CARDIACs, `filter` reads through the rule deck to the section for the current letter, `rule` hands each rule's left
-and right contexts to `ctxl` and `ctxr`, which test them by reading out from the letter in each direction through
-the word, and the first rule both of them pass gives its phonemes. The rule deck is 5,680 cards, and the host deals
-it to `filter` again each time it reaches the end. Three more machines collapse doubled consonants (the rules give
+CARDIACs, `letters` makes a record for each letter of a word, and the host fetches the letter's rules for it from
+three tables of one record a letter ([`text/rules_left.cards`](text/rules_left.cards),
+[`text/rules_right.cards`](text/rules_right.cards) and [`text/rules_phonemes.cards`](text/rules_phonemes.cards),
+the rule deck laid out again by `ref/text_tables.py`). `left` and `right` test every rule's left and right context,
+reading out from the letter in each direction through the word, `first` finds the first rule both of them pass, and
+`pick` gives its phonemes and moves on by the letters the rule says. Five more machines collapse doubled consonants (the rules give
 LITTLE two Ts), put primary stress on a content word's first full vowel and secondary stress on its other long
 vowels, and mark the boundaries between words.
 
@@ -113,11 +116,14 @@ lists which numbers come from which table and which are estimates.
 
 ### Phonemes to frames: Klatt's durations and formants
 
-Thirty-six machines turn the phonemes into frame cards, one frame every 25 milliseconds. They run in three phases.
-First `feat` makes an 11-card record for each sound. Then the host puts the records in the opposite order, and
-`after`, `ahead` and `next` run through them last first, so that each sound can learn what comes after it in its
-word. Finally the host puts everything back in order, and the remaining 32 machines work forward, a sound and then a
-frame at a time.
+Forty-three machines turn the phonemes into frame cards, one frame every 25 milliseconds. They run in five
+phases. First `feat` makes a record for each sound, and the host puts six cards of the sound's row of the phoneme
+table beside it, 11 in all. Then the host puts the records in the opposite order, and `after`, `ahead` and `next`
+run through them last first, so that each sound can learn what comes after it in its word. The host puts everything
+back in order, and a dozen machines work out each sound's stress, duration, frames and filters, and `sum` a summary
+of each sentence for the pitch, which `fill` then hands back to all the sentence's sounds, last first again. Last,
+`framer`, `sents` and three `spread` machines turn the sounds into frames, dealing each frame its sound's cards, and
+the rest work forward a frame at a time.
 
 The durations come from Dennis Klatt's 1979 rules [[Klatt 1979]](#references). Each sound has an inherent and a
 minimum duration, and a percentage, PRCNT, starts at 100 and is multiplied by a factor for each rule that applies:
@@ -126,7 +132,8 @@ several syllables, and so on. Then the duration is
 
     DUR = (INHDUR - MINDUR) x PRCNT / 100 + MINDUR
 
-The rules are lists of factors in hundredths, so `mul` can multiply them in with a few digits of decimal arithmetic.
+The rules are factors in hundredths, one a rule and 100 where a rule doesn't apply, so `mul` can multiply them in
+with a few digits of decimal arithmetic.
 
 The formant frequencies and bandwidths come from Klatt's 1980 paper on his cascade/parallel formant synthesizer
 [[Klatt 1980]](#references): its Table II for the vowels, with their off-glides, and its Table III for the
@@ -147,10 +154,10 @@ by as much as 13 dB, while the gain was made for the frame's own filter.
 
 ### Frames to samples: the lattice in three-digit arithmetic
 
-Ten machines turn frame cards into samples. A frame is 13 cards: V (voiced or not), P (the pitch period in samples),
-A (the excitation's amplitude) and the ten reflection coefficients K10 to K1, each times 1,000. `interp` works out
-each value's step to the next frame, (next - this) / 10, which is one SFT, and `steps` hands out ten steps of 20
-samples each, moving every value on by its step. There is no glide across a change between voiced and unvoiced.
+Eleven machines turn frame cards into samples. A frame is 13 cards: V (voiced or not), P (the pitch period in
+samples), A (the excitation's amplitude) and the ten reflection coefficients K10 to K1, each times 1,000. `interp`
+reads each frame beside the next and works out each value's step to the next frame, (next - this) / 10, which is one
+SFT, and `steps` and `ksteps` hand out ten steps of 20 samples each, moving every value on by its step. There is no glide across a change between voiced and unvoiced.
 `excite` makes the excitation: a pulse of height A every P samples, or +A and -A chosen by a
 decimal random number generator, x = 21 x + 7 mod 1000. A voiced pulse goes through the one-pole low-pass
 e = pulse + 0.5 e, five ADDs and an SFT, which softens the buzz of a bare pulse: it takes the voiced sounds' share of
@@ -225,86 +232,99 @@ bare pulses, as the CARDIACs had before, the distances were 8.9 dB and 7.3 dB.
 
 ## What each machine does
 
-These are all 65 machines, in the order the host wires them. Cells are the cells each listing fills. A CARDIAC has
+These are all 79 machines, in the order the host wires them. Cells are the cells each listing fills. A CARDIAC has
 100 cells; cell 00 always holds 001 and the loader uses cells 01 and 02, so a program has cells 03 to 99, and a
 program that JMPs uses cell 99 for the way back. Instructions are counted by `talk -v` for "Hello, my name is cardiac
 and I was born in 1968 to D W Hagelbarger. And now I can talk.", which comes to 101 phoneme cards, 313 frames and
 62,600 samples (7.83 seconds), and they include each machine's loading of its own deck. For the voice box, the last
 column also gives the count per sample.
-
-### Text to phonemes (19 machines)
+### Text to phonemes (25 machines)
 
 | Machine | Listing | What it does | Cells | Instructions |
 |---|---|---|---:|---:|
-| scan | [text/scan.cq](text/scan.cq) | reads the text twice, sees whether it has a small letter, and cuts it into words, numbers and punctuation by each character's row of the ASCII table | 95 | 3,180 |
-| numd | [text/numd.cq](text/numd.cq) | drops a number's leading zeros and keeps its last six digits | 91 | 1,598 |
+| scan | [text/scan.cq](text/scan.cq) | reads the text twice, sees whether it has a small letter, and cuts it into words, numbers and punctuation by each character's row of the ASCII table | 94 | 3,089 |
+| numd | [text/numd.cq](text/numd.cq) | drops a number's leading zeros and holds up to six digits as two numbers of three digits | 76 | 1,531 |
+| unpack | [text/unpack.cq](text/unpack.cq) | turns numd's two numbers back into six digits, or seven or more into a card each | 49 | 1,234 |
 | numw | [text/numw.cq](text/numw.cq) | splits a number into groups of three digits and the words between them, reading years from 1100 to 1999 in pairs | 90 | 1,158 |
 | say3 | [text/say3.cq](text/say3.cq) | says a group of three digits as number words | 50 | 1,047 |
-| numf | [text/numf.cq](text/numf.cq) | spells each number word by fetching it from the numbers deck | 30 | 1,083 |
+| ask1 | [text/ask.cq](text/ask.cq) | asks for each number word's record of the numbers deck | 18 | 1,039 |
+| numf | [text/numf.cq](text/numf.cq) | spells each number word from its record | 36 | 7,398 |
 | spcls | [text/spcls.cq](text/spcls.cq) | decides which all-capital words are spelled out letter by letter | 85 | 2,247 |
-| spell | [text/spell.cq](text/spell.cq) | makes a spelled word ready for `names`, marking its last letter | 75 | 2,611 |
-| names | [text/names.cq](text/names.cq) | says each letter by name, fetching the name's phonemes and stressing the last letter | 82 | 1,694 |
-| excl | [text/excl.cq](text/excl.cq) | looks each word up among the function words and the exceptions, reading the word deck through for each word | 96 | 234,663 |
-| excp | [text/excp.cq](text/excp.cq) | replaces an exception with its phonemes from the exceptions' deck | 76 | 2,725 |
-| loader | [text/loader.cq](text/loader.cq) | holds a word for the rules, asks for each letter's rules, and moves on by the length of the rule that matched | 77 | 4,339 |
-| filter | [text/filter.cq](text/filter.cq) | reads through the rule deck to the current letter's section and passes its rules on | 30 | 473,370 |
-| rule | [text/rule.cq](text/rule.cq) | sends each rule's left and right contexts to the context machines and gives the phonemes of the first rule both pass | 59 | 76,707 |
-| ctxl | [text/ctx.cq](text/ctx.cq) | tests a rule's left context, reading leftwards through the word | 82 | 17,012 |
-| ctxr | [text/ctx.cq](text/ctx.cq) | tests a rule's right context, reading rightwards through the word | 82 | 44,058 |
+| spell | [text/spell.cq](text/spell.cq) | marks a spelled word's letters, the last one apart | 83 | 3,761 |
+| ask2 | [text/ask.cq](text/ask.cq) | asks for each spelled letter's record of the letters deck | 18 | 1,019 |
+| names | [text/names.cq](text/names.cq) | says each spelled letter by name, stressing the last | 89 | 6,809 |
+| items | [text/items.cq](text/items.cq) | packs each word or run of phonemes into a record of 17 cards | 55 | 6,989 |
+| excl | [text/excl.cq](text/excl.cq) | looks each word up among the function words, dealt again after each word | 70 | 66,537 |
+| excx | [text/excx.cq](text/excx.cq) | looks each word up among the exceptions, dealt again after each word | 74 | 111,687 |
+| excp | [text/excp.cq](text/excp.cq) | replaces an exception with its phonemes and marks the other words for the rules | 74 | 5,552 |
+| letters | [text/letters.cq](text/letters.cq) | makes a record for each letter of a word, asking for the letter's rules | 61 | 9,180 |
+| left | [text/left.cq](text/left.cq) | tests every rule's left context at the letter, reading leftwards through the word | 74 | 136,517 |
+| right | [text/right.cq](text/right.cq) | tests every rule's right context at the letter, reading rightwards | 75 | 347,737 |
+| first | [text/first.cq](text/first.cq) | finds the first rule whose two contexts both match | 31 | 30,503 |
+| pick | [text/pick.cq](text/pick.cq) | gives that rule's phonemes, and moves on by the letters it says | 84 | 101,562 |
 | posta | [text/posta.cq](text/posta.cq) | keeps one of each run of the same consonant | 24 | 1,118 |
-| postb | [text/postb.cq](text/postb.cq) | gathers a rules word and notes whether it is a function word and whether it has a full vowel | 74 | 2,370 |
+| postb | [text/postb.cq](text/postb.cq) | gathers a rules word, notes whether it has a full vowel, and marks its last phoneme | 74 | 3,573 |
+| posth | [text/posth.cq](text/posth.cq) | puts the header postc reads before a rules word: whether it is a function word, and whether it has a full vowel | 24 | 1,086 |
 | postc | [text/postc.cq](text/postc.cq) | gives each phoneme of a rules word its stress | 93 | 2,225 |
 | join | [text/join.cq](text/join.cq) | puts the boundaries between words, the pauses and the end card in place for the front end | 85 | 2,000 |
-| | | **19 machines** | | **875,205** |
+| | | **25 machines** | | **856,598** |
 
-### Front end (36 machines)
+### Front end (43 machines)
 
 | Machine | Listing | What it does | Cells | Instructions |
 |---|---|---|---:|---:|
-| feat | [front/feat.cq](front/feat.cq) | makes an 11-card record for each sound and pause, with six cards of the sound's row of the phoneme table | 93 | 6,508 |
+| feat | [front/feat.cq](front/feat.cq) | makes a record of five cards for each sound and pause; the host adds six cards of its row of the phoneme table | 81 | 2,820 |
 | after | [front/after.cq](front/after.cq) | last first: whether a vowel comes later in the word, and the stress of the next vowel | 38 | 1,773 |
 | ahead | [front/ahead.cq](front/ahead.cq) | last first: the kind of the next sound, whether the word comes before a pause, and a vowel's Klatt rule 9 factor | 93 | 3,304 |
-| next | [front/next.cq](front/next.cq) | last first: the next sound that isn't a pause, the next vowel, and each sound's start and end filters | 76 | 3,045 |
+| next | [front/next.cq](front/next.cq) | last first: the next sound that isn't a pause, the next vowel, and each sound's start and end filters | 72 | 2,735 |
 | stress | [front/stress.cq](front/stress.cq) | a consonant's stress, and whether a sound is in its word's last syllable or before a pause | 88 | 4,090 |
 | base | [front/base.cq](front/base.cq) | the inherent and minimum durations, halving the minimum for an unstressed sound (rules 7 and 11) | 61 | 2,740 |
-| rules2 | [front/rules2.cq](front/rules2.cq) | Klatt's duration rules 2 to 7, as a list of factors in hundredths | 93 | 3,209 |
-| rules9 | [front/rules9.cq](front/rules9.cq) | Klatt's duration rules 9 and 10, as a list of factors | 77 | 2,830 |
-| mul | [front/mul.cq](front/mul.cq) | multiplies the factors into PRCNT and works out the duration in milliseconds | 81 | 16,245 |
+| rules2 | [front/rules2.cq](front/rules2.cq) | Klatt's duration rules 2 to 4, as factors in hundredths | 58 | 2,197 |
+| rules5 | [front/rules5.cq](front/rules5.cq) | Klatt's duration rules 5 to 7 | 80 | 2,922 |
+| rules9 | [front/rules9.cq](front/rules9.cq) | Klatt's duration rules 9 and 10 | 89 | 3,034 |
+| mul | [front/mul.cq](front/mul.cq) | multiplies the factors into PRCNT and works out the duration in milliseconds | 81 | 43,393 |
 | nframes | [front/nframes.cq](front/nframes.cq) | turns durations into whole 25 ms frames, carrying the remainder on | 64 | 5,527 |
 | back | [front/back.cq](front/back.cq) | the sound before each one: its end filter, whether it is a vowel, whether it is P, T or K | 41 | 2,224 |
-| sum | [front/sum.cq](front/sum.cq) | one summary a sentence for the pitch: its length in frames and where the final fall starts | 89 | 2,470 |
-| framer | [front/framer.cq](front/framer.cq) | each frame's place in its sound in tenths, and the weights of the glides at the sound's ends | 94 | 30,825 |
-| closure | [front/closure.cq](front/closure.cq) | how many of a stop's or affricate's frames are its closure | 79 | 1,472 |
-| main | [front/main.cq](front/main.cq) | the filters a sound's frames speak through, and whether they are voiced | 90 | 3,375 |
-| edge | [front/edge.cq](front/edge.cq) | a voiced stop's voice bar, and the breathy first frame after P, T or K | 63 | 2,064 |
-| choose | [front/choose.cq](front/choose.cq) | each frame's two target filters, and whether it sounds and is voiced | 92 | 13,049 |
-| glides | [front/glides.cq](front/glides.cq) | at a sound's first and last frames, the filters to glide from and how far | 64 | 10,544 |
-| glidea | [front/glidea.cq](front/glidea.cq) | fetches the two target filters and blends them by the frame's place | 67 | 95,672 |
-| glideb | [front/glideb.cq](front/glideb.cq) | blends the frame's filter towards halfway to its neighbour's at the sound's ends | 77 | 130,132 |
-| decl | [front/decl.cq](front/decl.cq) | the pitch falling from 130 Hz to 100 Hz across the sentence | 59 | 8,424 |
-| rise | [front/rise.cq](front/rise.cq) | the rise at a stressed vowel, 15 or 7 percent, fading across the vowel | 89 | 10,543 |
-| taily | [front/taily.cq](front/taily.cq) | how far each frame is into the sentence's final fall, in hundredths | 76 | 10,369 |
+| sum | [front/sum.cq](front/sum.cq) | for each sentence, its length in frames and where the final fall starts | 96 | 2,974 |
+| closure | [front/closure.cq](front/closure.cq) | how many of a stop's or affricate's frames are its closure | 78 | 1,635 |
+| main | [front/main.cq](front/main.cq) | the filters a sound's frames speak through, and whether they are voiced | 88 | 3,591 |
+| edge | [front/edge.cq](front/edge.cq) | a voiced stop's voice bar, and the breathy first frame after P, T or K | 62 | 2,338 |
+| loud | [front/loud.cq](front/loud.cq) | the loudness a sonorant takes from the vowel next to it | 30 | 1,544 |
+| fill | [front/fill.cq](front/fill.cq) | last first: hands each sentence's summary to all its segments | 30 | 1,199 |
+| framer | [front/framer.cq](front/framer.cq) | each frame's place in its segment in tenths, and the weights of the glides at the segment's ends | 94 | 30,825 |
+| sents | [front/sents.cq](front/sents.cq) | which frames start a sentence, for the pitch | 20 | 3,243 |
+| spreada | [front/spread.cq](front/spread.cq) | deals each frame its segment's cards for choose | 35 | 21,815 |
+| spreadb | [front/spread.cq](front/spread.cq) | deals each frame its segment's cards for glides, the pitch and the level | 35 | 12,311 |
+| spreadc | [front/spread.cq](front/spread.cq) | deals each frame its sentence's summary and its segment's loudness | 35 | 17,063 |
+| choose | [front/choose.cq](front/choose.cq) | each frame's two target filters, and whether it sounds and is voiced | 86 | 13,287 |
+| glides | [front/glides.cq](front/glides.cq) | at a segment's first and last frames, the filters to glide towards and how far | 58 | 9,402 |
+| glidea | [front/glidea.cq](front/glidea.cq) | asks for the two target filters and blends them by the frame's place | 67 | 95,672 |
+| glideb | [front/glideb.cq](front/glideb.cq) | asks for the two filters at the segment's end and blends the frame's filter towards halfway between them | 77 | 130,132 |
+| decl | [front/decl.cq](front/decl.cq) | the pitch falling from 130 Hz to 100 Hz across the sentence | 41 | 7,056 |
+| rise | [front/rise.cq](front/rise.cq) | the rise at a stressed vowel, 15 or 7 percent, fading across the vowel | 83 | 9,401 |
+| taily | [front/taily.cq](front/taily.cq) | how far each frame is into the sentence's final fall, in hundredths | 60 | 9,633 |
 | tailf | [front/tailf.cq](front/tailf.cq) | the final fall to 85 Hz or rise to 160 Hz | 75 | 7,564 |
-| period | [front/period.cq](front/period.cq) | the pitch period, 8000 / f0 samples rounded, by repeated subtraction | 44 | 296,163 |
-| lsel | [front/lsel.cq](front/lsel.cq) | for a sonorant, the loudness of the vowel next to it | 66 | 7,442 |
-| vsel | [front/vsel.cq](front/vsel.cq) | for a vowel, 3 dB down when unstressed and the fall across the vowel | 57 | 9,635 |
+| period | [front/period.cq](front/period.cq) | the pitch period, 8000 / f0 samples, by repeated subtraction | 44 | 296,163 |
+| lsel | [front/lsel.cq](front/lsel.cq) | for a sonorant, the loudness to multiply by | 45 | 6,276 |
+| vsel | [front/vsel.cq](front/vsel.cq) | for a vowel, 3 dB down when unstressed and the fall across the vowel | 51 | 8,493 |
 | psel | [front/psel.cq](front/psel.cq) | for a voiced frame, sqrt(60 P) / 100 by counting odd numbers | 73 | 200,726 |
-| mulx1 | [front/mulx.cq](front/mulx.cq) | multiplies the gain by `lsel`'s factor | 89 | 5,573 |
-| mulx2 | [front/mulx.cq](front/mulx.cq) | multiplies by `vsel`'s stress factor | 89 | 7,038 |
-| mulx3 | [front/mulx.cq](front/mulx.cq) | takes off `vsel`'s fall across the vowel | 89 | 10,617 |
-| mulx4 | [front/mulx.cq](front/mulx.cq) | multiplies by `psel`'s square root | 89 | 12,811 |
-| gnorm | [front/gnorm.cq](front/gnorm.cq) | for a frame that glides towards its neighbour, the factor from the glide table that puts its power back | 59 | 422,671 |
-| mulx5 | [front/mulx.cq](front/mulx.cq) | multiplies by `gnorm`'s factor, at most 999 | 89 | 11,025 |
-| kcarry | [front/kcarry.cq](front/kcarry.cq) | gives a silent frame the filter of the frame before it | 41 | 32,118 |
-| asm | [front/asm.cq](front/asm.cq) | puts each frame together as the voice box reads it, V, P, A, K10 to K1, and ends with -1 | 80 | 33,700 |
-| | | **36 machines** | | **1,427,517** |
+| gnorm | [front/gnorm.cq](front/gnorm.cq) | for a frame that glides, asks for its record of the glide table and takes the factor that puts its power back | 68 | 1,081,699 |
+| mulx1 | [front/mulx.cq](front/mulx.cq) | multiplies the gain by lsel's factor | 89 | 5,573 |
+| mulx2 | [front/mulx.cq](front/mulx.cq) | multiplies by vsel's stress factor | 89 | 7,038 |
+| mulx3 | [front/mulx.cq](front/mulx.cq) | takes off vsel's fall across the vowel | 89 | 10,617 |
+| mulx4 | [front/mulx.cq](front/mulx.cq) | multiplies by psel's square root | 89 | 12,811 |
+| mulx5 | [front/mulx.cq](front/mulx.cq) | multiplies by gnorm's factor, at most 999 | 89 | 11,025 |
+| kcarry | [front/kcarry.cq](front/kcarry.cq) | gives a silent frame the filter of the frame before it | 46 | 65,116 |
+| asm | [front/asm.cq](front/asm.cq) | puts each frame together as the voice box reads it, V, P, A, K10 to K1, and ends with -1 | 72 | 46,820 |
+| | | **43 machines** | | **2,209,801** |
 
-### Voice box (10 machines)
+### Voice box (11 machines)
 
 | Machine | Listing | What it does | Cells | Instructions | Per sample |
 |---|---|---|---:|---:|---:|
-| interp | [voice/interp.cq](voice/interp.cq) | each value's step to the next frame, none across a change of voicing | 63 | 57,167 | 0.9 |
-| steps | [voice/steps.cq](voice/steps.cq) | ten steps of 20 samples a frame, each value moved on by its step, and the step's A with each K | 65 | 575,182 | 9.2 |
+| interp | [voice/interp.cq](voice/interp.cq) | each value's step to the next frame, none across a change of voicing | 37 | 52,886 | 0.8 |
+| steps | [voice/steps.cq](voice/steps.cq) | ten steps of 20 samples a frame: V, P and A for the excitation | 28 | 45,788 | 0.7 |
+| ksteps | [voice/ksteps.cq](voice/ksteps.cq) | the ten Ks of each step, each after the step's A, for reduce | 65 | 678,472 | 10.8 |
 | reduce | [voice/reduce.cq](voice/reduce.cq) | each K as the five cards of a multiply routine, rounding or (in a pause) truncating | 89 | 1,339,924 | 21.4 |
 | excite | [voice/excite.cq](voice/excite.cq) | pulses every P samples through a one-pole low-pass, or random plus and minus A | 63 | 1,555,432 | 24.8 |
 | L1 | [voice/lattice_top.cq](voice/lattice_top.cq) | lattice stages 10 and 9 | 89 | 6,271,363 | 100.2 |
@@ -313,21 +333,17 @@ column also gives the count per sample.
 | L4 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 4 and 3 | 93 | 7,716,503 | 123.3 |
 | L5 | [voice/lattice_bottom.cq](voice/lattice_bottom.cq) | lattice stages 2 and 1 | 94 | 8,264,774 | 132.0 |
 | output | [voice/output.cq](voice/output.cq) | the de-emphasis, and each sample as thousands and units | 58 | 2,631,875 | 42.0 |
-| | | **10 machines** | | **43,480,439** | **694.6** |
+| | | **11 machines** | | **43,625,236** | **696.9** |
 
-All together the 65 machines ran 45,783,161 instructions for 7.83 seconds of speech, which is about 5.9 million
-instructions a second of speech, or 731 a sample. The voice box does 95 percent of that work, and the five lattice
-machines alone do 82 percent. The text machines and the front end run 2.3 million instructions between them, and
-most of those go to reading through decks (`filter`, `excl`, `gnorm`) and to the division and square root done by
-subtraction (`period`, `psel`). The largest listings, `excl` at 96 cells and `L5` at 94, are close to the 97 a
-program can have.
+All together the 79 machines ran 46,691,635 instructions for 7.83 seconds of speech, which is about 6.0 million
+instructions a second of speech, or 746 a sample. The voice box does 93 percent of that work, and the five lattice
+machines alone do 80 percent. The text machines and the front end run 3.1 million instructions between them, and
+most of those go to reading through decks and table records (`gnorm`, `right`, `left`, `excx`) and to the division
+and square root done by subtraction (`period`, `psel`).
 
-The cards add up the same way. The 65 programs load 9,980 program cards between them. Running the sentence, the
-machines read 1,204,677 cards with INP and put out 1,146,004 values with OUT, almost all of them in the voice box,
+The cards add up the same way. The 79 programs load 10,772 program cards between them. Running the sentence, the
+machines read 1,115,002 cards with INP and put out 1,039,545 values with OUT, almost all of them in the voice box,
 where every sample passes up and down the lattice. `talk -v` prints these counts after the instruction counts.
-
-[`text/exc.cq`](text/exc.cq) is in the repo but no machine runs it. It is the first version of the lookup that
-`excl` and `excp` now do between them.
 
 ## Comparison with other speech generators
 
@@ -346,9 +362,9 @@ synthesizer is not Klatt's formant synthesizer, though. Klatt's formants are tur
 once, ahead of time, and the CARDIACs only blend those. The Votrax and the SP0256 string stored sounds together, and
 cardiac-speech instead works out every frame of every sound from its neighbours.
 
-The cost on a CARDIAC is large. One second of speech takes about 5.9 million CARDIAC instructions over 65 machines,
-and at 8,000 samples a second that is 731 instructions a sample. Under heartburn on this Mac, the 65 machines take
-turns on one thread, and the sentence takes 0.080 seconds, a real-time factor of 0.0102.
+The cost on a CARDIAC is large. One second of speech takes about 6.0 million CARDIAC instructions over 79 machines,
+and at 8,000 samples a second that is 746 instructions a sample. Under heartburn on this Mac, the 79 machines take
+turns on one thread, and the sentence takes about 0.078 seconds, a real-time factor of about 0.010.
 
 ## Reliance on lubdub
 
@@ -374,24 +390,54 @@ against.
 
 ## What the host does and doesn't do
 
-The host, [`src/net.rs`](src/net.rs), keeps piles of cards. A machine waiting at an INP is given the next card from
-the pile wired to that INP's cell, and each value a machine outputs goes onto the pile wired to that OUT's cell. On
-top of that the host can:
+The host, [`src/net.rs`](src/net.rs), keeps piles of cards. Each machine reads one pile, its deck, a card at a time,
+and everything it punches goes onto one pile, as a real CARDIAC has one card reader and one punch. The host never
+looks at a machine's program counter or its cells, nor at which instruction punched a card. What it does with the
+piles is bookkeeping, and none of it depends on what a card says, except a fetch:
 
-- **deal** a pile's cards a few at a time to several piles in turn, as it deals each lattice machine its ten
-  coefficient cards a step;
-- **copy** every card put on a pile onto several piles, when several machines read the same deck;
+- **deal** a pile's cards a few at a time to several piles in turn, or by a fixed pattern (so many to this pile,
+  then so many to that one), as it deals each lattice machine its ten coefficient cards a step, and each lattice
+  machine's two cards a sample, its b for the machine above and its f for the one below;
+- **copy** every card put on a pile onto several piles, when several machines read the same cards;
 - **collate** whole records from several piles into one, picking some cards (columns) of each, as a collator merges
-  decks;
-- **fetch** a record of a table deck when a machine outputs its record number, as a librarian fetches a book by its
-  call number;
-- **cycle** a deck, dealing it again whenever a machine waits on it empty, as the rule deck is read through again
-  for every letter.
+  decks: most of the front end's decks are made so, a record a sound or a record a frame;
+- **merge** several piles into one in a fixed order, so many cards from this one and then so many from that one,
+  over and over, each waiting its turn until it has its cards; a deck can be one of them, dealt again each time its
+  turn comes (the function words and the exceptions, after each word);
+- **fetch** a record of a table deck when a card names its record number, as a librarian fetches a book by its call
+  number: a character's row of the ASCII table, a phoneme's row, a filter, a glide record, a letter's rules, a
+  number word, a letter's name, an exception's phonemes. Some machines punch the numbers of the records they want
+  among their own cards (ask, glidea, glideb, gnorm), at fixed places, and the record comes back in their deck at
+  a fixed place.
+
+Where a machine needs two kinds of card, its deck is merged in an order that never depends on what they say:
+
+| Machine | Its deck, in order |
+|---|---|
+| L1 | ten coefficient cards, then 20 times one excitation value and one b from L2 |
+| L2, L3, L4 | ten coefficient cards, then 20 times one f from the machine above and one b from the machine below |
+| L5 | ten coefficient cards, then 20 f from L4 |
+| interp | the frames and the frames again from the second one on, a card from each in turn; twelve blank cards follow the frames' end card, to make it a whole record |
+| scan | the text, then the text again, each character followed by its ASCII record |
+| numf, names | each card, then the table record ask asked for |
+| excl, excx | each word's record of 17 cards, then the whole deck of function words (excl) or exceptions (excx) |
+| left, right | each letter's record (its place and the word), then the letter's record of the left or right rule table |
+| first | left's and right's verdicts on each rule, one from each in turn |
+| pick | each letter's record, then first's rule, then the letter's record of the phonemes table |
+| glidea | the frame's two filters' numbers and its tenths, then the two filters a card from each in turn |
+| glideb | the frame's two filters' numbers and its weight, then for each K the two filters' cards and glidea's K |
+| gnorm | the frame's filters and weight, then the glide table's record it asked for |
+| asm | the frame's level, its period, its filter, and then the next frame's snd and V (choose's cards dealt again from the second frame on) |
+| next, loud | first a card of AX's row of the phoneme table, then their records |
+
+Where a machine kept cards on a pile of its own, it now keeps them in its cells, and where it read some cards only
+sometimes, it now reads the same number every time: each duration rule gives a factor, 100 where it doesn't apply
+(multiplying by 100 leaves PRCNT exactly as it is), and every card gets its table record, passed over when it isn't
+needed. Only the order of the cards changed, never the arithmetic.
 
 Between the phases of the front end, the host puts the segment records in the opposite order and then back again.
 It turns the text into cards, one ASCII code a character (anything that isn't ASCII becomes a space), and it joins
-each pair of output values into a 16-bit sample. It never looks at what a card says, except that a fetch uses a card
-as a record number.
+each pair of output values into a 16-bit sample.
 
 The host does no arithmetic on the speech. Durations, frames, pitch, filters, glides, levels, interpolation,
 excitation, the filter itself and the output are all worked out by the CARDIACs.
@@ -412,7 +458,8 @@ each glide weight, the factor (in percent) that brings the glided filter's power
 
 The other decks are not computations. [`text/`](text/) holds the ASCII table, the number words, the letters'
 names, the function words and exceptions and their phonemes, and the NRL rules, all as cards transcribed from the
-prototype's tables.
+prototype's tables by [`ref/text_tables.py`](ref/text_tables.py), which also lays the rules out again as three
+tables of one record a letter and splits the exceptions deck in two, the same cards in the same order.
 
 ## How it was checked
 
@@ -438,17 +485,18 @@ NAME --noplay`). The frame files check_voice reads, in `ref/fixtures/`, were mad
 front end; they are test input for the voice box only.
 
 There are also tests of single machines on `ref/cardiac.py`, a CARDIAC written in Python for trying programs
-quickly. `run_tests.py f1 f2a f2b f2c stress base rules2 rules9 mul nframes back sum framer closure main edge choose
-glides glidea glideb level asm pitch` tests each front-end machine on 23 sentences, `test_text_m.py scan numd numw
-say3 numf spcls spell names excl excp match posta postb postc join` tests each text machine on the 929 texts,
-`test_lattice.py` tests the five lattice machines with awkward coefficients, and `test_voice.py` and
-`test_front_net.py` run the voice box and the whole front end. All of them reported exact. These need `carc`, heartburn's assembler, on the PATH.
+quickly, wired as the host wires them (`ref/nets.py`). `run_tests.py` runs the front end on 23 sentences and checks
+what each of its machines punches against the references (`run_tests.py feat glidea ...` for some of them),
+`test_text_m.py` does the same for the text machines on the 929 texts (excp, letters and postb are checked through
+the machines after them, and left, right, first and pick together as match), `test_lattice.py` tests the five
+lattice machines with awkward coefficients, and `test_voice.py` and `test_front_net.py` run the voice box and the
+whole front end. All of them reported exact. These need `carc`, heartburn's assembler, on the PATH.
 
 ## Known limits
 
-- **Words of at most 13 letters.** `loader` and the two context machines hold the word in cells 85 to 97, with an
-  edge after it in 98. A longer word overruns, and its phonemes come out wrong. "extraordinary" (13 letters) is
-  right, and "Constantinople" (14) gets an extra phoneme at the end.
+- **Words of at most 13 letters.** `spell` and `items` keep 13 letters of a word, and the rule machines a word of
+  13 letters with an edge on each side; the letters of a longer word past the 13th are dropped, and its phonemes
+  come out wrong. "extraordinary" (13 letters) is right.
 - **A fixed level and no clipping.** The scale is set once in the phoneme table (C = 36 in `ref/table.py`), chosen so
   that the loudest test sentences stay well inside a cell in the lattice. Over the 23 test sentences, four longer
   passages (among them the CARDIAC manual's opening paragraph) and eleven sentences chosen to be loud (open back

@@ -1,4 +1,4 @@
-; The fall itself. Per frame three cards in: the pitch so far b (INP at gb), and y and the end from taily; out, f0.
+; The fall itself. Per frame three cards in: the pitch so far b, and y and the end from taily; out, f0.
 ; With y -1, b. Else delta = goal - b (goal 85 for a statement, 160 for a question) and t = delta y, Horner over
 ; y's three digits with SFT 10s, each digit times delta a jump into the row of nine ADD dl (90-98, into 99); f0 = b
 ; + t / 100 for a question, b + ((t / 10) 8) / 100 for a statement. t stays in the accumulator; the jump at aft,

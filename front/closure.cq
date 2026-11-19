@@ -1,7 +1,7 @@
-; Three cards a segment in (pc, kind, n), one out: c, how many of the segment's frames are its closure. All of a
+; Five cards a segment in (pc, kind, n, and the CINH and CTOT cards of row pc of the phoneme table), one out: c, how many of the segment's frames are its closure. All of a
 ; pause's; all but the last of a stop's (the last is the burst); of an affricate's, (n CINH + CTOT / 2) / CTOT, at
-; least 1 and at most n - 1, with CINH (the closure's inherent ms) and CTOT (closure and frication's) from the
-; table (OUT at ask); none of anything else. The division is n steps of adding CINH and taking away CTOT.
+; least 1 and at most n - 1, with CINH (the closure's inherent ms) and CTOT (closure and frication's); none of
+; anything else. The division is n steps of adding CINH and taking away CTOT.
 ;
 ; Address Contents Label Opcode Operand Comment
   03            rec     INP   pc       03-29: a segment: a pause, a stop

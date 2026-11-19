@@ -1,5 +1,5 @@
 ; A voiced frame's level grows with its pitch period: times sqrt(60 P) / 100, so its pulses carry the power of the
-; frame whatever the pitch. Per frame three cards in: snd and V (INP at gs, gv), and P (INP at gp); two out, the
+; frame whatever the pitch. Per frame three cards in: snd and V, and P; two out, the
 ; mode and factor for mulx: a sounding voiced frame mode 1 and 10 r, r = isqrt(60 P), else mode 0. The root counts
 ; the odd numbers 1, 3, 5 ... that can be taken away from 60 P, which is kept as thousands (hi) and units (lo):
 ; 6 P, then hi = 6 P / 100 (SFT 02) and lo = 10 (6 P mod 100) (SFT 21).

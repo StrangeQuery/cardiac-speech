@@ -1,5 +1,5 @@
-; The glide. Three cards a frame in (gn, go, w), and the frame's ten Ks from glidea (INP at gk); it asks the host
-; for filters gn (OUT at askn, cards at INP gx) and go (OUT at asko, cards at INP gy). For each K, m = (5 Kgn + 5
+; The glide. Three cards a frame in (gn, go, w); it punches gn and go, the numbers of the filters it asks the host
+; for, and reads for each K the card of gn's, the card of go's and glidea's K, then the two gains. For each K, m = (5 Kgn + 5
 ; Kgo) / 10, halfway between them, and out goes (m (10 - w) + K w) / 10 to the assembler: with w 10, K itself. The
 ; two filters' gains are read and dropped.
 ;

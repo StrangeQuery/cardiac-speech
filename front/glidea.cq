@@ -1,6 +1,7 @@
-; A frame's filter from its two targets. Three cards a frame in (a, b, u); it asks the host for filter a (OUT at
-; aska, cards at INP ga) and filter b (OUT at askb, cards at INP gb), eleven cards each: K10..K1 and the gain G. Out,
-; each of the eleven blended, (x (10 - u) + y u) / 10: the Ks to the glide machine, G to the level (OUT at og).
+; A frame's filter from its two targets. Three cards a frame in (a, b, u); it punches a and b, the numbers of the
+; filters it asks the host for, and reads their cards side by side (a card of a's, then the same card of b's),
+; eleven each: K10..K1 and the gain G. Out, after the two numbers, each of the eleven blended,
+; (x (10 - u) + y u) / 10: the Ks for glideb, G for the level.
 ; The blend runs 10 - u ADDs of x and u ADDs of y in two rows, each entered by a jump set once a frame, then SFT 01.
 ;
 ; Address Contents Label Opcode Operand Comment

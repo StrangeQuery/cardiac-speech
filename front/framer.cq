@@ -1,5 +1,5 @@
 ; A segment's frames. Two cards a segment in (n, send); for each frame j out, five cards to the chooser (j, u, wl,
-; wr, end) and u again to the pitch (OUT at up) and the level (OUT at ul). u = (10 j + 5) / n, the frame's place in
+; wr, end) and u twice more, for the pitch and the level. u = (10 j + 5) / n, the frame's place in
 ; the segment in tenths, by taking n away. wl and wr weigh the glides at the segment's start and end: the first frame
 ; 3 and the second 9 when n is 4 or more, the first 3 when n is 3, 5 when n is 2. end is 1 for the last frame of the
 ; pause that ends everything (send 3).

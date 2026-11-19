@@ -121,12 +121,13 @@ def run_alone(path, cards, budget=10 ** 9):
 
 class Net:
     """Machines wired as the host wires them (src/net.rs): each machine reads one pile and punches onto one pile.
-    Cards put on a pile are kept, or dealt (deal[pile] = (n, [piles]): n at a time to the piles in turn), copied
+    Cards put on a pile are kept, or dealt (deal[pile] = (n, [piles]): n at a time to the piles in turn; split[pile]
+    = [(pile, n), ...]: so many to each pile in turn), copied
     (fan[pile] = [piles]), fetched (fetch[pile] = (table, size, off, count, to): each card names a record of the
     table, whose cards off to off + count go onto `to`), or passed on after the first few (after[pile] = (n, to)).
     collate(out, [(pile, size, columns)]) puts whole records together; merge(out, [(pile, n)], decks) takes n cards
     from each pile in turn, over and over (n 0: all from then on; a pile 'deck:NAME' is decks[NAME], dealt again
-    each time its turn comes)."""
+    each time its turn comes). punched[name] is everything a machine has punched."""
     def __init__(self):
         self.machines = {}
         self.wires = {}
@@ -139,6 +140,9 @@ class Net:
         self.seen = {}
         self.collates = []
         self.merges = []
+        self.split = {}        # pile -> [(pile, n)]: dealt by that pattern, round and round
+        self.splat = {}
+        self.punched = {}      # name -> every card the machine has punched
 
     def add(self, name, path, inp, out):
         deck, labels = assemble(path)
@@ -160,6 +164,15 @@ class Net:
             table, size, off, count, to = self.fetch[pile]
             assert c >= 0 and c * size + off + count <= len(table), (pile, c)
             self.put(to, table[c * size + off:c * size + off + count])
+        elif pile in self.split:
+            pat = self.split[pile]
+            at, taken = self.splat.get(pile, (0, 0))
+            to, n = pat[at]
+            taken += 1
+            if taken == n:
+                at, taken = (at + 1) % len(pat), 0
+            self.splat[pile] = (at, taken)
+            self.put1(to, c)
         elif pile in self.deal:
             n, to = self.deal[pile]
             k = self.dealt.get(pile, 0)
@@ -229,6 +242,7 @@ class Net:
                     if not q:
                         continue
                     mc.push([q.pop(0)])
-                state[n] = mc.run(lambda cell, v, o=outp: self.put1(o, v))
+                tap = self.punched.setdefault(n, [])
+                state[n] = mc.run(lambda cell, v, o=outp, t=tap: (t.append(v), self.put1(o, v)))
                 moved = True
         return state

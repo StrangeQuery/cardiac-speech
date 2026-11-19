@@ -1,4 +1,4 @@
-; f0 in Hz in, the pitch period out (to the level, OUT at pl, and the assembler, OUT at pa): P = (8000 + f0 / 2) /
+; f0 in Hz in, the pitch period out twice (for the level and the assembler): P = (8000 + f0 / 2) /
 ; f0 samples, by taking f0 away as often as it goes. 8000 + f0 / 2 is more than a cell holds, so it is kept as
 ; thousands (hi) and units (lo), borrowing a thousand from hi when lo goes below 0.
 ;

@@ -1,9 +1,9 @@
-; Five cards a segment in (pc, kind, ts, te, nxtpc), five out: the filters of the segment's sounding frames, ma
+; Nine cards a segment in (pc, kind, ts, te, nxtpc, the VOICED, NOISE and ALT cards of row pc of the phoneme
+; table, and the BACK card of row nxtpc), five out: the filters of the segment's sounding frames, ma
 ; and mb (they glide from ma to mb by u when uon is 1, a vowel), vm (voiced) and gl (glides at the ends). A vowel,
 ; sonorant, nasal or HH speaks through its own targets, ts to te, with glides; HH unvoiced. A fricative or
 ; affricate through its noise filter (NOISE), voiced as the table says (VOICED); a stop's burst through NOISE,
-; unvoiced, or through its back form (ALT) when it has one and the next sound is a back vowel (BACK of row nxtpc,
-; OUT at askb). The table's cards VOICED NOISE ALT come from OUT at ask.
+; unvoiced, or through its back form (ALT) when it has one and the next sound is a back vowel (BACK).
 ;
 ; Address Contents Label Opcode Operand Comment
   03            rec     INP   pc       03-22: a segment; a pause: nothing

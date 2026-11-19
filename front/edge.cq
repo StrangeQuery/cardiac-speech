@@ -1,7 +1,8 @@
-; Five cards a segment in (pc, kind, n, pvls, pnpk), two out: cf, the filter of a stop's closure (its voice bar,
+; Ten cards a segment in (pc, kind, n, pvls, pnpk, and the ASP VOICED NOISE ALT VBAR cards of row pc of the
+; phoneme table), two out: cf, the filter of a stop's closure (its voice bar,
 ; VBAR, when the stop is voiced and the sound before it is a vowel, sonorant or nasal; else 0, silence), and af,
 ; the aspirated filter (ASP) a vowel or sonorant speaks its first frame through when it comes right after P T K
-; (pvls) and has more than one frame; else 0. The table's cards ASP VOICED NOISE ALT VBAR come from OUT at ask.
+; (pvls) and has more than one frame; else 0.
 ;
 ; Address Contents Label Opcode Operand Comment
   03            rec     INP   pc       03-36: a segment: does it need the table

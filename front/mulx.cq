@@ -1,5 +1,5 @@
-; One step of a frame's level. Per frame five cards in: snd and V and A (INP at gs, gv, ga), and a mode and a
-; factor y (INP at gm, gy); three out (snd, V, A). Mode 0 leaves A, 1 makes it A y / 1000, 2 makes it A - A y /
+; One step of a frame's level. Per frame five cards in: snd and V and A, and a mode and a
+; factor y; three out (snd, V, A). Mode 0 leaves A, 1 makes it A y / 1000, 2 makes it A - A y /
 ; 1000, 3 makes it 0, 4 makes it A y / 100, at most 999. A y / 1000 is Horner over y's three digits c, b, a: c A,
 ; SFT 01, + b A, SFT 01, + a A, SFT 01, each digit times A a jump into the row of nine ADD xr (90-98), which runs
 ; into 99 and back; for A y / 100 the last shift (fin) is set to SFT 00.

@@ -1,115 +1,126 @@
-"""Each text machine under the dev emulator against its reference."""
+"""Each text machine under the dev emulator against its reference, on the 929 test texts: the text machines run as
+the host wires them (nets.text), and each machine's punched cards are checked against what text_ref says it
+punches, in its own layout. `python3 test_text_m.py` checks every machine; `test_text_m.py scan numd ...` the
+ones named (match is left, right, first and pick together)."""
 import sys
-import cardiac
+import nets
 import text_ref as tr
 import test_text as T
 
-TX = '../text/'
+
+def numd_cards(cards):
+    """numd's cards: as text_ref.numd, but the six digits held as two numbers of three digits (-15, count, hi, lo),
+    and a number of seven digits or more as -17, hi and lo (its first six) and then 700 + each digit after."""
+    out = []
+    for c in tr.numd(cards):
+        out.append(c)
+    # rebuild from text_ref.numd's cards: -15, n, six digits -> -15, n, hi, lo; a run of 700 + d of seven or more
+    res, i = [], 0
+    while i < len(out):
+        c = out[i]
+        if c == -15:
+            n, ds = out[i + 1], out[i + 2:i + 8]
+            res += [-15, n, 100 * ds[0] + 10 * ds[1] + ds[2], 100 * ds[3] + 10 * ds[4] + ds[5]]
+            i += 8
+        elif 700 <= c <= 709:
+            j = i
+            while j < len(out) and 700 <= out[j] <= 709:
+                j += 1
+            ds = [x - 700 for x in out[i:i + 6]]
+            res += [-17, 100 * ds[0] + 10 * ds[1] + ds[2], 100 * ds[3] + 10 * ds[4] + ds[5]] + out[i + 6:j]
+            i = j
+        else:
+            res.append(c)
+            i += 1
+    return res
 
 
-def run(listing, piles, inp, out, fetch=None, cycle=None):
-    net = cardiac.Net()
-    net.add('m', TX + listing, inp, out)
-    for p, f in (fetch or {}).items():
-        net.fetch[p] = f
-        net.piles.setdefault(f[4], [])
-    for p, cards in piles.items():
-        net.put(p, cards)
-    net.run()
-    return net
+def items(cards):
+    """items's records: each run of cards 0 or more and the card below 0 after it: that card, n, and the run (13
+    cards at most) with an edge on each side, padded to 15."""
+    out, run = [], []
+    for c in cards:
+        if c >= 0:
+            if len(run) < 13:
+                run.append(c)
+        else:
+            w = [28] + run + [28]
+            out += [c, len(run)] + w + [0] * (15 - len(w))
+            run = []
+    return out
 
 
-def check(label, got, want):
+RULES = {-13: -21, -14: -22}
+
+
+def expected(t):
+    s = tr.scan(t)
+    e = {'scan': s, 'numd': numd_cards(s)}
+    a = tr.numd(s)
+    e['unpack'] = a
+    b = tr.numg(a)
+    e['numw'] = b
+    c = tr.say3(b)
+    e['say3'] = c
+    e['ask1'] = [x for v in c for x in ((v % 100 if v >= 700 else 0), v)]
+    d = tr.numf(c)
+    e['numf'] = d
+    sp = tr.spdec(d)
+    e['spcls'] = sp
+    sm = tr.spmark(sp)
+    e['spell'] = sm
+    e['ask2'] = [x for v in sm for x in ((v % 100 if v >= 100 else 0), v)]
+    f = tr.spell(sm)
+    e['names'] = f
+    it = items(f)
+    e['items'] = it
+    recs = [it[i:i + 17] for i in range(0, len(it), 17)]
+    g1 = tr.excl(f)
+    fl, ks, i = [], [], 0
+    while i < len(g1):
+        if g1[i] == -99:
+            fl.append(g1[i + 1])
+            ks.append(-g1[i + 2] - 100 if g1[i + 2] else 0)
+            i += 3
+        else:
+            if g1[i] < 0:
+                fl.append(0)
+                ks.append(0)
+            i += 1
+    e['excl'], e['excx'] = fl, ks
+    g = tr.exc(f)
+    e['match'] = [RULES.get(x, x) for x in tr.rules(g)]
+    h = tr.posta(tr.rules(g))
+    e['posta'] = [RULES.get(x, x) for x in h]
+    i2 = tr.postb(h)
+    e['posth'] = i2
+    e['postc'] = tr.postc(i2)
+    e['join'] = tr.join(tr.postc(i2))
+    return e
+
+
+MACHINES = ['scan', 'numd', 'unpack', 'numw', 'say3', 'ask1', 'numf', 'spcls', 'spell', 'ask2', 'names', 'items',
+            'excl', 'excx', 'match', 'posta', 'posth', 'postc', 'join']
+
+
+def check(name, got, want, label):
     if got != want:
         i = next((i for i in range(min(len(got), len(want))) if got[i] != want[i]), min(len(got), len(want)))
-        print('  %s DIFFER at %d: got %s want %s (%d %d)' % (label, i, got[max(0, i - 3):i + 8], want[max(0, i - 3):i + 8], len(got), len(want)))
+        print('  %s %s DIFFER at %d: got %s want %s (%d %d)' % (name, label, i, got[max(0, i - 3):i + 8],
+                                                              want[max(0, i - 3):i + 8], len(got), len(want)))
         return False
     return True
 
 
-def stage(name, t):
-    s = tr.scan(t)
-    if name == 'scan': return None, s
-    a = tr.numd(s)
-    if name == 'numd': return s, a
-    b = tr.numg(a)
-    if name == 'numw': return a, b
-    c = tr.say3(b)
-    if name == 'say3': return b, c
-    d = tr.numf(c)
-    if name == 'numf': return c, d
-    e = tr.spdec(d)
-    if name == 'spcls': return d, e
-    e2 = tr.spmark(e)
-    if name == 'spell': return e, e2
-    f = tr.spell(e2)
-    if name == 'names': return e2, f
-    g1 = tr.excl(f)
-    if name == 'excl': return f, g1
-    g = tr.excp(g1)
-    assert g == tr.exc(f)
-    if name == 'excp': return g1, g
-    h = tr.rules(g)
-    if name == 'match': return g, h
-    i1 = tr.posta(h)
-    if name == 'posta': return h, i1
-    i2 = tr.postb(i1)
-    if name == 'postb': return i1, i2
-    i = tr.postc(i2)
-    if name == 'postc': return i2, i
-    return i, tr.join(i)
-
-
-def chars(t):
-    return [ord(c) for c in t] + [-1]
-
-
-def match_net(cards):
-    net = cardiac.Net()
-    net.add('loader', TX + 'loader.cq', {'ga': 'adv', '*': 'in'},
-            {'let': 'wl', 'lend': 'wl', 'el': 'pl', 'pl1': 'pl', 'pl2': 'pl', 'er': 'pr', 'pr1': 'pr', 'pr2': 'pr', '*': 'flt'})
-    net.fan['wl'] = ['wl_l', 'wl_r']
-    net.add('filter', TX + 'filter.cq', {'gd': 'deck', 'fwd': 'deck', '*': 'flt'}, {'*': 'rin'})
-    net.cycle['deck'] = tr.RULES
-    net.add('rule', TX + 'rule.cq', {'vd': 'vl', 'gr': 'vr', '*': 'rin'},
-            {'ol': 'cl', 'dl': 'cl', 'or': 'cr', 'dr': 'cr', 'al': 'adv', 'no': 'adv', '*': 'out'})
-    net.add('ctxl', TX + 'ctx.cq', {'gw': 'wl_l', 'lett': 'pl', 'gdir': 'pl', '*': 'cl'}, {'*': 'vl'})
-    net.add('ctxr', TX + 'ctx.cq', {'gw': 'wl_r', 'lett': 'pr', 'gdir': 'pr', '*': 'cr'}, {'*': 'vr'})
-    for p in ('adv', 'in', 'out', 'pl', 'pr', 'cl', 'cr', 'vl', 'vr', 'rin', 'flt'):
-        net.piles.setdefault(p, [])
-    net.put('in', cards)
-    net.run()
-    return net
-
-
-SETUP = {
-    'scan': lambda t, i: run('scan.cq', {'in': chars(t) + chars(t)}, {'gc': 'ft', 'gv': 'ft', '*': 'in'}, {'ask': 'ask', '*': 'out'},
-                             {'ask': (tr.ASCII, 2, 0, 2, 'ft')}),
-    'numd': lambda t, i: run('numd.cq', {'in': i}, {'gb': 'self', 'gs': 'self', '*': 'in'}, {'keep': 'self', '*': 'out'}),
-    'numw': lambda t, i: run('numw.cq', {'in': i}, {'*': 'in'}, {'*': 'out'}),
-    'say3': lambda t, i: run('say3.cq', {'in': i}, {'*': 'in'}, {'*': 'out'}),
-    'spcls': lambda t, i: run('spcls.cq', {'in': i}, {'*': 'in'}, {'*': 'out'}),
-    'spell': lambda t, i: run('spell.cq', {'in': i}, {'gp': 'self', 'gp2': 'self', '*': 'in'}, {'keep': 'self', '*': 'out'}),
-    'names': lambda t, i: run('names.cq', {'in': i}, {'gn': 'ft', '*': 'in'}, {'ask': 'ask', '*': 'out'},
-                              {'ask': (tr.LETTERS, 8, 0, 8, 'ft')}),
-    'excl': lambda t, i: run('excl.cq', {'in': i, 'deck': tr.EXC * 400}, {'gw': 'self', 'gy': 'self', 'gz': 'self', 'gd': 'deck', '*': 'in'},
-                             {'keep': 'self', 'kw': 'self', 'ky': 'self', '*': 'out'}),
-    'excp': lambda t, i: run('excp.cq', {'in': i}, {'gw': 'self', 'gp': 'ft', '*': 'in'}, {'keep': 'self', 'ask': 'ask', '*': 'out'},
-                             {'ask': (tr.EXPHON, 12, 0, 12, 'ft')}),
-    'match': lambda t, i: match_net(i),
-    'posta': lambda t, i: run('posta.cq', {'in': i}, {'*': 'in'}, {'*': 'out'}),
-    'postb': lambda t, i: run('postb.cq', {'in': i}, {'gy': 'self', 'gw': 'self', '*': 'in'}, {'keep': 'self', '*': 'out'}),
-    'postc': lambda t, i: run('postc.cq', {'in': i}, {'*': 'in'}, {'*': 'out'}),
-    'join': lambda t, i: run('join.cq', {'in': i}, {'*': 'in'}, {'*': 'out'}),
-    'numf': lambda t, i: run('numf.cq', {'in': i}, {'gf': 'ft', '*': 'in'}, {'ask': 'ask', '*': 'out'},
-                             {'ask': (tr.NUMBERS, 10, 0, 10, 'ft')}),
-}
-
 if __name__ == '__main__':
-    for name in sys.argv[1:]:
-        ok = True
-        for t in T.texts:
-            i, want = stage(name, t)
-            net = SETUP[name](t, i)
-            ok &= check(repr(t[:20]), net.piles.get('out', []), want)
-        print(name, 'exact' if ok else 'DIFFERENT')
+    names = sys.argv[1:] or MACHINES
+    ok = {n: True for n in names}
+    decks = nets.text_decks()
+    for t in T.texts:
+        taps = {}
+        nets.text([ord(c) if ord(c) < 128 else 32 for c in t], taps=taps, decks=decks)
+        want = expected(t)
+        for n in names:
+            ok[n] &= check(n, taps.get('pick' if n == 'match' else n, []), want[n], repr(t[:20]))
+    for n in names:
+        print(n, 'exact' if ok[n] else 'DIFFERENT')

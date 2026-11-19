@@ -33,7 +33,7 @@ binary target, built with overflow checks off. Each one uses the `cardiac` crate
 and `out(v)` to punch one, and nothing else of the outside world.
 
 On this Mac (an Apple M5 Ultra) the sentence above, 7.83 seconds of speech, takes 0.078 seconds to work out, a
-real-time factor of 0.0100, about the same as the first version's 0.0102.
+real-time factor of about 0.010, about the same as the first version's.
 
 ## How the host feeds the machines
 
@@ -57,7 +57,7 @@ call number:
   onto a pile.
 - **re-deal**: between the front end's phases the host puts a deck of records in the opposite order and back.
 
-Where the first version gave a machine several readers, this one gives it one deck merged in a fixed order:
+Where a machine needs cards from more than one machine, its deck is merged in a fixed order:
 
 | Machine | Its deck, in order |
 |---|---|
@@ -85,17 +85,17 @@ machine passes over the ones it doesn't need; every frame gets a record of the g
 cards changed, never the arithmetic, so the Python references in [`../ref/`](../ref/) check this version as they
 check the first.
 
-The phoneme table, the filters, the glide table, the ASCII table, the number words, the letters' names and the
-exceptions' phonemes are the first version's decks. [`tables.py`](tables.py) lays the NRL rules out again as three
-tables of one record a letter ([`data/left.cards`](data/left.cards), [`data/right.cards`](data/right.cards) and
-[`data/phonemes.cards`](data/phonemes.cards)), and splits the exceptions deck into
-[`data/function.cards`](data/function.cards) and [`data/exceptions.cards`](data/exceptions.cards). Nothing in them
-is computed: they are the same rules and words, in the same order.
+The two versions read the same decks, in [`../front/`](../front/) and [`../text/`](../text/). Among them,
+`ref/text_tables.py` lays the NRL rules out again as three tables of one record a letter
+([`rules_left.cards`](../text/rules_left.cards), [`rules_right.cards`](../text/rules_right.cards) and
+[`rules_phonemes.cards`](../text/rules_phonemes.cards)), and splits the exceptions deck into
+[`function.cards`](../text/function.cards) and [`exception_words.cards`](../text/exception_words.cards). Nothing in
+them is computed: they are the same rules and words, in the same order.
 
 ## The machines written by hand, and why
 
-The rule was to start with every machine in Rust, measure each one against the first version's, and write by hand
-only the few where performance needs it. Two places need it.
+The rule was to start with every machine in Rust, measure each one against the first version's (as it was then,
+before it was given one reader and one punch too), and write by hand only the few where performance needs it. Two places need it.
 
 **The lattice.** A lattice multiply is a coefficient of two digits times a value of up to three, and a digit times a
 value can pass what a card holds. The hand-written machines keep the product in the accumulator's fourth digit and
@@ -116,8 +116,9 @@ against 2,631,875, 42.0 a sample, for the hand-written [`hand/output.cq`](hand/o
 whole, so the output stage is written by hand too. `--all-rust` runs deemph and sample.
 
 Every other Rust machine is within a small factor of the hand-written one it replaces. The text machines ran
-930,875 instructions against 875,205, the front end 2,260,389 against 1,427,517, and the voice box's five Rust
-machines (interp, steps, ksteps, reduce, excite) 4,915,485 against 3,527,705 for the first version's four.
+930,875 instructions against 875,205 then (856,598 now), the front end 2,260,389 against 1,427,517 then (2,209,801
+now), and the voice box's five Rust machines (interp, steps, ksteps, reduce, excite) 4,915,485 against 3,527,705
+then for the first version's four (3,672,502 now for its five).
 
 ## What each machine does
 
@@ -235,14 +236,12 @@ Hagelbarger. And now I can talk.", 62,600 samples (7.83 seconds), and include ea
 
 
 All together the 89 machines ran 48,059,483 instructions for 7.83 seconds of speech, about 6.1 million a second of
-speech, or 768 a sample, against 45,783,161 for the first version's 65. The voice box does 93 percent of it, and the
+speech, or 768 a sample, against 46,691,635 for the first version's 79 (45,783,161 for its 65 before it was given one reader). The voice box does 93 percent of it, and the
 five hand-written lattice machines 78 percent. The 89 programs load 11,080 program cards between them, and running
 the sentence the machines read 1,117,715 cards with INP and put out 1,040,323 values with OUT.
 
 There are more machines than in the first version because a Rust machine needs more cells than a hand-written one
-for the same work, often a third more, and a machine that doesn't fit in memory is split in two. The three spread
-machines are new: the first version's frame machines read a segment's record and then its frames, which takes two
-readers, and here spread deals each frame its segment's cards instead.
+for the same work, often a third more, and a machine that doesn't fit in memory is split in two.
 
 ## Compiler findings
 
@@ -268,6 +267,5 @@ first version's.
 
 ## Known limits
 
-The first version's limits hold here too, and words are cut at 13 letters (items keeps 13 cards of a run, and spell
-13 letters of a word) where the first version's rule machines ran on past them. Before the cut a word of up to 13
-letters is right.
+The first version's limits hold here too: words are cut at 13 letters (items keeps 13 cards of a run, and spell 13
+letters of a word), and a word of up to 13 letters is right.

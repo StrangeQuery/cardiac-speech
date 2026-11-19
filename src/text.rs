@@ -97,10 +97,14 @@ pub fn wire(net: &mut Net, d: &Decks, chars2: &str, out: &str) {
     net.copy(chars2, &["t_raw", "t_asc?"]);
     net.fetch("t_asc?", &d.ascii, records, 0, records, "t_asc");
     net.merge("scan<", &[("t_raw", 1), ("t_asc", records)], &[]);
-    for (from, to) in [("scan", "numd"), ("numd", "unpack"), ("unpack", "numw"), ("numw", "say3")] {
-        net.copy(from, &[&format!("{to}<")]);
-        machine(net, to, match to { "numd" => NUMD, "unpack" => UNPACK, "numw" => NUMW, _ => SAY3 });
-    }
+    net.copy("scan", &["numd<"]);
+    machine(net, "numd", NUMD);
+    net.copy("numd", &["unpack<"]);
+    machine(net, "unpack", UNPACK);
+    net.copy("unpack", &["numw<"]);
+    machine(net, "numw", NUMW);
+    net.copy("numw", &["say3<"]);
+    machine(net, "say3", SAY3);
     // ask: each number word's record of the numbers deck, dealt after it to numf
     net.put("ask1<", &[700]);
     net.copy("say3", &["ask1<"]);
@@ -158,11 +162,16 @@ pub fn wire(net: &mut Net, d: &Decks, chars2: &str, out: &str) {
     machine(net, "pick", PICK);
     net.merge("pick<", &[("t_pickw", LETTER), ("first", 1), ("t_pickr", size)], &[]);
     // stress and the joins
-    for (from, to, listing) in [("pick", "posta", POSTA), ("posta", "postb", POSTB), ("postb", "posth", POSTH),
-        ("posth", "postc", POSTC), ("postc", "join", JOIN)] {
-        net.copy(from, &[&format!("{to}<")]);
-        machine(net, to, listing);
-    }
+    net.copy("pick", &["posta<"]);
+    machine(net, "posta", POSTA);
+    net.copy("posta", &["postb<"]);
+    machine(net, "postb", POSTB);
+    net.copy("postb", &["posth<"]);
+    machine(net, "posth", POSTH);
+    net.copy("posth", &["postc<"]);
+    machine(net, "postc", POSTC);
+    net.copy("postc", &["join<"]);
+    machine(net, "join", JOIN);
     net.copy("join", &[out]);
 }
 
