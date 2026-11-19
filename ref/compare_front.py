@@ -1,5 +1,5 @@
 """The integer front end (front_ref, as the CARDIACs run it) against the float front end
-(tools/lpc/phonemes_to_frames.py) on the same phonemes: durations, pitch, formants and level, segment by segment."""
+(prototype/phonemes_to_frames.py) on the same phonemes: durations, pitch, formants and level, segment by segment."""
 import cmath
 import math
 import sys

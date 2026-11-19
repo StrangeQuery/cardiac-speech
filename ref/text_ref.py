@@ -1,5 +1,5 @@
 """The text machines' work in Python, on the decks in text/ (text_tables.py), each function what one machine (or
-the rule machines together) does, card for card.  compose() must give tools/lpc/text_to_phonemes.py's tokens."""
+the rule machines together) does, card for card.  compose() must give prototype/text_to_phonemes.py's tokens."""
 import os
 import text_tables as tt
 import table as tb
@@ -75,7 +75,7 @@ def match_word(w):
 
 if __name__ == '__main__':
     import sys
-    sys.path.insert(0, tt.os.path.expanduser('~/projects/tools/lpc'))
+    sys.path.insert(0, tt.os.path.join(tt.os.path.dirname(tt.os.path.abspath(__file__)), '..', 'prototype'))
     import words
     bad = 0
     for word in words.WORDS:

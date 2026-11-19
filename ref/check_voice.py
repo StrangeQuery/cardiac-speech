@@ -10,7 +10,7 @@ WORK = os.path.join(os.path.dirname(__file__), '..', 'work')
 os.makedirs(WORK, exist_ok=True)
 ok = True
 for name in sys.argv[1:]:
-    frames = vr.sc.read_frames(vr.LPC + '/out/%s.frames' % name)
+    frames = vr.sc.read_frames(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures', '%s.frames' % name))
     deck = vr.frame_cards(frames)
     path = os.path.join(WORK, name + '.frames.cards')
     open(path, 'w').write('\n'.join(map(str, deck)) + '\n')

@@ -1,6 +1,6 @@
 //! Text to phonemes on 19 CARDIACs: ASCII character cards in (the text dealt twice, each time ended by -1),
 //! phoneme cards out for the front end (10 x code + stress, -1 between words, -2 to -5 pauses, -9 the end), as
-//! tools/lpc/text_to_phonemes.py makes them.
+//! prototype/text_to_phonemes.py makes them.
 //!
 //! scan -> numd -> numw -> say3 -> numf -> spcls -> spell -> names -> excl -> excp -> loader -> filter -> rule ->
 //! posta -> postb -> postc -> join, with two ctx machines beside loader and rule for the NRL rules' contexts.

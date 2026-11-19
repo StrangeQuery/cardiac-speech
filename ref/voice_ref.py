@@ -1,9 +1,9 @@
-"""The voice box's arithmetic in Python, built from the prototype's own functions (tools/lpc: closedloop.rmul,
+"""The voice box's arithmetic in Python, built from the prototype's own functions (prototype/: closedloop.rmul,
 closedloop.sto, synth_cardiac.reduce_k, closedloop.interp_steps, synth_float.excitation), so that the CARDIAC
 programs in voice/ can be checked against the model they were written from, sample for sample."""
 import os
 import sys
-LPC = os.path.expanduser('~/projects/tools/lpc')
+LPC = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'prototype')
 sys.path.insert(0, LPC)
 import closedloop as cl          # noqa: E402
 import synth_cardiac as sc       # noqa: E402

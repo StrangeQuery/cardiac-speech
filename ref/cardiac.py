@@ -3,9 +3,10 @@ wired to 001, JMP leaves 8xx in 99, negative words skipped, STO 00 ignored), and
 INP and OUT instructions are wired to piles of cards, as the Rust host (src/net.rs) wires them.  Only for trying
 programs quickly; every result reported is checked under heartburn."""
 import os
+import shutil
 import subprocess
 
-CARC = os.path.expanduser('~/projects/heartburn/target/release/carc')
+CARC = shutil.which('carc') or 'carc'   # heartburn's assembler, on the PATH
 
 
 def assemble(path):

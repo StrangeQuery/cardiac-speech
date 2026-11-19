@@ -2,7 +2,7 @@
 
 Turning the published formant figures (Klatt 1980) and powers (Sacia and Beck 1926) into reflection coefficients
 and gains needs cosines, exponentials, square roots and the Levinson recursion, so it is done here, once, in
-floating point, with the prototype's own functions (tools/lpc/phonemes_to_frames.py), and stored as cards:
+floating point, with the prototype's own functions (prototype/phonemes_to_frames.py), and stored as cards:
 
   front/features.cards   one record of FEAT cards for each phoneme code (codes 3-43, record r at r*FEAT)
   front/filters.cards    one record of 11 cards for each filter: K10..K1 (k x 1000) and a gain G
@@ -16,7 +16,7 @@ voiced to unvoiced balance."""
 import math
 import os
 import sys
-sys.path.insert(0, os.path.expanduser('~/projects/tools/lpc'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'prototype'))
 import phonemes_to_frames as pf   # noqa: E402
 
 # codes 3-12 the vowels that take secondary stress, 13-18 the others, AX last; then the consonants

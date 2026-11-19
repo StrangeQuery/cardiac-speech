@@ -1,4 +1,4 @@
-"""The decks the text machines read: transcriptions of the tables in tools/lpc/text_to_phonemes.py (the NRL rules,
+"""The decks the text machines read: transcriptions of the tables in prototype/text_to_phonemes.py (the NRL rules,
 the exception list, the function words, the letter names, the number words) and of ASCII, put into the codes the
 CARDIAC programs use.  Nothing here is computed: each deck is the same table written as cards.
 
@@ -19,7 +19,7 @@ J Z D L N R.  Since the first rule that matches wins and these say the same, it 
 """
 import os
 import sys
-sys.path.insert(0, os.path.expanduser('~/projects/tools/lpc'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'prototype'))
 import text_to_phonemes as tp   # noqa: E402
 import table as tb               # noqa: E402
 

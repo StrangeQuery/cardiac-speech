@@ -1,12 +1,13 @@
 """Step 2: the whole voice box under the dev emulator against voice_ref.voice."""
+import os
 import sys
 import cardiac
 import nets
 import voice_ref as vr
 
-name = sys.argv[1] if len(sys.argv) > 1 else 'hello'
+name = sys.argv[1] if len(sys.argv) > 1 else 'hello_tts'
 nf = int(sys.argv[2]) if len(sys.argv) > 2 else 30
-frames = vr.sc.read_frames(vr.LPC + '/out/%s.frames' % name)[:nf]
+frames = vr.sc.read_frames(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures', '%s.frames' % name))[:nf]
 deck = vr.frame_cards(frames)
 want, peak = vr.voice(deck)
 net = cardiac.Net()

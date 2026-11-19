@@ -94,5 +94,7 @@ fn main() {
             "{} machines; {samples} samples ({speech:.2} s of speech); {total} instructions, {:.0} a second of speech; {secs:.3} s: real-time factor {:.4}",
             steps.len(), total as f64 / speech, secs / speech
         );
+        let (deck, read, out) = cardiac_speech::net::card_counts();
+        eprintln!("cards: {deck} program cards loaded, {read} cards read by INPs, {out} values put out by OUTs");
     }
 }

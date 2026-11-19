@@ -3,7 +3,7 @@ of the test sentences, the exception and function words, and the number words.""
 import os
 import re
 import sys
-sys.path.insert(0, os.path.expanduser('~/projects/tools/lpc'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'prototype'))
 import text_to_phonemes as tp   # noqa: E402
 import sentences                # noqa: E402
 

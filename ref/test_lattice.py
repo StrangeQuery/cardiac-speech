@@ -1,12 +1,13 @@
 """Step 1: the five lattice machines under the dev emulator against voice_ref.lattice."""
 import random
+import os
 import sys
 import cardiac
 import voice_ref as vr
 
 random.seed(int(sys.argv[1]) if len(sys.argv) > 1 else 1)
 nsteps = 40
-fr = vr.sc.read_frames(vr.LPC + '/out/hello.frames')
+fr = vr.sc.read_frames(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures', 'hello_tts.frames'))
 Ks = []
 for i in range(nsteps):
     k = fr[i % len(fr)]['k']

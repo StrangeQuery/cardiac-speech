@@ -1,5 +1,5 @@
 """Phonemes to frame cards in integer arithmetic: exactly what the CARDIAC programs in front/ do, pass by pass,
-so each machine can be checked against its own function here.  It follows tools/lpc/phonemes_to_frames.py rule
+so each machine can be checked against its own function here.  It follows prototype/phonemes_to_frames.py rule
 by rule; where the float front end needs cos, exp or a division it can't do, this one does the decimal thing
 instead, and every such place is marked INTEGER.
 

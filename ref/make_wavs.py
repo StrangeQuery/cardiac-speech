@@ -1,4 +1,4 @@
-"""Step 5: talk on the three texts; the WAVs (tools/lpc/out/*_cardiac.wav); the samples checked against the Python
+"""Step 5: talk on the three texts; the WAVs (prototype/out/*_cardiac.wav); the samples checked against the Python
 references end to end (text_ref, front_ref, voice_ref); compared with the Python pipeline's WAVs."""
 import os
 import struct

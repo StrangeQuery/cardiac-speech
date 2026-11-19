@@ -94,7 +94,7 @@ LITTLE two Ts), put primary stress on a content word's first full vowel and seco
 vowels, and mark the boundaries between words.
 
 The rules were typed in from the report's Table 6, and the stress rules, the exception list and the handling of
-numbers and spelling were added for this program. [`TTS_SOURCES.md`](../tools/lpc/TTS_SOURCES.md) in the prototype
+numbers and spelling were added for this program. [`TTS_SOURCES.md`](prototype/TTS_SOURCES.md) in the prototype
 lists which numbers come from which table and which are estimates.
 
 ### Phonemes to frames: Klatt's durations and formants
@@ -164,7 +164,7 @@ thousands x 1,000 + units.
 
 ### Where the integer version differs from the prototype
 
-The rules were first built as a floating-point program in Python (`tools/lpc/phonemes_to_frames.py`), and the CARDIAC
+The rules were first built as a floating-point program in Python (`prototype/phonemes_to_frames.py`), and the CARDIAC
 version follows it rule by rule. Where the float version needs a cosine, an exponential, a square root or a
 division, the CARDIAC version does a decimal thing instead. [`ref/front_ref.py`](ref/front_ref.py) is the integer
 version in Python, and each such place is marked INTEGER there. The differences you can hear are these:
@@ -285,6 +285,10 @@ most of those go to reading through decks (`filter`, `excl`) and to the division
 subtraction (`period`, `psel`). The largest listings, `excl` at 96 cells and `L5` at 94, are close to the 97 a
 program can have.
 
+The cards add up the same way. The 63 programs load 9,478 program cards between them. Running the sentence, the
+machines read 1,128,960 cards with INP and put out 1,111,376 values with OUT, almost all of them in the voice box,
+where every sample passes up and down the lattice. `talk -v` prints these counts after the instruction counts.
+
 [`text/exc.cq`](text/exc.cq) is in the repo but no machine runs it. It is the first version of the lookup that
 `excl` and `excp` now do between them.
 
@@ -327,7 +331,7 @@ heartburn 0.1, the CARDIAC engine that lubdub also depends on. What it takes fro
   the pair in the host as lubdub's player does.
 
 lubdub's encoder chooses each code by what the decoder will really produce, and the LPC prototype tried the same
-closed-loop choice for frame cards (`tools/lpc/closedloop.py`). cardiac-speech does not use it. Its frame cards come
+closed-loop choice for frame cards (`prototype/closedloop.py`). cardiac-speech does not use it. Its frame cards come
 straight from the rules, and `ref/compare_wavs.py` only uses the closed-loop pipeline as something to compare
 against.
 
@@ -374,7 +378,7 @@ prototype's tables.
 Every machine was written against a Python reference that does exactly the same integer arithmetic, and is checked
 against it card for card. The references are in [`ref/`](ref/): `text_ref.py` for the text machines,
 `front_ref.py` for the front end and `voice_ref.py` for the voice box. The references are in turn checked against
-the prototype, `tools/lpc/text_to_phonemes.py` and the prototype's decimal synthesizer.
+the prototype in [`prototype/`](prototype/): `text_to_phonemes.py` and the decimal synthesizer.
 
 These checks run the real programs under heartburn, and need a release build first:
 
@@ -382,21 +386,21 @@ These checks run the real programs under heartburn, and need a release build fir
     cd ref
     python3 check_text.py                    # talk --phonemes on 912 texts against text_to_phonemes.py
     python3 check_front.py                   # talk-phonemes and talk-frames on 23 sentences against front_ref and voice_ref
-    python3 check_voice.py hello cardiac fox # talk-frames on the prototype's frame files against voice_ref
+    python3 check_voice.py hello_tts mtv_tts fox_tts born1968_tts   # talk-frames on the frame files in fixtures/ against voice_ref
 
 On the day this README was written, check_text found all 912 texts exact, check_front found the frame cards and
-the samples exact for all 23 sentences, and check_voice found all three exact. `make_wavs.py` runs `talk` on three
-texts, writes WAVs into `tools/lpc/out/` and checks every sample against the three references end to end, and
-`compare_wavs.py` compares the speech with the Python pipeline's. The frame files check_voice reads were made by
-the prototype's LPC encoder, `tools/lpc/encode.py`, from WAV files; they are test input for the voice box only.
+the samples exact for all 23 sentences, and check_voice found all four exact. `make_wavs.py` runs `talk` on three
+texts, writes WAVs into `prototype/out/` and checks every sample against the three references end to end, and
+`compare_wavs.py` compares the speech with the Python pipeline's (make those first with `prototype/tts.sh "TEXT"
+NAME --noplay`). The frame files check_voice reads, in `ref/fixtures/`, were made by the prototype's own rule-based
+front end; they are test input for the voice box only.
 
 There are also tests of single machines on `ref/cardiac.py`, a CARDIAC written in Python for trying programs
 quickly. `run_tests.py f1 f2a f2b f2c stress base rules2 rules9 mul nframes back sum framer closure main edge choose
 glides glidea glideb level asm pitch` tests each front-end machine on 23 sentences, `test_text_m.py scan numd numw
 say3 numf spcls spell names excl excp match posta postb postc join` tests each text machine on the 912 texts,
 `test_lattice.py` tests the five lattice machines with awkward coefficients, and `test_voice.py` and
-`test_front_net.py` run the voice box and the whole front end. All of them reported exact. These need `carc` from a
-heartburn checkout at `~/projects/heartburn/target/release/carc`, and the prototype in `~/projects/tools/lpc`.
+`test_front_net.py` run the voice box and the whole front end. All of them reported exact. These need `carc`, heartburn's assembler, on the PATH.
 
 ## Known limits
 

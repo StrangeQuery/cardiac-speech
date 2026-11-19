@@ -12,6 +12,7 @@
 //! None of this looks at what a card says, except a fetch, which uses the card as a record number, as a librarian
 //! uses a call number.
 use std::collections::VecDeque;
+use std::sync::atomic::{AtomicU64, Ordering::Relaxed};
 
 use heartburn::assemble;
 use heartburn::cardiac::{At, Console, Event, Machine};
@@ -23,6 +24,17 @@ pub type Pile = usize;
 struct Wiring {
     inp: [Pile; 100],
     out: [Pile; 100],
+}
+
+/// Cards moved, over every network made in this run: program cards loaded, cards read by INPs, values put out by
+/// OUTs. For `talk -v`.
+static DECK_CARDS: AtomicU64 = AtomicU64::new(0);
+static CARDS_READ: AtomicU64 = AtomicU64::new(0);
+static VALUES_OUT: AtomicU64 = AtomicU64::new(0);
+
+/// (program cards loaded, cards read by INPs, values put out by OUTs), over every network so far.
+pub fn card_counts() -> (u64, u64, u64) {
+    (DECK_CARDS.load(Relaxed), CARDS_READ.load(Relaxed), VALUES_OUT.load(Relaxed))
 }
 
 struct Node {
@@ -98,6 +110,7 @@ impl Console for Punch<'_> {
     }
 
     fn output_at(&mut self, card: i32, at: At) {
+        VALUES_OUT.fetch_add(1, Relaxed);
         put(self.piles, self.kinds, self.out[at.cell], card);
     }
 }
@@ -215,6 +228,7 @@ impl Net {
         let wiring = Wiring { inp: wire(inp), out: wire(out) };
         let mut cardiac = Machine::new();
         cardiac.push(&deck);
+        DECK_CARDS.fetch_add(deck.len() as u64, Relaxed);
         self.nodes.push(Node { name: name.into(), cardiac, wiring, done: false, waiting: false });
     }
 
@@ -257,6 +271,7 @@ impl Net {
                     }
                     let Some(card) = self.piles[p].pop_front() else { break };
                     node.cardiac.push(&[card]);
+                    CARDS_READ.fetch_add(1, Relaxed);
                     node.waiting = false;
                 }
                 let before = node.cardiac.steps();
