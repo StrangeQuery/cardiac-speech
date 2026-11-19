@@ -74,10 +74,10 @@
   76            nxtpc   DATA  0
   77            nxtv    DATA  0
   78            adjv    DATA  0
-  79            nextv   DATA  15       AX
+  79            nextv   DATA  18       AX
   80            nts     DATA  0
   81            z       DATA  0
   82            c8      DATA  8
   83            n7      DATA  7
   84            n2      DATA  2
-  85            cax     DATA  15
+  85            cax     DATA  18

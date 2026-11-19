@@ -19,7 +19,8 @@ import sys
 sys.path.insert(0, os.path.expanduser('~/projects/tools/lpc'))
 import phonemes_to_frames as pf   # noqa: E402
 
-PHONEMES = ['IY', 'IH', 'EY', 'EH', 'AE', 'AA', 'AO', 'AH', 'OW', 'UH', 'UW', 'ER', 'AX', 'AY', 'AW', 'OY',
+# codes 3-12 the vowels that take secondary stress, 13-18 the others, AX last; then the consonants
+PHONEMES = ['IY', 'EY', 'AE', 'AA', 'AO', 'OW', 'UW', 'AY', 'AW', 'OY', 'IH', 'EH', 'AH', 'UH', 'ER', 'AX',
             'W', 'Y', 'R', 'L', 'M', 'N', 'NX', 'P', 'T', 'K', 'B', 'D', 'G',
             'F', 'TH', 'S', 'SH', 'V', 'DH', 'Z', 'ZH', 'CH', 'JH', 'HH', 'WH']
 CODE = {p: i + 3 for i, p in enumerate(PHONEMES)}
