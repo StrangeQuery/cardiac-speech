@@ -1,0 +1,48 @@
+; The output stage. The lattice's output f in; the de-emphasis yd = f + 0.9 yd, then the sample 3 yd out as two
+; values, the thousands and then the units (0-999), as lubdub's decoder outputs them. yd is kept as thousands H and
+; units L with yd's sign; 0.9 L is (9 L + 5 away from zero) / 10. The units of 3 yd are summed on top of 3000 so
+; they never go negative: STO keeps them and SFT 03 gives the carry.
+;
+; Address Contents Label Opcode Operand Comment
+  03            loop    INP   f        03-12: r = 0.9 L, rounded
+  04                    CLA   lo
+  05                    SFT   10
+  06                    SUB   lo
+  07                    TAC   neg
+  08                    ADD   five
+  09                    JMP   sh
+  10            neg     SUB   five
+  11            sh      SFT   01
+  12                    STO   r
+  13                    CLA   hi       13-21: yd = 900 H + r + f, into H and L
+  14                    SFT   10
+  15                    SUB   hi
+  16                    SFT   20
+  17                    ADD   r
+  18                    ADD   f
+  19                    STO   lo
+  20                    SFT   03
+  21                    STO   hi
+  22                    CLA   three    22-36: 3 yd as thousands and units
+  23                    SFT   30
+  24                    ADD   lo
+  25                    ADD   lo
+  26                    ADD   lo
+  27                    STO   u
+  28                    SFT   03
+  29                    ADD   hi
+  30                    ADD   hi
+  31                    ADD   hi
+  32                    SUB   three
+  33                    STO   th
+  34                    OUT   th
+  35                    OUT   u
+  36                    JMP   loop
+  40            f       DATA  0
+  41            lo      DATA  0
+  42            hi      DATA  0
+  43            r       DATA  0
+  44            u       DATA  0
+  45            th      DATA  0
+  46            five    DATA  5
+  47            three   DATA  3

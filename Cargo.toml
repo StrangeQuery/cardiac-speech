@@ -1,0 +1,22 @@
+[package]
+name = "cardiac-speech"
+version = "0.1.0"
+edition = "2021"
+description = "Text to speech on CARDIACs: every step of the computation done by CARDIAC programs, the host only moving cards"
+rust-version = "1.97"
+publish = false
+
+[lib]
+name = "cardiac_speech"
+path = "src/lib.rs"
+
+[[bin]]
+name = "talk-frames"
+path = "src/bin/talk_frames.rs"
+
+[dependencies]
+# the CARDIAC engine: the machine, decks and the assembler
+heartburn = "0.1"
+
+[profile.release]
+debug = false

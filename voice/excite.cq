@@ -1,0 +1,57 @@
+; The excitation. Each step's V, P and A in, 20 excitation values out, one a sample. Voiced: a pulse of height A
+; every P samples (a counter, kept across steps), 0 between. Not voiced: +A or -A by the sign of x - 500, where x
+; runs through the decimal LCG x = 21 x + 7 mod 1000 (21 x as 10 x + 10 x + x, mod 1000 by STO), from 123.
+;
+; Address Contents Label Opcode Operand Comment
+  03            step    INP   v        03-10: a step
+  04                    INP   p
+  05                    INP   a
+  06                    CLA   n19
+  07                    STO   cnt
+  08            smp     CLA   v
+  09                    SUB   00
+  10                    TAC   unv
+  11                    CLA   pc       11-21: voiced: count to P, then a pulse
+  12                    ADD   00
+  13                    STO   pc
+  14                    SUB   p
+  15                    TAC   zero
+  16                    CLA   z
+  17                    STO   pc
+  18                    OUT   a
+  19                    JMP   next
+  20            zero    OUT   z
+  21                    JMP   next
+  22            unv     CLA   x        22-38: not voiced: the LCG, and +A or -A
+  23                    SFT   10
+  24                    STO   t
+  25                    CLA   t
+  26                    ADD   t
+  27                    ADD   x
+  28                    ADD   seven
+  29                    STO   x
+  30                    CLA   x
+  31                    SUB   c500
+  32                    TAC   neg
+  33                    OUT   a
+  34                    JMP   next
+  35            neg     CLA   z
+  36                    SUB   a
+  37                    STO   t
+  38                    OUT   t
+  39            next    CLA   cnt      39-43: 20 samples a step
+  40                    SUB   00
+  41                    STO   cnt
+  42                    TAC   step
+  43                    JMP   smp
+  50            v       DATA  0
+  51            p       DATA  0
+  52            a       DATA  0
+  53            cnt     DATA  0
+  54            pc      DATA  0
+  55            x       DATA  123
+  56            t       DATA  0
+  57            z       DATA  0
+  58            seven   DATA  7
+  59            c500    DATA  500
+  60            n19     DATA  19

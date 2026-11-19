@@ -1,0 +1,71 @@
+; Frame cards in, each parameter's start and step out. A frame is 13 cards: V (1 voiced, 0 not), P (the pitch
+; period in samples), A (the excitation amplitude) and K10 down to K1 (each reflection coefficient times 1000). A
+; card below zero ends the frames. For each frame it sends V, then for P, A and each K the frame's value and the
+; step to the next frame's, (next - this) / 10 by SFT 01. When V changes there is no glide: the step is 0, by SFT 04.
+; The frame in hand is kept on cards: it goes round through this machine's own pile (the host routes OUT at 07 and
+; 35 back to INP at 28 and 47), so the machine needs no array.
+;
+; Address Contents Label Opcode Operand Comment
+  03            start   INP   cv       03-12: the first frame: V here, the rest onto the pile
+  04                    CLA   n11
+  05                    STO   i
+  06            first   INP   x
+  07                    OUT   x
+  08                    CLA   i
+  09                    SUB   00
+  10                    STO   i
+  11                    TAC   frame
+  12                    JMP   first
+  13            frame   INP   nv       13-23: the next frame's V: the end, a glide (SFT 01) or none (SFT 04)
+  14                    CLA   nv
+  15                    TAC   end
+  16                    SUB   cv
+  17                    TAC   diff
+  18                    SUB   00
+  19                    TAC   same
+  20            diff    CLA   s404
+  21                    JMP   set
+  22            same    CLA   s401
+  23            set     STO   sft
+  24                    OUT   cv       24-43: V, then each value and its step; the next frame goes on the pile
+  25                    CLA   n11
+  26                    STO   i
+  27            each    INP   x
+  28                    INP   c
+  29                    OUT   c
+  30                    CLA   x
+  31                    SUB   c
+  32            sft     DATA  0        (SFT 01 or SFT 04)
+  33                    STO   d
+  34                    OUT   d
+  35                    OUT   x
+  36                    CLA   i
+  37                    SUB   00
+  38                    STO   i
+  39                    TAC   next
+  40                    JMP   each
+  41            next    CLA   nv
+  42                    STO   cv
+  43                    JMP   frame
+  44            end     OUT   cv       44-55: the last frame, its steps 0
+  45                    CLA   n11
+  46                    STO   i
+  47            last    INP   c
+  48                    OUT   c
+  49                    OUT   z
+  50                    CLA   i
+  51                    SUB   00
+  52                    STO   i
+  53                    TAC   done
+  54                    JMP   last
+  55            done    HRS   00
+  60            cv      DATA  0
+  61            nv      DATA  0
+  62            x       DATA  0
+  63            c       DATA  0
+  64            d       DATA  0
+  65            i       DATA  0
+  66            z       DATA  0
+  67            n11     DATA  11
+  68            s401    SFT   01
+  69            s404    SFT   04

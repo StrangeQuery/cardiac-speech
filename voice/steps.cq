@@ -1,0 +1,68 @@
+; Each frame's values and steps in, the ten steps of the frame out (20 samples each): for every step V, P and A
+; to the excitation machine and K10 down to K1 to the coefficient machine, each value then moved on by its step.
+; The values and steps go round through this machine's own pile (OUT at 08, 25, 26, 33, 34, 43 and 44 come back
+; to INP at 06, 19, 21, 27, 29, 37 and 39): at a new frame the old ones are read off and the new ones put on.
+;
+; Address Contents Label Opcode Operand Comment
+  03            frame   INP   v        03-17: a new frame's V, and its 24 cards onto the pile in place of the old
+  04                    CLA   n23
+  05                    STO   i
+  06            drain   CLA   z        (CLA z at the first frame, INP x after)
+  07            cp      INP   x
+  08                    OUT   x
+  09                    CLA   i
+  10                    SUB   00
+  11                    STO   i
+  12                    TAC   go
+  13                    JMP   drain
+  14            go      CLA   inpx
+  15                    STO   drain
+  16                    CLA   n9
+  17                    STO   s
+  18            step    OUT   v        18-34: V, P and A out; P and A moved on
+  19                    INP   x
+  20                    OUT   x
+  21                    INP   d
+  22                    CLA   x
+  23                    ADD   d
+  24                    STO   x
+  25                    OUT   x
+  26                    OUT   d
+  27                    INP   x
+  28                    OUT   x
+  29                    INP   d
+  30                    CLA   x
+  31                    ADD   d
+  32                    STO   x
+  33                    OUT   x
+  34                    OUT   d
+  35                    CLA   n9       35-49: the ten Ks out, each moved on
+  36                    STO   j
+  37            k       INP   x
+  38                    OUT   x
+  39                    INP   d
+  40                    CLA   x
+  41                    ADD   d
+  42                    STO   x
+  43                    OUT   x
+  44                    OUT   d
+  45                    CLA   j
+  46                    SUB   00
+  47                    STO   j
+  48                    TAC   nxt
+  49                    JMP   k
+  50            nxt     CLA   s        50-54: ten steps, then the next frame
+  51                    SUB   00
+  52                    STO   s
+  53                    TAC   frame
+  54                    JMP   step
+  60            v       DATA  0
+  61            x       DATA  0
+  62            d       DATA  0
+  63            i       DATA  0
+  64            j       DATA  0
+  65            s       DATA  0
+  66            n23     DATA  23
+  67            n9      DATA  9
+  68            inpx    INP   x
+  69            z       DATA  0
