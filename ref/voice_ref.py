@@ -1,6 +1,11 @@
 """The voice box's arithmetic in Python, built from the prototype's own functions (prototype/: closedloop.rmul,
 closedloop.sto, synth_cardiac.reduce_k, closedloop.interp_steps, synth_float.excitation), so that the CARDIAC
-programs in voice/ can be checked against the model they were written from, sample for sample."""
+programs in voice/ can be checked against the model they were written from, sample for sample.
+
+It differs from the prototype's run_block in three places. A voiced pulse goes through the one-pole low-pass
+e = pulse + 0.5 e (truncated), to soften the buzz. In a step whose A is 0 the lattice's products are truncated toward
+zero instead of rounded, so that in a pause the lattice dies away instead of holding a small limit cycle. And in the
+output stage 0.9 L is truncated instead of rounded whenever f is 0, so that yd dies away to 0 as well."""
 import os
 import sys
 LPC = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'prototype')
@@ -13,9 +18,10 @@ from common import STEPS, STEP_LEN, ORDER   # noqa: E402
 T_CELL = 86                      # the cell t in every lattice machine (voice/lattice*.cq)
 
 
-def words(K):
-    """The five coefficient cards for one K (k = K/1000), as REDUCE punches them: the sign word (ADD t or SUB t),
-    the jumps into the row for the second and first digits, SFT 0L and the rounding half 5 x 10^(L-1)."""
+def words(K, A=1):
+    """The five coefficient cards for one K (k = K/1000) in a step whose amplitude is A, as REDUCE punches them: the
+    sign word (ADD t or SUB t), the jumps into the row for the second and first digits, SFT 0L and the rounding half
+    5 x 10^(L-1), or 0 when A is 0."""
     sign, digits = sc.reduce_k(K, 2, 'float')
     if not digits:
         lead, d1, d2 = 3, 0, 0
@@ -25,28 +31,75 @@ def words(K):
         d2 = digits[1][1] if len(digits) > 1 else 0
         if len(digits) > 1:
             assert digits[1][0] == lead + 1
-    return [(200 if sign > 0 else 700) + T_CELL, 899 - d2, 899 - d1, 400 + lead, 5 * 10 ** (lead - 1)]
+    return [(200 if sign > 0 else 700) + T_CELL, 899 - d2, 899 - d1, 400 + lead, 5 * 10 ** (lead - 1) if A else 0]
 
 
-def lattice(exc, ks_per_step):
+def lattice(exc, ks_per_step, amps=None):
     """The lattice alone: excitation values and a K vector (K1..K10) per 20-sample step in, f out (the prototype's
-    run_block lattice, rounding on, two digit terms)."""
+    run_block lattice, two digit terms), the products rounded, or truncated in a step whose amplitude in `amps` is 0."""
     b = [0] * (ORDER + 1)
     out = []
     n = 0
-    for K in ks_per_step:
+    for s, K in enumerate(ks_per_step):
         ks = [sc.reduce_k(k, 2, 'float') for k in K]
+        rnd = amps is None or amps[s] != 0
         for _ in range(STEP_LEN):
             f = exc[n]; n += 1
             for i in range(ORDER, 0, -1):
                 sg, dg = ks[i - 1]
-                p = cl.sto(cl.rmul(sg, dg, b[i - 1], True))
+                p = cl.sto(cl.rmul(sg, dg, b[i - 1], rnd))
                 f = cl.sto(f - p)
-                q = cl.sto(cl.rmul(sg, dg, f, True))
+                q = cl.sto(cl.rmul(sg, dg, f, rnd))
                 b[i] = cl.sto(b[i - 1] + q)
             b[0] = f
             out.append(f)
     return out
+
+
+def excitation(steps):
+    """EXCITE's values, one a sample: the prototype's pulses and noise times the step's A, a voiced pulse then
+    through e = pulse + 0.5 e (5 e, SFT 01: truncated; e is kept across steps and through unvoiced stretches)."""
+    base = sf.excitation([(v, P, A, None) for (v, P, A, K) in steps], shape='pulse')
+    out = []
+    e = 0
+    n = 0
+    for (v, P, A, K) in steps:
+        for _ in range(STEP_LEN):
+            x = int(base[n]) * A; n += 1
+            if v:
+                e = x + 5 * e // 10
+                x = e
+            out.append(x)
+    return out
+
+
+def run(steps):
+    """The lattice and the output stage on the interpolated steps: yd for each sample, the largest |value| the
+    lattice holds (f and every b it keeps), and how many of its values wrapped past 999 (STO keeps three digits)."""
+    exc = excitation(steps)
+    b = [0] * (ORDER + 1)
+    hi, lo, n, peak, wraps = 0, 0, 0, 0, 0
+    out = []
+    for (v, P, A, K) in steps:
+        ks = [sc.reduce_k(k, 2, 'float') for k in K]
+        rnd = A != 0
+        for _ in range(STEP_LEN):
+            f = exc[n]; n += 1
+            for i in range(ORDER, 0, -1):
+                sg, dg = ks[i - 1]
+                p = cl.sto(cl.rmul(sg, dg, b[i - 1], rnd))
+                wraps += abs(f - p) > 999
+                f = cl.sto(f - p)
+                q = cl.sto(cl.rmul(sg, dg, f, rnd))
+                wraps += abs(b[i - 1] + q) > 999 and i < ORDER
+                b[i] = cl.sto(b[i - 1] + q)
+                peak = max(peak, abs(f), abs(b[i]) if i < ORDER else 0)
+            b[0] = f
+            yd = 900 * hi + cl.rmul(1, [(1, 9)], lo, f != 0) + f
+            lo = cl.sto(yd)
+            hi = -((-yd) // 1000) if yd < 0 else yd // 1000
+            out.append(yd)
+    return out, peak, wraps
 
 
 def frame_cards(frames, headroom=0.4):
@@ -79,8 +132,7 @@ def voice(deck):
     and the largest |yd|, which must stay within the accumulator."""
     cards = parse_cards(deck)
     steps = cl.interp_steps(cards, 0, len(cards))
-    exc = sf.excitation([(v, P, A, None) for (v, P, A, K) in steps], shape='pulse')
-    yd, _ = cl.run_block(([0] * (ORDER + 1), 0, 0), steps, exc, 0, 2, 'float', True)
+    yd, _, _ = run(steps)
     out = []
     for y in yd:
         assert -1638 <= y <= 1638, y
@@ -90,33 +142,8 @@ def voice(deck):
 
 
 def lattice_peak(deck):
-    """The largest |value| the lattice holds (f and every b) and the largest |yd|, for the frame cards: what the
-    scale has to keep within a cell and the accumulator."""
+    """The largest |value| the lattice holds (f and every b), the largest |yd| and the number of wraps, for the
+    frame cards: what the scale has to keep within a cell and the accumulator."""
     cards = parse_cards(deck)
-    steps = cl.interp_steps(cards, 0, len(cards))
-    exc = sf.excitation([(v, P, A, None) for (v, P, A, K) in steps], shape='pulse')
-    b = [0] * (ORDER + 1)
-    peak, ypk, hi, lo, n = 0, 0, 0, 0, 0
-    wraps = 0
-    for (v, P, A, K) in steps:
-        ks = [sc.reduce_k(k, 2, 'float') for k in K]
-        for _ in range(STEP_LEN):
-            sv = exc[n]; n += 1
-            f = int(sv) * A
-            for i in range(ORDER, 0, -1):
-                sg, dg = ks[i - 1]
-                p = cl.sto(cl.rmul(sg, dg, b[i - 1], True))
-                raw = f - p
-                f = cl.sto(raw)
-                wraps += raw != f
-                q = cl.sto(cl.rmul(sg, dg, f, True))
-                raw = b[i - 1] + q
-                b[i] = cl.sto(raw)
-                wraps += raw != b[i] and i < ORDER
-                peak = max(peak, abs(f), abs(b[i]) if i < ORDER else 0)
-            b[0] = f
-            yd = 900 * hi + cl.rmul(1, [(1, 9)], lo, True) + f
-            lo = cl.sto(yd)
-            hi = -((-yd) // 1000) if yd < 0 else yd // 1000
-            ypk = max(ypk, abs(yd))
-    return peak, ypk, wraps
+    yd, peak, wraps = run(cl.interp_steps(cards, 0, len(cards)))
+    return peak, max(abs(y) for y in yd), wraps

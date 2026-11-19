@@ -1,4 +1,4 @@
-//! The front end: phoneme cards in, frame cards out, on 34 CARDIACs in three phases.
+//! The front end: phoneme cards in, frame cards out, on 36 CARDIACs in three phases.
 //!
 //! 1. `feat` reads the phonemes and makes a record for each segment (and the pauses at the start and the end).
 //! 2. The host puts the records in the opposite order, and `after`, `ahead` and `next` work out, last first, what
@@ -23,13 +23,16 @@ listings! {
     BACK = "back.cq", SUM = "sum.cq", FRAMER = "framer.cq", CLOSURE = "closure.cq", MAIN = "main.cq",
     EDGE = "edge.cq", CHOOSE = "choose.cq", GLIDES = "glides.cq", GLIDEA = "glidea.cq", GLIDEB = "glideb.cq",
     DECL = "decl.cq", RISE = "rise.cq", TAILY = "taily.cq", TAILF = "tailf.cq", PERIOD = "period.cq",
-    LSEL = "lsel.cq", VSEL = "vsel.cq", PSEL = "psel.cq", MULX = "mulx.cq", KCARRY = "kcarry.cq", ASM = "asm.cq",
+    LSEL = "lsel.cq", VSEL = "vsel.cq", PSEL = "psel.cq", MULX = "mulx.cq", GNORM = "gnorm.cq", KCARRY = "kcarry.cq",
+    ASM = "asm.cq",
 }
 
-/// The phoneme table (one record of `FEAT` cards a phoneme code) and the filters (11 cards each): precomputed
-/// once from the published figures (ref/table.py), the only precomputed part.
+/// The phoneme table (one record of `FEAT` cards a phoneme code), the filters (11 cards each) and the glides'
+/// level factors (a record of three cards a filter for each filter a segment glides from): precomputed once from the
+/// published figures (ref/table.py), the only precomputed part.
 pub const FEATURES: &str = include_str!("../front/features.cards");
 pub const FILTERS: &str = include_str!("../front/filters.cards");
+pub const GLIDE_TABLE: &str = include_str!("../front/glides.cards");
 pub const FEAT_SIZE: usize = 17;
 // the table's columns (ref/table.py)
 const F_BACK: usize = 6;
@@ -42,12 +45,13 @@ const F_CINH: usize = 15;
 pub struct Tables {
     pub features: Rc<Vec<i32>>,
     pub filters: Rc<Vec<i32>>,
+    pub glides: Rc<Vec<i32>>,
 }
 
 impl Tables {
     pub fn load() -> Tables {
         let read = |t: &str| Rc::new(heartburn::tape::values(t).expect("a table of cards"));
-        Tables { features: read(FEATURES), filters: read(FILTERS) }
+        Tables { features: read(FEATURES), filters: read(FILTERS), glides: read(GLIDE_TABLE) }
     }
 }
 
@@ -167,7 +171,7 @@ pub fn frames(net: &mut Net, t: &Tables, r1: &[i32], a: &[i32], b: &[i32], c: &[
     net.put("gl_c", &cols(c, &[5]));
     net.collate("gl_s", &[("n_gl", 1, &[0]), ("bk_gl", 4, &[0]), ("gl_c", 1, &[0])]);
     net.collate("gl_f", &[("abug", 4, &[0, 1, 2, 3]), ("frm_gl", 5, &[2, 3])]);
-    net.copy("kplan", &["kp_a", "kp_b"]);
+    net.copy("kplan", &["kp_a", "kp_b", "kp_c"]);
     net.add("glidea", GLIDEA, &[("lp", "ga_x"), ("gg", "ga_x"), ("gb", "ga_y"), ("gb2", "ga_y"), ("*", "ga_in")],
         &[("aska", "gaska"), ("askb", "gaskb"), ("og", "gain"), ("*", "kp")]);
     net.fetch("gaska", &t.filters, 11, 0, 11, "ga_x");
@@ -210,9 +214,14 @@ pub fn frames(net: &mut Net, t: &Tables, r1: &[i32], a: &[i32], b: &[i32], c: &[
     net.add("mulx2", MULX, &[("gm", "md2"), ("gy", "md2"), ("*", "lv1")], &[("*", "lv2")]);
     net.add("mulx3", MULX, &[("gm", "md3"), ("gy", "md3"), ("*", "lv2")], &[("*", "lv3")]);
     net.add("mulx4", MULX, &[("gm", "md4"), ("gy", "md4"), ("*", "lv3")], &[("*", "lv4")]);
+    net.add("gnorm", GNORM, &[("gc", "gnt"), ("*", "gn_in")], &[("ask", "gnask"), ("*", "md5")]);
+    let grec = 3 * t.filters.len() / 11;
+    net.fetch("gnask", &t.glides, grec, 0, grec, "gnt");
+    net.collate("gn_in", &[("kp_c", 6, &[3, 4, 5])]);
+    net.add("mulx5", MULX, &[("gm", "md5"), ("gy", "md5"), ("*", "lv4")], &[("*", "lv5")]);
     net.add("kcarry", KCARRY, &[("frm", "kc_s"), ("gx", "kq"), ("*", "kself")], &[("pz", "kself"), ("wb", "kself"), ("*", "kout")]);
     net.collate("kc_s", &[("sv_kc", 2, &[0])]);
-    net.add("asm", ASM, &[("gp", "p_asm"), ("gk", "kout"), ("*", "lv4")], &[("*", frames)]);
+    net.add("asm", ASM, &[("gp", "p_asm"), ("gk", "kout"), ("*", "lv5")], &[("*", frames)]);
 }
 
 /// Phoneme cards to frame cards, phase by phase, every machine run to the end. Returns the frame cards and each

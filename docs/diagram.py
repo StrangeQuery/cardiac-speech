@@ -96,9 +96,9 @@ GROUPS = [
      "glides at the segment's ends; a silent frame keeps the filter before it",
      ["closure", "main", "edge", "choose", "glides", "glidea", "glideb", "kcarry"], 5),
     ("level", 3, "Level", "ONCE A FRAME",
-     "the filter's gain times a sonorant's loudness, 3 dB down when unstressed, falling across a vowel, and times "
-     "sqrt(60 P) / 100 so a pulse carries the frame's power",
-     ["lsel", "vsel", "psel", "mulx1", "mulx2", "mulx3", "mulx4"], 5),
+     "the filter's gain times a sonorant's loudness, 3 dB down when unstressed, falling across a vowel, times "
+     "sqrt(60 P) / 100 so a pulse carries the frame's power, and a glide's factor from the glide table",
+     ["lsel", "vsel", "psel", "mulx1", "mulx2", "mulx3", "mulx4", "gnorm", "mulx5"], 5),
     ("asm", 3, "Frame cards", "ONCE A FRAME",
      "each frame as the voice box reads it, a frame behind: V, P, A, K10 to K1",
      ["asm"], 5),
@@ -108,10 +108,12 @@ GROUPS = [
      "of 20 samples a frame",
      ["interp", "steps"], 5),
     ("reduce", 4, "Coefficient digits", "TEN TIMES A STEP",
-     "each K as two digits, a sign and a shift: five cards that become the multiply routine",
+     "each K as two digits, a sign, a shift and a rounding half (0 in a pause): five cards that become the "
+     "multiply routine",
      ["reduce"], 2),
     ("excite", 4, "Excitation", "ONCE A SAMPLE",
-     "a pulse of height A every P samples, or +A and -A from a decimal random number generator",
+     "a pulse of height A every P samples through e = pulse + 0.5 e, or +A and -A from a decimal random number "
+     "generator",
      ["excite"], 2),
     ("lattice", 4, "The lattice filter, ten stages", "ONCE A SAMPLE",
      "five machines of two stages each: f goes down from L1 to L5, each b goes back up one machine; every multiply "
@@ -128,7 +130,7 @@ HOSTS = {
     "decks": (0, "text/*.cards", ["ASCII rows, number words, letter names,", "exceptions, the rule deck (5,680 cards)"], 66),
     "rev": (1, "the records, last first", ["the host puts the segment records", "in the opposite order"], 66),
     "fwd": (1, "back in order, by columns", ["each machine dealt the columns of the", "records it reads, collated a port"], 66),
-    "table": (1, "front/features.cards, filters.cards", ["the phoneme table and the filters:", "the one precomputed part (ref/table.py)"], 66),
+    "table": (1, "front/features, filters, glides.cards", ["the phoneme table, the filters and the glide factors:", "the one precomputed part (ref/table.py)"], 66),
     "samples": (4, "standard output", ["8 kHz signed 16-bit little-endian:", "the host joins thousands x 1000 + units"], 66),
 }
 
@@ -390,7 +392,7 @@ def build():
     arrow([B("table", 0.94), (B("table", 0.94)[0], low), (g2, low), (g2, L("filters", 0.85)[1]),
            (L("filters")[0] - 2, L("filters", 0.85)[1])])
     arrow([(g2, L("level", 0.7)[1]), (L("level")[0] - 2, L("level", 0.7)[1])])
-    label(B("table", 0.06)[0], low + 20, "rows and filters fetched by number: K10..K1 and a gain each")
+    label(B("table", 0.06)[0], low + 20, "rows, filters and glide factors fetched by number")
     # frames into the pitch, the filters, the level
     g2b = gap(2, 0.6)
     yfr = Rt("frames", 0.35)[1]

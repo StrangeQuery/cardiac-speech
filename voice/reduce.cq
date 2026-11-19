@@ -1,89 +1,97 @@
-; A coefficient K (k = K/1000) in, the five cards a lattice machine's multiply routine is made of out: the sign
-; word (ADD t or SUB t, t being cell 86 in every lattice machine), the jumps into the row of ADDs for k's second
-; and first digits (JMP 99-d), SFT 0L, and the rounding half, 5 x 10^(L-1). k keeps two digits from its first
-; one, L: L is 1 for |K| from 100, 2 from 10, 3 below; for L = 1 the second digit is rounded, and 0.995 and up
-; stay 0.99.
+; A step's A and a coefficient K (k = K/1000) in, the five cards a lattice machine's multiply routine is made of
+; out: the sign word (ADD t or SUB t, t being cell 86 in every lattice machine), the jumps into the row of ADDs for
+; k's second and first digits (JMP 99-d), SFT 0L, and the rounding half, 5 x 10^(L-1), or 0 when A is 0, so that in
+; a pause the lattice truncates toward zero and dies away instead of holding a small tone. k keeps two digits from
+; its first one, L: L is 1 for |K| from 100, 2 from 10, 3 below; for L = 1 the second digit is rounded, and 0.995
+; and up stay 0.99.
 ;
 ; Address Contents Label Opcode Operand Comment
-  03            loop    INP   k        03-14: the sign word, and m = |K|
-  04                    CLA   k
-  05                    TAC   neg
-  06                    CLA   wadd
-  07                    STO   sw
-  08                    CLA   k
-  09                    JMP   mag
-  10            neg     CLA   wsub
-  11                    STO   sw
-  12                    CLA   z
-  13                    SUB   k
-  14            mag     STO   m
-  15                    SUB   c100     15-29: L = 1, n = (m + 5) / 10, at most 99
-  16                    TAC   small
-  17                    CLA   m
-  18                    ADD   five
-  19                    SFT   01
-  20                    STO   n
-  21                    SUB   c100
-  22                    TAC   l1
-  23                    CLA   c99
-  24                    STO   n
-  25            l1      CLA   f401
-  26                    STO   fin
-  27                    CLA   five
-  28                    STO   h
-  29                    JMP   out
-  30            small   CLA   m        30-39: L = 2, n = m
-  31                    SUB   ten
-  32                    TAC   l3
-  33                    CLA   m
-  34                    STO   n
-  35                    CLA   f402
-  36                    STO   fin
-  37                    CLA   fifty
-  38                    STO   h
-  39                    JMP   out
-  40            l3      CLA   m        40-46: L = 3, n = 10 m
-  41                    SFT   10
-  42                    STO   n
-  43                    CLA   f403
-  44                    STO   fin
-  45                    CLA   c500
-  46                    STO   h
-  47            out     OUT   sw       47-64: the five cards; SFT 33 keeps n's last digit, SFT 01 drops it
-  48                    CLA   n
-  49                    SFT   33
-  50                    STO   d
-  51                    CLA   c899
-  52                    SUB   d
-  53                    STO   d
-  54                    OUT   d
-  55                    CLA   n
-  56                    SFT   01
-  57                    STO   d
-  58                    CLA   c899
-  59                    SUB   d
-  60                    STO   d
-  61                    OUT   d
-  62                    OUT   fin
-  63                    OUT   h
-  64                    JMP   loop
-  70            k       DATA  0
-  71            sw      DATA  0
-  72            m       DATA  0
-  73            n       DATA  0
-  74            fin     DATA  0
-  75            h       DATA  0
-  76            d       DATA  0
-  77            z       DATA  0
-  78            wadd    ADD   86
-  79            wsub    SUB   86
-  80            c100    DATA  100
-  81            c99     DATA  99
-  82            five    DATA  5
-  83            ten     DATA  10
-  84            fifty   DATA  50
-  85            c500    DATA  500
-  86            c899    DATA  899
-  87            f401    SFT   01
-  88            f402    SFT   02
-  89            f403    SFT   03
+  03            loop    INP   a        03-15: the step's A and K, the sign word, and m = |K|
+  04                    INP   k
+  05                    CLA   k
+  06                    TAC   neg
+  07                    CLA   wadd
+  08                    STO   sw
+  09                    CLA   k
+  10                    JMP   mag
+  11            neg     CLA   wsub
+  12                    STO   sw
+  13                    CLA   z
+  14                    SUB   k
+  15            mag     STO   m
+  16                    SUB   c100     16-30: L = 1, n = (m + 5) / 10, at most 99
+  17                    TAC   small
+  18                    CLA   m
+  19                    ADD   five
+  20                    SFT   01
+  21                    STO   n
+  22                    SUB   c100
+  23                    TAC   l1
+  24                    CLA   c99
+  25                    STO   n
+  26            l1      CLA   f401
+  27                    STO   fin
+  28                    CLA   five
+  29                    STO   h
+  30                    JMP   out
+  31            small   CLA   m        31-40: L = 2, n = m
+  32                    SUB   ten
+  33                    TAC   l3
+  34                    CLA   m
+  35                    STO   n
+  36                    CLA   f402
+  37                    STO   fin
+  38                    CLA   fifty
+  39                    STO   h
+  40                    JMP   out
+  41            l3      CLA   m        41-47: L = 3, n = 10 m
+  42                    SFT   10
+  43                    STO   n
+  44                    CLA   f403
+  45                    STO   fin
+  46                    CLA   c500
+  47                    STO   h
+  48            out     OUT   sw       48-70: the five cards; SFT 33 keeps n's last digit, SFT 01 drops it
+  49                    CLA   n
+  50                    SFT   33
+  51                    STO   d
+  52                    CLA   c899
+  53                    SUB   d
+  54                    STO   d
+  55                    OUT   d
+  56                    CLA   n
+  57                    SFT   01
+  58                    STO   d
+  59                    CLA   c899
+  60                    SUB   d
+  61                    STO   d
+  62                    OUT   d
+  63                    OUT   fin
+  64                    CLA   z        the rounding half, or 0 (truncation) in a step with A = 0
+  65                    SUB   a
+  66                    TAC   rnd
+  67                    OUT   z
+  68                    JMP   loop
+  69            rnd     OUT   h
+  70                    JMP   loop
+  71            k       DATA  0
+  72            sw      DATA  0
+  73            m       DATA  0
+  74            n       DATA  0
+  75            fin     DATA  0
+  76            h       DATA  0
+  77            d       DATA  0
+  78            z       DATA  0
+  79            wadd    ADD   86
+  80            wsub    SUB   86
+  81            c100    DATA  100
+  82            c99     DATA  99
+  83            five    DATA  5
+  84            ten     DATA  10
+  85            fifty   DATA  50
+  86            c500    DATA  500
+  87            c899    DATA  899
+  88            f401    SFT   01
+  89            f402    SFT   02
+  90            f403    SFT   03
+  91            a       DATA  0

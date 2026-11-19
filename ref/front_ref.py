@@ -27,13 +27,26 @@ def feat(pc):
 
 FEATS = {}
 FILTERS = []
+GLIDES = []
 
 
 def load(C):
-    global FEATS, FILTERS
+    """The phoneme table, the filters and the glide table for the scale C (the glide table read from
+    front/glides.cards when C is the table's own, since it takes a while to make)."""
+    global FEATS, FILTERS, GLIDES
     f, fl = tb.build(C)
     FEATS = {tb.CODE[p]: r for p, r in f.items()}
     FILTERS = fl
+    path = tb.os.path.join(tb.os.path.dirname(tb.os.path.abspath(__file__)), '..', 'front', 'glides.cards')
+    GLIDES = [int(v) for v in open(path).read().split()] if C == tb.C else tb.glide_table(fl)
+
+
+def glide_factor(own, nb, w):
+    """INTEGER: the level factor for a frame glided from its own filter towards a neighbour's, in percent, from
+    the glide table (table.glide_table): the float front end works out every frame's gain from that frame's own
+    filter, and blending the Ks of two filters makes one that speaks more quietly than either."""
+    rec = 3 * len(FILTERS)
+    return GLIDES[own * rec + 3 * nb + tb.GLIDE_W.index(w)]
 
 
 def trunc_div(a, b):
@@ -437,13 +450,16 @@ def frames(recs, sums, info=None):
                     sounding = 0
                 else:
                     K, G, V = kvec(ft[tb.F_NOISE]), gain(ft[tb.F_NOISE]), ft[tb.F_VOICED]
+            gl = None
             if glides:
                 w = glide_weight(j, n, 'left')
                 if w is not None and pte:
                     K = [blend(blend(a, b, 5), v, w) for a, b, v in zip(kvec(pte), kvec(ts), K)]
+                    gl = (ts, pte, w)
                 w = glide_weight(j, n, 'right')
                 if w is not None and nts:
                     K = [blend(blend(a, b, 5), v, w) for a, b, v in zip(kvec(te), kvec(nts), K)]
+                    gl = (te, nts, w)
             A = 0
             if sounding:
                 A = G
@@ -455,6 +471,8 @@ def frames(recs, sums, info=None):
                     A = A - mul3(A, 30 * u)
                 if V:
                     A = mul3(A, 10 * isqrt(60 * P))
+                if gl is not None:
+                    A = min(999, mulf(A, glide_factor(*gl)))
                 assert A <= 999, A
             out.append([sounding, V, P, A] + (K if K else [0] * 10))
             f += 1

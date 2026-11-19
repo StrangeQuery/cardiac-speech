@@ -2,7 +2,7 @@
 
 cardiac-speech is text to speech that runs on CARDIACs. You give it a line of ASCII text and it gives you speech as
 raw 8 kHz audio. Every step of the work, from finding the words in the text to the last sample of sound, is done by
-63 CARDIAC programs running under [heartburn](https://github.com/StrangeQuery/heartburn), the CARDIAC engine. The
+65 CARDIAC programs running under [heartburn](https://github.com/StrangeQuery/heartburn), the CARDIAC engine. The
 host program only moves cards between the machines: it deals the text and the decks the machines read, carries each
 machine's output cards on to the machines that read them, and writes the samples out.
 
@@ -40,8 +40,8 @@ the speech as a WAV file instead:
 The other two programs run parts of the pipeline on their own. `talk-phonemes` reads phoneme cards and prints frame
 cards, and `talk-frames` reads frame cards and writes samples. They are there for testing.
 
-On this Mac (an Apple M5 Ultra) the sentence above, 7.83 seconds of speech, takes 0.076 seconds to work out: a
-real-time factor of 0.0097.
+On this Mac (an Apple M5 Ultra) the sentence above, 7.83 seconds of speech, takes 0.080 seconds to work out: a
+real-time factor of 0.0102.
 
 ## The inspiration: the Speak & Spell
 
@@ -99,10 +99,10 @@ lists which numbers come from which table and which are estimates.
 
 ### Phonemes to frames: Klatt's durations and formants
 
-Thirty-four machines turn the phonemes into frame cards, one frame every 25 milliseconds. They run in three phases.
+Thirty-six machines turn the phonemes into frame cards, one frame every 25 milliseconds. They run in three phases.
 First `feat` makes an 11-card record for each sound. Then the host puts the records in the opposite order, and
 `after`, `ahead` and `next` run through them last first, so that each sound can learn what comes after it in its
-word. Finally the host puts everything back in order, and the remaining 30 machines work forward, a sound and then a
+word. Finally the host puts everything back in order, and the remaining 32 machines work forward, a sound and then a
 frame at a time.
 
 The durations come from Dennis Klatt's 1979 rules [[Klatt 1979]](#references). Each sound has an inherent and a
@@ -127,7 +127,9 @@ here it is stretched over the sentence). A stressed vowel's onset is raised by 1
 for secondary, and from the last stressed vowel on the pitch moves towards 85 Hz for a statement or 160 Hz for a
 question. The level stage scales each frame's gain by the sound's loudness and its stress, lets it fall across a
 vowel, and multiplies a voiced frame by the square root of its pitch period, so that one pulse a period carries the
-frame's power.
+frame's power. Last, a frame that glides towards its neighbour's filter is multiplied by a factor from the glide
+table (`gnorm`), because blending two filters' coefficients makes a filter that speaks more quietly than either,
+by as much as 13 dB, while the gain was made for the frame's own filter.
 
 ### Frames to samples: the lattice in three-digit arithmetic
 
@@ -136,7 +138,9 @@ A (the excitation's amplitude) and the ten reflection coefficients K10 to K1, ea
 each value's step to the next frame, (next - this) / 10, which is one SFT, and `steps` hands out ten steps of 20
 samples each, moving every value on by its step. There is no glide across a change between voiced and unvoiced.
 `excite` makes the excitation: a pulse of height A every P samples, or +A and -A chosen by a
-decimal random number generator, x = 21 x + 7 mod 1000.
+decimal random number generator, x = 21 x + 7 mod 1000. A voiced pulse goes through the one-pole low-pass
+e = pulse + 0.5 e, five ADDs and an SFT, which softens the buzz of a bare pulse: it takes the voiced sounds' share of
+energy above 2 kHz from about -4 dB to about -8 dB, and their crest factor from 13.5 dB to 12.6 dB.
 
 The filter is the ten-stage LPC lattice. Each stage works out
 
@@ -147,8 +151,9 @@ instruction. So each coefficient is cut down to two decimal digits and a sign, a
 a row of nine ADD instructions:
 
 - `reduce` turns each K into five cards: a sign word (ADD t or SUB t), two jumps into the row of ADDs, one for each
-  digit, an SFT, and a rounding half. K keeps two digits from its first nonzero one, so 0.734 is 0.73 and 0.052 is
-  0.052, and a K that needs rounding is rounded.
+  digit, an SFT, and a rounding half. In a step whose A is 0 (a pause or a stop's closure; `steps` sends each K
+  after the step's A) the rounding half is 0, so the multiplies truncate toward zero. K keeps two digits from its
+  first nonzero one, so 0.734 is 0.73 and 0.052 is 0.052, and a K that needs rounding is rounded.
 - A lattice machine reads those cards straight into its multiply routine, so the routine is rewritten every step.
 - To multiply x by k, it jumps into the row so that the first digit's number of ADDs run, shifts one place left,
   jumps in again for the second digit, adds half a unit away from zero, and shifts right to the result. The row
@@ -157,9 +162,19 @@ a row of nine ADD instructions:
 A full lattice of ten stages doesn't fit in one machine's cells, so it is split over five machines of two stages
 each. f passes down from `L1` to `L5`, and each machine sends its b back up to the one above for the next sample.
 
+Rounding keeps the lattice close to the float synthesizer while it speaks, but with no input it doesn't die away:
+values of 1 to 3 go round and round the stages as a steady tone, a limit cycle, which the output stage makes louder.
+Before this was fixed, 207 of the 210 silent frames in a long passage held a tone (around 400 Hz at an RMS of 66, or
+3 kHz at 31). Truncating toward zero in silent steps lets every value fall to 0 within a few samples, and those frames
+are now exactly 0. Truncating everywhere would do the same, but it costs 2 to 4 dB of signal-to-noise ratio against
+the float synthesizer while speaking; truncating only in silence gains 1.2 to 2.3 dB instead, because the tones are
+gone.
+
 The output stage applies the de-emphasis, yd = f + 0.9 yd, and outputs 20 yd. A 16-bit sample doesn't fit in a
 cell, so `output` keeps yd as thousands and units, works out 0.9 of the units as (9 L + 5) / 10, and outputs each
-sample as two values, the thousands and then the units from 0 to 999. The host joins each pair back into a sample,
+sample as two values, the thousands and then the units from 0 to 999. Rounded, 0.9 of anything from 1 to 5 is
+itself, so yd would stick at up to 5 (100 in the output) after every sound; when f is 0, 0.9 L is truncated
+instead, and yd falls to 0. The host joins each pair back into a sample,
 thousands x 1,000 + units.
 
 ### Where the integer version differs from the prototype
@@ -171,26 +186,32 @@ version in Python, and each such place is marked INTEGER there. The differences 
 
 - **Glides.** The float front end glides the formant frequencies between sounds and works out new filter
   coefficients for every frame. The CARDIACs blend the reflection coefficients of the two targets instead,
-  (x (10 - u) + y u) / 10, with u the frame's place in its sound in tenths (`glidea`, `glideb`).
+  (x (10 - u) + y u) / 10, with u the frame's place in its sound in tenths (`glidea`, `glideb`). The float front
+  end also works out each frame's gain from that frame's own filter; the CARDIACs take the glide's level factor
+  from a table worked out for each pair of filters and weight (`gnorm`). Against a rendering with each frame's gain
+  from its own filter, the sounds' levels wander by 1.2 dB (standard deviation over the sounds of four passages),
+  where they wandered by 1.9 dB, with outliers of up to 13 dB, before the factor.
 - **Vowel decay.** The float front end lets a vowel's power fall 3 dB from start to end on a decibel scale. The
   CARDIACs take a straight line off the amplitude, 30 u / 1000 (`vsel`).
 - **Square root.** The float synthesizer scales a pulse by the square root of the pitch period. The CARDIACs use
   isqrt(60 P) / 100, found by counting the odd numbers 1, 3, 5 and so on that can be taken away (`psel`), and the
   phoneme table scales the unvoiced filters by sqrt(60) / 100 to keep the balance between voiced and unvoiced.
 - **Pulses, not a chirp.** The Python pipeline excites voiced frames with a short chirp, as the Speak & Spell did.
-  The CARDIACs use a single pulse a period.
+  The CARDIACs use a single pulse a period through a one-pole low-pass, e = pulse + 0.5 e. The chirp spreads the
+  pulse out in time but keeps its flat spectrum; the low-pass makes it darker.
 - **Pitch.** The fall across a sentence and the place in the final fall are kept by Bresenham's method, adding and
   taking away instead of dividing (`decl`, `taily`), and the pitch period is 8000 / f0 by repeated subtraction
   (`period`).
 
 `ref/compare_wavs.py` sets the CARDIAC speech beside the Python pipeline's (the float front end, then the
 CARDIAC-arithmetic synthesizer with the chirp), sound by sound. For the sentence above, the log-spectral distance
-between the two is 8.9 dB and the sounds' levels differ by 1.5 dB on average. For "the quick brown fox jumps over
-the lazy dog" the figures are 7.3 dB and 1.3 dB.
+between the two is 13.0 dB and the sounds' levels differ by 1.5 dB on average. For "the quick brown fox jumps over
+the lazy dog" the figures are 9.2 dB and 1.1 dB. Most of the spectral distance is the low-pass on the pulses: with
+bare pulses, as the CARDIACs had before, the distances were 8.9 dB and 7.3 dB.
 
 ## What each machine does
 
-These are all 63 machines, in the order the host wires them. Cells are the cells each listing fills. A CARDIAC has
+These are all 65 machines, in the order the host wires them. Cells are the cells each listing fills. A CARDIAC has
 100 cells; cell 00 always holds 001 and the loader uses cells 01 and 02, so a program has cells 03 to 99, and a
 program that JMPs uses cell 99 for the way back. Instructions are counted by `talk -v` for "Hello, my name is cardiac
 and I was born in 1968 to D W Hagelbarger. And now I can talk.", which comes to 101 phoneme cards, 313 frames and
@@ -209,7 +230,7 @@ column also gives the count per sample.
 | spcls | [text/spcls.cq](text/spcls.cq) | decides which all-capital words are spelled out letter by letter | 85 | 2,247 |
 | spell | [text/spell.cq](text/spell.cq) | makes a spelled word ready for `names`, marking its last letter | 75 | 2,611 |
 | names | [text/names.cq](text/names.cq) | says each letter by name, fetching the name's phonemes and stressing the last letter | 82 | 1,694 |
-| excl | [text/excl.cq](text/excl.cq) | looks each word up among the function words and the exceptions, reading the word deck through for each word | 96 | 176,254 |
+| excl | [text/excl.cq](text/excl.cq) | looks each word up among the function words and the exceptions, reading the word deck through for each word | 96 | 234,663 |
 | excp | [text/excp.cq](text/excp.cq) | replaces an exception with its phonemes from the exceptions' deck | 76 | 2,725 |
 | loader | [text/loader.cq](text/loader.cq) | holds a word for the rules, asks for each letter's rules, and moves on by the length of the rule that matched | 77 | 4,339 |
 | filter | [text/filter.cq](text/filter.cq) | reads through the rule deck to the current letter's section and passes its rules on | 30 | 473,370 |
@@ -220,9 +241,9 @@ column also gives the count per sample.
 | postb | [text/postb.cq](text/postb.cq) | gathers a rules word and notes whether it is a function word and whether it has a full vowel | 74 | 2,370 |
 | postc | [text/postc.cq](text/postc.cq) | gives each phoneme of a rules word its stress | 93 | 2,225 |
 | join | [text/join.cq](text/join.cq) | puts the boundaries between words, the pauses and the end card in place for the front end | 85 | 2,000 |
-| | | **19 machines** | | **816,796** |
+| | | **19 machines** | | **875,205** |
 
-### Front end (34 machines)
+### Front end (36 machines)
 
 | Machine | Listing | What it does | Cells | Instructions |
 |---|---|---|---:|---:|
@@ -254,39 +275,41 @@ column also gives the count per sample.
 | lsel | [front/lsel.cq](front/lsel.cq) | for a sonorant, the loudness of the vowel next to it | 66 | 7,442 |
 | vsel | [front/vsel.cq](front/vsel.cq) | for a vowel, 3 dB down when unstressed and the fall across the vowel | 57 | 9,635 |
 | psel | [front/psel.cq](front/psel.cq) | for a voiced frame, sqrt(60 P) / 100 by counting odd numbers | 73 | 200,726 |
-| mulx1 | [front/mulx.cq](front/mulx.cq) | multiplies the gain by `lsel`'s factor | 72 | 5,360 |
-| mulx2 | [front/mulx.cq](front/mulx.cq) | multiplies by `vsel`'s stress factor | 72 | 6,987 |
-| mulx3 | [front/mulx.cq](front/mulx.cq) | takes off `vsel`'s fall across the vowel | 72 | 10,566 |
-| mulx4 | [front/mulx.cq](front/mulx.cq) | multiplies by `psel`'s square root | 72 | 12,760 |
+| mulx1 | [front/mulx.cq](front/mulx.cq) | multiplies the gain by `lsel`'s factor | 89 | 5,573 |
+| mulx2 | [front/mulx.cq](front/mulx.cq) | multiplies by `vsel`'s stress factor | 89 | 7,038 |
+| mulx3 | [front/mulx.cq](front/mulx.cq) | takes off `vsel`'s fall across the vowel | 89 | 10,617 |
+| mulx4 | [front/mulx.cq](front/mulx.cq) | multiplies by `psel`'s square root | 89 | 12,811 |
+| gnorm | [front/gnorm.cq](front/gnorm.cq) | for a frame that glides towards its neighbour, the factor from the glide table that puts its power back | 59 | 422,671 |
+| mulx5 | [front/mulx.cq](front/mulx.cq) | multiplies by `gnorm`'s factor, at most 999 | 89 | 11,025 |
 | kcarry | [front/kcarry.cq](front/kcarry.cq) | gives a silent frame the filter of the frame before it | 41 | 32,118 |
 | asm | [front/asm.cq](front/asm.cq) | puts each frame together as the voice box reads it, V, P, A, K10 to K1, and ends with -1 | 80 | 33,700 |
-| | | **34 machines** | | **993,455** |
+| | | **36 machines** | | **1,427,517** |
 
 ### Voice box (10 machines)
 
 | Machine | Listing | What it does | Cells | Instructions | Per sample |
 |---|---|---|---:|---:|---:|
 | interp | [voice/interp.cq](voice/interp.cq) | each value's step to the next frame, none across a change of voicing | 63 | 57,167 | 0.9 |
-| steps | [voice/steps.cq](voice/steps.cq) | ten steps of 20 samples a frame, each value moved on by its step | 62 | 540,743 | 8.6 |
-| reduce | [voice/reduce.cq](voice/reduce.cq) | each K as the five cards of a multiply routine | 82 | 1,214,703 | 19.4 |
-| excite | [voice/excite.cq](voice/excite.cq) | pulses every P samples, or random plus and minus A | 52 | 1,010,624 | 16.1 |
-| L1 | [voice/lattice_top.cq](voice/lattice_top.cq) | lattice stages 10 and 9 | 89 | 6,280,279 | 100.3 |
-| L2 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 8 and 7 | 93 | 7,509,943 | 120.0 |
-| L3 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 6 and 5 | 93 | 7,578,417 | 121.1 |
-| L4 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 4 and 3 | 93 | 7,727,315 | 123.4 |
-| L5 | [voice/lattice_bottom.cq](voice/lattice_bottom.cq) | lattice stages 2 and 1 | 94 | 8,291,816 | 132.5 |
-| output | [voice/output.cq](voice/output.cq) | the de-emphasis, and each sample as thousands and units | 48 | 2,412,615 | 38.5 |
-| | | **10 machines** | | **42,623,622** | **680.9** |
+| steps | [voice/steps.cq](voice/steps.cq) | ten steps of 20 samples a frame, each value moved on by its step, and the step's A with each K | 65 | 575,182 | 9.2 |
+| reduce | [voice/reduce.cq](voice/reduce.cq) | each K as the five cards of a multiply routine, rounding or (in a pause) truncating | 89 | 1,339,924 | 21.4 |
+| excite | [voice/excite.cq](voice/excite.cq) | pulses every P samples through a one-pole low-pass, or random plus and minus A | 63 | 1,555,432 | 24.8 |
+| L1 | [voice/lattice_top.cq](voice/lattice_top.cq) | lattice stages 10 and 9 | 89 | 6,271,363 | 100.2 |
+| L2 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 8 and 7 | 93 | 7,500,044 | 119.8 |
+| L3 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 6 and 5 | 93 | 7,568,175 | 120.9 |
+| L4 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 4 and 3 | 93 | 7,716,503 | 123.3 |
+| L5 | [voice/lattice_bottom.cq](voice/lattice_bottom.cq) | lattice stages 2 and 1 | 94 | 8,264,774 | 132.0 |
+| output | [voice/output.cq](voice/output.cq) | the de-emphasis, and each sample as thousands and units | 58 | 2,631,875 | 42.0 |
+| | | **10 machines** | | **43,480,439** | **694.6** |
 
-All together the 63 machines ran 44,433,873 instructions for 7.83 seconds of speech, which is about 5.7 million
-instructions a second of speech, or 710 a sample. The voice box does 96 percent of that work, and the five lattice
-machines alone do 84 percent. The text machines and the front end run 1.8 million instructions between them, and
-most of those go to reading through decks (`filter`, `excl`) and to the division and square root done by
+All together the 65 machines ran 45,783,161 instructions for 7.83 seconds of speech, which is about 5.9 million
+instructions a second of speech, or 731 a sample. The voice box does 95 percent of that work, and the five lattice
+machines alone do 82 percent. The text machines and the front end run 2.3 million instructions between them, and
+most of those go to reading through decks (`filter`, `excl`, `gnorm`) and to the division and square root done by
 subtraction (`period`, `psel`). The largest listings, `excl` at 96 cells and `L5` at 94, are close to the 97 a
 program can have.
 
-The cards add up the same way. The 63 programs load 9,478 program cards between them. Running the sentence, the
-machines read 1,128,960 cards with INP and put out 1,111,376 values with OUT, almost all of them in the voice box,
+The cards add up the same way. The 65 programs load 9,980 program cards between them. Running the sentence, the
+machines read 1,204,677 cards with INP and put out 1,146,004 values with OUT, almost all of them in the voice box,
 where every sample passes up and down the lattice. `talk -v` prints these counts after the instruction counts.
 
 [`text/exc.cq`](text/exc.cq) is in the repo but no machine runs it. It is the first version of the lookup that
@@ -309,9 +332,9 @@ synthesizer is not Klatt's formant synthesizer, though. Klatt's formants are tur
 once, ahead of time, and the CARDIACs only blend those. The Votrax and the SP0256 string stored sounds together, and
 cardiac-speech instead works out every frame of every sound from its neighbours.
 
-The cost on a CARDIAC is large. One second of speech takes about 5.7 million CARDIAC instructions over 63 machines,
-and at 8,000 samples a second that is 710 instructions a sample. Under heartburn on this Mac, the 63 machines take
-turns on one thread, and the sentence takes 0.076 seconds, a real-time factor of 0.0097.
+The cost on a CARDIAC is large. One second of speech takes about 5.9 million CARDIAC instructions over 65 machines,
+and at 8,000 samples a second that is 731 instructions a sample. Under heartburn on this Mac, the 65 machines take
+turns on one thread, and the sentence takes 0.080 seconds, a real-time factor of 0.0102.
 
 ## Reliance on lubdub
 
@@ -368,6 +391,10 @@ of poles, r = exp(-pi B T) at angle 2 pi F T), a step-down recursion that divide
 None of that is something a CARDIAC could do in a reasonable number of cells, and none of it depends on the text,
 so it is done once, in floating point, and stored as cards, the way the Speak & Spell kept its words in ROM. The
 table has a record of 17 cards for each of the 41 phonemes, and 11 cards (K10 to K1 and a gain) for each filter.
+A voiced filter's gain counts the excitation's low-pass. The glide table, [`front/glides.cards`](front/glides.cards),
+is made the same way: for each filter a sound's frames can glide from, and each filter they can glide towards and
+each glide weight, the factor (in percent) that brings the glided filter's power back to the filter's own,
+100 sqrt(E(own) / E(glided)), 17,460 cards in all.
 
 The other decks are not computations. [`text/`](text/) holds the ASCII table, the number words, the letters'
 names, the function words and exceptions and their phonemes, and the NRL rules, all as cards transcribed from the
@@ -384,11 +411,11 @@ These checks run the real programs under heartburn, and need a release build fir
 
     cargo build --release
     cd ref
-    python3 check_text.py                    # talk --phonemes on 912 texts against text_to_phonemes.py
+    python3 check_text.py                    # talk --phonemes on 929 texts against text_to_phonemes.py
     python3 check_front.py                   # talk-phonemes and talk-frames on 23 sentences against front_ref and voice_ref
     python3 check_voice.py hello_tts mtv_tts fox_tts born1968_tts   # talk-frames on the frame files in fixtures/ against voice_ref
 
-On the day this README was written, check_text found all 912 texts exact, check_front found the frame cards and
+On the day this README was written, check_text found all 929 texts exact, check_front found the frame cards and
 the samples exact for all 23 sentences, and check_voice found all four exact. `make_wavs.py` runs `talk` on three
 texts, writes WAVs into `prototype/out/` and checks every sample against the three references end to end, and
 `compare_wavs.py` compares the speech with the Python pipeline's (make those first with `prototype/tts.sh "TEXT"
@@ -398,7 +425,7 @@ front end; they are test input for the voice box only.
 There are also tests of single machines on `ref/cardiac.py`, a CARDIAC written in Python for trying programs
 quickly. `run_tests.py f1 f2a f2b f2c stress base rules2 rules9 mul nframes back sum framer closure main edge choose
 glides glidea glideb level asm pitch` tests each front-end machine on 23 sentences, `test_text_m.py scan numd numw
-say3 numf spcls spell names excl excp match posta postb postc join` tests each text machine on the 912 texts,
+say3 numf spcls spell names excl excp match posta postb postc join` tests each text machine on the 929 texts,
 `test_lattice.py` tests the five lattice machines with awkward coefficients, and `test_voice.py` and
 `test_front_net.py` run the voice box and the whole front end. All of them reported exact. These need `carc`, heartburn's assembler, on the PATH.
 
@@ -407,12 +434,14 @@ say3 numf spcls spell names excl excp match posta postb postc join` tests each t
 - **Words of at most 13 letters.** `loader` and the two context machines hold the word in cells 85 to 97, with an
   edge after it in 98. A longer word overruns, and its phonemes come out wrong. "extraordinary" (13 letters) is
   right, and "Constantinople" (14) gets an extra phoneme at the end.
-- **A fixed level and no clipping.** The scale is set once in the phoneme table (C = 36 in `ref/table.py`), chosen
-  so that the loudest test sentences stay well inside a cell in the lattice. The loudest of the 23 test sentences
-  reaches |yd| = 610, about 12,200 in the output. Nothing in the voice box clips: a louder text would wrap, because
-  STO keeps only the last three digits.
-- **Pulses, not a chirp.** The voice is excited by a single pulse a period, which sounds buzzier than the Speak &
-  Spell's chirp.
+- **A fixed level and no clipping.** The scale is set once in the phoneme table (C = 36 in `ref/table.py`), chosen so
+  that the loudest test sentences stay well inside a cell in the lattice. Over the 23 test sentences, four longer
+  passages (among them the CARDIAC manual's opening paragraph) and eleven sentences chosen to be loud (open back
+  vowels, shouts, questions), the lattice peaks at 610 of the 999 a cell holds (4.3 dB of headroom) and |yd| at 621,
+  12,420 in the output (8.4 dB below 32,767), with no wraps. Nothing in the voice box clips: a louder text would wrap,
+  because STO keeps only the last three digits.
+- **Pulses, not a chirp.** The voice is excited by a single pulse a period, softened by a one-pole low-pass, where
+  the Speak & Spell used a chirp.
 - **Doubled consonants are collapsed in the stream.** `posta` drops a consonant that repeats the card before it,
   wherever it comes, while the prototype does this only to the rules' words. The two agree because no exception's
   phonemes and no letter's name has a doubled consonant. An exception added with one would come out differently

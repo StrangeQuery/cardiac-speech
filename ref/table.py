@@ -6,10 +6,12 @@ floating point, with the prototype's own functions (prototype/phonemes_to_frames
 
   front/features.cards   one record of FEAT cards for each phoneme code (codes 3-43, record r at r*FEAT)
   front/filters.cards    one record of 11 cards for each filter: K10..K1 (k x 1000) and a gain G
+  front/glides.cards     one record of 3 x 97 cards for each filter up to the last a segment glides from:
+                         the level factors for its glides (see glide_table)
 
 Everything else (durations, glides, pitch, levels, the choice of filter for each frame) is worked out by the
 CARDIACs.  The gains fold in only what is fixed for a filter: 1/sqrt(E) of its impulse response (with the 0.9
-de-emphasis), the phoneme's own power where the filter always speaks for one phoneme, the fixed level offsets
+de-emphasis, and for a voiced filter the excitation's low-pass e = pulse + 0.5 e in front), the phoneme's own power where the filter always speaks for one phoneme, the fixed level offsets
 (-10 dB for a sonorant, -14 dB for aspiration), and the scale C.  Unvoiced filters are scaled by sqrt(60)/100
 so that a voiced frame's sqrt(P), worked out on the CARDIAC as isqrt(60 P) / 100, keeps the float model's
 voiced to unvoiced balance."""
@@ -48,15 +50,41 @@ def kind_of(p):
     return 'aspirate'
 
 
+def energy(a, voiced, n=600):
+    """E of a filter: the energy of the impulse response of 1/A(z) and the de-emphasis (the prototype's
+    impulse_energy), with a voiced filter's input the excitation's low-pass, 0.5^n, instead of one pulse."""
+    if not voiced:
+        return pf.impulse_energy(a, n)
+    p = len(a) - 1
+    y = [0.0] * n
+    e, zd = 0.0, 0.0
+    for i in range(n):
+        v = 0.5 ** i
+        for j in range(1, p + 1):
+            if i - j >= 0:
+                v -= a[j] * y[i - j]
+        y[i] = v
+        zd = v + pf.PRE * zd
+        e += zd * zd
+    return e
+
+
 def kcards(ks):
     return [max(-999, min(999, int(round(k * 1000)))) for k in reversed(ks)]
 
 
+VOICED = []      # build fills it: whether each filter speaks voiced (its gain counts the excitation's low-pass)
+OWN = set()      # build fills it: the filters a segment's frames glide from (vowels' ts, te and aspirated
+                 # forms, sonorants' and nasals' ts)
+
+
 def build(C):
     filters = [None]          # record 0: none
+    VOICED[:] = [False]
+    OWN.clear()
 
     def add(ks, a, power, voiced, son=False):
-        E = pf.impulse_energy(a)
+        E = energy(a, voiced)
         g = C * math.sqrt(power / E)
         if son:
             g *= 1000 / LOUD
@@ -65,6 +93,7 @@ def build(C):
         G = int(round(g))
         assert G <= 999 or C > 1e5, ('gain', G, power)
         filters.append(kcards(ks) + [G])
+        VOICED.append(voiced)
         return len(filters) - 1
 
     def cascade(fb):
@@ -131,11 +160,62 @@ def build(C):
                 vd = r[F_VOICED]
                 ks, a = pf.voiced_fric_filter(p) if vd else pf.noise_filter(p, False)
                 r[F_NOISE] = add(ks, a, pf.POWER[p], bool(vd))
+        if k == 'vowel':
+            OWN.update([r[F_TS], r[F_TE], r[F_ASP]])
+        elif k in ('sonorant', 'nasal'):
+            OWN.add(r[F_TS])
         feats[p] = r
     # HH: its filter is the aspirated form of the vowel after it (or AX): the vowels' F_ASP records
     feats['HH'][F_TS] = 0
     feats['WH'] = list(feats['W'])
     return feats, filters
+
+
+GLIDE_W = (3, 5, 9)          # the glides' weights (front_ref.glide_weight), in this order in a record
+
+
+def blend(x, y, u):
+    v = x * (10 - u) + y * u
+    return -((-v) // 10) if v < 0 else v // 10
+
+
+def k_energy(K, voiced, n=600):
+    """E of a filter given as its cards K10..K1: the lattice's impulse response through the de-emphasis, with a
+    voiced filter's input the excitation's low-pass (as energy() for a polynomial)."""
+    ks = [k / 1000 for k in reversed(K)]
+    b = [0.0] * 11
+    yd = tot = 0.0
+    for i in range(n):
+        f = 0.5 ** i if voiced else (1.0 if i == 0 else 0.0)
+        for j in range(10, 0, -1):
+            f = f - ks[j - 1] * b[j - 1]
+            b[j] = b[j - 1] + ks[j - 1] * f
+        b[0] = f
+        yd = f + pf.PRE * yd
+        tot += yd * yd
+    return tot
+
+
+def glide_table(filters):
+    """The glides' level factors. A frame at a segment's end glides its own filter o towards halfway to a
+    neighbour's n, K = (m (10 - w) + Ko w) / 10 with m = (Kn + Ko) / 2, and that filter speaks more quietly (or
+    loudly) than o, which the gain was made for. Its factor puts the power back: c = 100 sqrt(E(o) / E(K)), at
+    most 999, in percent. Record o (for o up to the largest own filter) holds c for each neighbour n (0 to the last
+    filter) and weight w, card 3 n + 0, 1, 2 for w = 3, 5, 9; filters that aren't an own filter get 100."""
+    nf = len(filters)
+    deck = []
+    for o in range(max(OWN) + 1):
+        if o not in OWN:
+            deck += [100] * (3 * nf)
+            continue
+        Ko = filters[o][:10]
+        Eo = k_energy(Ko, VOICED[o])
+        for n in range(nf):
+            Kn = filters[n][:10] if n else [0] * 10
+            for w in GLIDE_W:
+                K = [blend(blend(a, b, 5), b, w) for a, b in zip(Kn, Ko)]
+                deck.append(min(999, int(round(100 * (Eo / k_energy(K, VOICED[o])) ** 0.5))))
+    return deck
 
 
 def write(C, folder):
@@ -149,10 +229,12 @@ def write(C, folder):
     fl = [0] * 11 + fl
     open(os.path.join(folder, 'features.cards'), 'w').write('\n'.join(map(str, deck)) + '\n')
     open(os.path.join(folder, 'filters.cards'), 'w').write('\n'.join(map(str, fl)) + '\n')
+    gl = glide_table(filters)
+    open(os.path.join(folder, 'glides.cards'), 'w').write('\n'.join(map(str, gl)) + '\n')
     return feats, filters
 
 
 if __name__ == '__main__':
     C = float(sys.argv[1]) if len(sys.argv) > 1 else C
     feats, filters = write(C, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'front'))
-    print(len(feats), 'phonemes,', len(filters) - 1, 'filters')
+    print(len(feats), 'phonemes,', len(filters) - 1, 'filters,', max(OWN) + 1, 'glide records of', 3 * len(filters))

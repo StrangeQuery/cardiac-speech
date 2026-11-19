@@ -22,7 +22,7 @@ pub fn wire(net: &mut Net, frames: &str, out: &str) {
     net.add("interp", INTERP, &[("3", frames), ("6", frames), ("13", frames), ("27", frames), ("*", "v_iself")],
         &[("7", "v_iself"), ("35", "v_iself"), ("*", "v_tosteps")]);
     net.add("steps", STEPS, &[("3", "v_tosteps"), ("7", "v_tosteps"), ("*", "v_sself")],
-        &[("18", "v_exc"), ("20", "v_exc"), ("28", "v_exc"), ("38", "v_kin"), ("*", "v_sself")]);
+        &[("18", "v_exc"), ("20", "v_exc"), ("28", "v_exc"), ("38", "v_kin"), ("40", "v_kin"), ("*", "v_sself")]);
     net.add("reduce", REDUCE, &[("*", "v_kin")], &[("*", "v_coef")]);
     net.deal("v_coef", 10, &["v_c1", "v_c2", "v_c3", "v_c4", "v_c5"]);
     net.add("excite", EXCITE, &[("*", "v_exc")], &[("*", "v_e")]);

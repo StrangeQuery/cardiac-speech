@@ -8,6 +8,9 @@ FEATURES = [int(v) for v in open(tb.os.path.join(tb.os.path.dirname(tb.os.path.a
                                                  'features.cards')).read().split()]
 FILTERS = [int(v) for v in open(tb.os.path.join(tb.os.path.dirname(tb.os.path.abspath(__file__)), '..', 'front',
                                                 'filters.cards')).read().split()]
+GLIDES = [int(v) for v in open(tb.os.path.join(tb.os.path.dirname(tb.os.path.abspath(__file__)), '..', 'front',
+                                               'glides.cards')).read().split()]
+GLIDE_REC = 3 * len(FILTERS) // 11
 
 
 def records(cards, size):
@@ -515,13 +518,27 @@ def f7_period(f0s):
     return [fr.period(f) for f in f0s]
 
 
-def f8_level(segs, sv, us, gs, ps):
+def f8_gnorm(ko):
+    """gnorm.cq: per frame (gn, go, w) -> the fifth level step's mode and factor: 0 and 0 without a glide (w 10),
+    else 4 and card 3 gn + (0, 1, 2 for w 3, 5, 9) of the glide table's record go."""
+    out = []
+    for a, b, u, gn, go, w in ko:
+        if w == 10:
+            out.append([0, 0])
+        else:
+            out.append([4, GLIDES[go * GLIDE_REC + 3 * gn + tb.GLIDE_W.index(w)]])
+    return out
+
+
+def f8_level(segs, sv, us, gs, ps, ko):
     """level.cq: per segment (kind, s, n, adjv, prevv, nextv), per frame (snd, V), u, G and P, and the table's LOUD
-    card of a sonorant's reference vowel -> per frame (snd, V, A)."""
+    card of a sonorant's reference vowel, and the glide plan (for the glide factor) -> per frame (snd, V, A)."""
     out = []
     fi = 0
+    gm = f8_gnorm(ko)
     for kind, s, n, adjv, prevv, nextv in segs:
         for _ in range(n):
+            mode, c = gm[fi]
             snd, V = sv[fi]; u = us[fi]; G = gs[fi]; P = ps[fi]; fi += 1
             A = 0
             if snd == 1:
@@ -535,6 +552,8 @@ def f8_level(segs, sv, us, gs, ps):
                     A = A - fr.mul3(A, 30 * u)
                 if V:
                     A = fr.mul3(A, 10 * fr.isqrt(60 * P))
+                if mode == 4:
+                    A = min(999, fr.mulf(A, c))
             out.append([snd, V, A])
     return out
 
@@ -579,14 +598,15 @@ def compose(tokens):
     f0s = f7_tail([n + x for x, n in zip(select(r1, [SEND]), d['n'])], bases, sums)
     ps = f7_period(f0s)
     lev = f8_level([x[:1] + y[:1] + n + c[1:2] + bk[1:2] + c[2:3] for x, y, n, c, bk in
-                    zip(select(r1, [KIND]), d['st'], d['n'], d['c'], d['bk'])], lv, us, gs, ps)
+                    zip(select(r1, [KIND]), d['st'], d['n'], d['c'], d['bk'])], lv, us, gs, ps, ko)
     cards = f9_asm(lev, ps, ks)
     d.update(fl=fl, us=us, cl=cl, mn=mn, ed=ed, segs=segs, ko=ko, lv=lv, ks=ks, gs=gs, sums=sums, bases=bases, f0s=f0s, ps=ps, lev=lev)
     return cards, d
 
 
-def f8_chain(segs, sv, us, gs, ps):
-    """The level as machines: lsel, mulx, vsel, mulx, mulx, psel, mulx.  Returns each stage's cards."""
+def f8_chain(segs, sv, us, gs, ps, ko):
+    """The level as machines: lsel, mulx, vsel, mulx, mulx, psel, mulx, gnorm, mulx.  Returns each stage's
+    cards."""
     ls, vs, pss = [], [], []
     fi = 0
     for kind, s, n, adjv, prevv, nextv in segs:
@@ -611,13 +631,16 @@ def f8_chain(segs, sv, us, gs, ps):
             if m == 1: A = fr.mul3(A, y)
             elif m == 2: A = A - fr.mul3(A, y)
             elif m == 3: A = 0
+            elif m == 4: A = min(999, fr.mulf(A, y))
             out.append([snd, V, A])
         return out
     m1 = mulx([x + [g] for x, g in zip(sv, gs)], ls)
     m2 = mulx(m1, [v[:2] for v in vs])
     m3 = mulx(m2, [v[2:] for v in vs])
     m4 = mulx(m3, pss)
-    return dict(ls=ls, vs=vs, pss=pss, m1=m1, m2=m2, m3=m3, m4=m4)
+    gm = f8_gnorm(ko)
+    m5 = mulx(m4, gm)
+    return dict(ls=ls, vs=vs, pss=pss, m1=m1, m2=m2, m3=m3, m4=m4, gm=gm, m5=m5)
 
 
 def f9_kcarry(sv, ks):

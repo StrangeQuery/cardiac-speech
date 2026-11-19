@@ -304,8 +304,8 @@ def test_level(texts):
     for t in texts:
         d = comp(t)
         segs = lev_inputs(d)
-        ch = fm.f8_chain(segs, d['lv'], d['us'], d['gs'], d['ps'])
-        ok &= check(t[:20] + ' chain=lev', fm.flat(ch['m4']), fm.flat(d['lev']))
+        ch = fm.f8_chain(segs, d['lv'], d['us'], d['gs'], d['ps'], d['ko'])
+        ok &= check(t[:20] + ' chain=lev', fm.flat(ch['m5']), fm.flat(d['lev']))
         # lsel
         sl = [[s[0], s[2], s[3], s[4], s[5]] for s in segs]
         net, st = run('lsel', 'lsel.cq', {'seg': fm.flat(sl), 'sv': fm.flat(d['lv'])}, {'gs': 'sv', 'gv': 'sv', 'gl': 'ft', '*': 'seg'},
@@ -321,7 +321,11 @@ def test_level(texts):
         net, st = run('psel', 'psel.cq', {'sv': fm.flat([x + [p] for x, p in zip(d['lv'], d['ps'])])}, {'*': 'sv'}, {'*': 'out'})
         ok &= check(t[:20] + ' psel', net.piles['out'], fm.flat(ch['pss']))
         # mulx, each stage
-        for a, b, m in (([x + [g] for x, g in zip(d['lv'], d['gs'])], 'ls', 'm1'), (ch['m1'], None, 'm2'), (ch['m2'], None, 'm3'), (ch['m3'], 'pss', 'm4')):
+        # gnorm
+        net, st = run('gnorm', 'gnorm.cq', {'in': fm.flat([k[3:] for k in d['ko']])}, {'gc': 'gt', '*': 'in'},
+                      {'ask': 'ask', '*': 'out'}, {'ask': (fm.GLIDES, fm.GLIDE_REC, 0, fm.GLIDE_REC, 'gt')})
+        ok &= check(t[:20] + ' gnorm', net.piles['out'], fm.flat(ch['gm']))
+        for a, b, m in (([x + [g] for x, g in zip(d['lv'], d['gs'])], 'ls', 'm1'), (ch['m1'], None, 'm2'), (ch['m2'], None, 'm3'), (ch['m3'], 'pss', 'm4'), (ch['m4'], 'gm', 'm5')):
             modes = ch[b] if b else [v[:2] if m == 'm2' else v[2:] for v in ch['vs']]
             net, st = run('mulx', 'mulx.cq', {'in': fm.flat(a), 'md': fm.flat(modes)}, {'gm': 'md', 'gy': 'md', '*': 'in'}, {'*': 'out'})
             ok &= check(t[:20] + ' ' + m, net.piles['out'], fm.flat(ch[m]))

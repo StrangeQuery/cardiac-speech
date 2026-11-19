@@ -1,0 +1,66 @@
+; The level of a glide. A frame that glides its own filter go towards halfway to a neighbour's gn speaks more
+; quietly than go, which its gain was made for. Per frame three cards in (gn, go, w, as glideb reads them); two
+; out for the level's last step: mode 0 and 0 without a glide (w 10), else mode 4 and the factor c (in percent)
+; that puts the power back. c is card 3 gn + 0, 1 or 2 (for w 3, 5 or 9) of record go of the glide table: it asks
+; the host for the record (OUT at ask) and reads all 291 of its cards (INP at gc), keeping that one.
+;
+; Address Contents Label Opcode Operand Comment
+  03            frm     INP   gn       03-11: a frame; no glide, mode 0
+  04                    INP   go
+  05                    INP   w
+  06                    CLA   w
+  07                    SUB   ten
+  08                    TAC   gl
+  09                    OUT   z
+  10                    OUT   z
+  11                    JMP   frm
+  12            gl      CLA   gn       12-27: p = 3 gn, + 1 for w 5, + 2 for w 9
+  13                    ADD   gn
+  14                    ADD   gn
+  15                    STO   p
+  16                    CLA   w
+  17                    SUB   five
+  18                    TAC   ask
+  19                    CLA   p
+  20                    ADD   00
+  21                    STO   p
+  22                    CLA   w
+  23                    SUB   nine
+  24                    TAC   ask
+  25                    CLA   p
+  26                    ADD   00
+  27                    STO   p
+  28            ask     OUT   go       28-45: record go, card p kept
+  29                    CLA   n290
+  30                    STO   i
+  31            gc      INP   x
+  32                    CLA   p
+  33                    SUB   00
+  34                    STO   p
+  35                    TAC   chk
+  36                    JMP   nx
+  37            chk     ADD   00       (p was 0: this card)
+  38                    TAC   nx
+  39                    CLA   x
+  40                    STO   c
+  41            nx      CLA   i
+  42                    SUB   00
+  43                    STO   i
+  44                    TAC   out
+  45                    JMP   gc
+  46            out     OUT   four     46-48: mode 4 and c
+  47                    OUT   c
+  48                    JMP   frm
+  50            gn      DATA  0
+  51            go      DATA  0
+  52            w       DATA  0
+  53            p       DATA  0
+  54            i       DATA  0
+  55            x       DATA  0
+  56            c       DATA  0
+  57            z       DATA  0
+  58            ten     DATA  10
+  59            five    DATA  5
+  60            nine    DATA  9
+  61            four    DATA  4
+  62            n290    DATA  290

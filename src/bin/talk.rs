@@ -1,5 +1,5 @@
 //! talk: text in (the arguments, or standard input), speech out: raw 8 kHz signed 16-bit little-endian samples on
-//! standard output, every step worked out by CARDIACs (63 of them, in three phases). The host deals and moves
+//! standard output, every step worked out by CARDIACs (65 of them, in three phases). The host deals and moves
 //! cards: the text as character cards, the decks the machines read, the records put in the opposite order between
 //! phases, and each output pair joined into a 16-bit sample.
 //!

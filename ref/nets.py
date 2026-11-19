@@ -8,7 +8,7 @@ def voice_box(net, frames_pile='frames', out_pile='out'):
     net.add('interp', V + 'interp.cq', {3: frames_pile, 6: frames_pile, 13: frames_pile, 27: frames_pile, '*': 'iself'},
             {7: 'iself', 35: 'iself', '*': 'tosteps'})
     net.add('steps', V + 'steps.cq', {3: 'tosteps', 7: 'tosteps', '*': 'sself'},
-            {18: 'exc', 20: 'exc', 28: 'exc', 38: 'kin', '*': 'sself'})
+            {18: 'exc', 20: 'exc', 28: 'exc', 38: 'kin', 40: 'kin', '*': 'sself'})
     net.add('reduce', V + 'reduce.cq', {'*': 'kin'}, {'*': 'coef'})
     net.deal['coef'] = (10, ['c1', 'c2', 'c3', 'c4', 'c5'])
     net.add('excite', V + 'excite.cq', {'*': 'exc'}, {'*': 'e'})
@@ -28,6 +28,7 @@ import front_machines as fm             # noqa: E402
 
 FEAT_TABLE = fm.FEATURES
 FILT_TABLE = fm.FILTERS
+GLIDE_TABLE, GLIDE_REC = fm.GLIDES, fm.GLIDE_REC
 
 
 def recs(cards, size):
@@ -128,7 +129,7 @@ def front(tokens, steps=None):
     net.put('gl_c', flat(cols(C, [5])))
     net.collates.append(('gl_s', [('n_gl', 1, [0]), ('bk_gl', 4, [0]), ('gl_c', 1, [0])]))
     net.collates.append(('gl_f', [('abug', 4, [0, 1, 2, 3]), ('frm_gl', 5, [2, 3])]))
-    net.fan['kplan'] = ['kp_a', 'kp_b']
+    net.fan['kplan'] = ['kp_a', 'kp_b', 'kp_c']
     net.add('glidea', FR + 'glidea.cq', {'lp': 'ga_x', 'gg': 'ga_x', 'gb': 'ga_y', 'gb2': 'ga_y', '*': 'ga_in'},
             {'aska': 'gaska', 'askb': 'gaskb', 'og': 'gain', '*': 'kp'})
     net.fetch['gaska'] = (FILT_TABLE, 11, 0, 11, 'ga_x')
@@ -168,9 +169,13 @@ def front(tokens, steps=None):
     net.add('mulx2', FR + 'mulx.cq', {'gm': 'md2', 'gy': 'md2', '*': 'lv1'}, {'*': 'lv2'})
     net.add('mulx3', FR + 'mulx.cq', {'gm': 'md3', 'gy': 'md3', '*': 'lv2'}, {'*': 'lv3'})
     net.add('mulx4', FR + 'mulx.cq', {'gm': 'md4', 'gy': 'md4', '*': 'lv3'}, {'*': 'lv4'})
+    net.add('gnorm', FR + 'gnorm.cq', {'gc': 'gnt', '*': 'gn_in'}, {'ask': 'gnask', '*': 'md5'})
+    net.fetch['gnask'] = (GLIDE_TABLE, GLIDE_REC, 0, GLIDE_REC, 'gnt')
+    net.collates.append(('gn_in', [('kp_c', 6, [3, 4, 5])]))
+    net.add('mulx5', FR + 'mulx.cq', {'gm': 'md5', 'gy': 'md5', '*': 'lv4'}, {'*': 'lv5'})
     net.add('kcarry', FR + 'kcarry.cq', {'frm': 'kc_s', 'gx': 'kq', '*': 'kself'}, {'pz': 'kself', 'wb': 'kself', '*': 'kout'})
     net.collates.append(('kc_s', [('sv_kc', 2, [0])]))
-    net.add('asm', FR + 'asm.cq', {'gp': 'p_asm', 'gk': 'kout', '*': 'lv4'}, {'*': 'frames'})
+    net.add('asm', FR + 'asm.cq', {'gp': 'p_asm', 'gk': 'kout', '*': 'lv5'}, {'*': 'frames'})
     for p in list(net.piles):
         pass
     for name in ['n_sum', 'u_rise', 'u_vs', 'p_asm', 'p_ps', 'frames', 'kself', 'kp', 'kq', 'kout', 'gain']:

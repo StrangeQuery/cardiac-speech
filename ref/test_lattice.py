@@ -15,7 +15,8 @@ for i in range(nsteps):
 # a few awkward ones: zeros, tiny, extremes
 Ks[3] = [0, 5, -7, 999, -999, 100, -100, 10, -10, 995]
 exc = [random.choice([0, 0, 0, random.randint(-999, 999)]) for _ in range(nsteps * 20)]
-want = vr.lattice(exc, Ks)
+amps = [0 if i % 4 == 2 else 1 for i in range(nsteps)]    # every fourth step a pause: truncation
+want = vr.lattice(exc, Ks, amps)
 
 net = cardiac.Net()
 V = '../voice/'
@@ -32,7 +33,7 @@ net.add('L5', V + 'lattice_bottom.cq', {'go': 'f3', '*': 'c5'}, {'loop': 'b2', '
 for s, K in enumerate(Ks):
     ws = []
     for k in reversed(K):
-        ws += vr.words(k)
+        ws += vr.words(k, amps[s])
     for m in range(5):
         net.put('c%d' % (m + 1), ws[10 * m:10 * m + 10])
 net.put('e', exc)
