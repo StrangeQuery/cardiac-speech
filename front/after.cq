@@ -1,0 +1,44 @@
+; Run on the segments last first, three cards a segment in (kind, stress, wf), three out: after (a vowel comes
+; later in this word), imm (the segment after is a vowel of this word, and its stress) and nvs (the stress of the
+; next vowel of this word). Each segment's cards say what lies ahead of it, so they go out before the segment
+; itself is taken in. A pause (kind 8) and the start of a word (wf 1) clear what lies ahead.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   kind     03-08: a segment, and what lies ahead of it
+  04                    INP   s
+  05                    INP   wf
+  06                    OUT   after
+  07                    OUT   imm
+  08                    OUT   nvs
+  09                    CLA   kind     09-23: a vowel is ahead now, with its stress; a consonant clears imm
+  10                    SUB   c8
+  11                    TAC   sound
+  12                    JMP   clear
+  13            sound   CLA   kind
+  14                    SUB   n2
+  15                    TAC   vowel
+  16                    CLA   z
+  17                    STO   imm
+  18                    JMP   word
+  19            vowel   CLA   s
+  20                    STO   imm
+  21                    STO   nvs
+  22                    CLA   00
+  23                    STO   after
+  24            word    CLA   wf       24-31: at a word's start, or a pause, nothing is ahead
+  25                    SUB   00
+  26                    TAC   rec
+  27            clear   CLA   z
+  28                    STO   after
+  29                    STO   imm
+  30                    STO   nvs
+  31                    JMP   rec
+  40            kind    DATA  0
+  41            s       DATA  0
+  42            wf      DATA  0
+  43            after   DATA  0
+  44            imm     DATA  0
+  45            nvs     DATA  0
+  46            z       DATA  0
+  47            c8      DATA  8
+  48            n2      DATA  2

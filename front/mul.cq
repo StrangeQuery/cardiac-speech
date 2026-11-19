@@ -1,0 +1,88 @@
+; A segment's duration. In: x and base (from base.cq), and two lists of factors in hundredths, each ended by 0
+; (rules 2-7 at INP la, rules 9-10 at INP lb). pr starts at 100 and is multiplied by each factor in turn; then
+; dur = x pr / 100 + base ms goes out. y f / 100 is Horner over f's three digits c, b, a (SFT 33, SFT 23, SFT
+; 02): c y, SFT 01, + b y, SFT 01, + a y. Each d y is a jump into the row of nine ADD y (cells 90-98), which runs
+; on into cell 99 and so back.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   x        03-06: a segment
+  04                    INP   base
+  05                    CLA   c100
+  06                    STO   pr
+  07            la      INP   f        07-24: pr times each factor of both lists
+  08                    CLA   f
+  09                    SUB   00
+  10                    TAC   lb
+  11                    CLA   pr
+  12                    STO   y
+  13                    JMP   mulf
+  14                    STO   pr
+  15                    JMP   la
+  16            lb      INP   f
+  17                    CLA   f
+  18                    SUB   00
+  19                    TAC   dur
+  20                    CLA   pr
+  21                    STO   y
+  22                    JMP   mulf
+  23                    STO   pr
+  24                    JMP   lb
+  25            dur     CLA   x        25-33: dur = x pr / 100 + base
+  26                    STO   y
+  27                    CLA   pr
+  28                    STO   f
+  29                    JMP   mulf
+  30                    ADD   base
+  31                    STO   d
+  32                    OUT   d
+  33                    JMP   rec
+  34            mulf    CLA   99       34-64: y f / 100
+  35                    STO   ret
+  36                    CLA   f
+  37                    SFT   33
+  38                    STO   d
+  39                    CLA   cj
+  40                    SUB   d
+  41                    STO   j1
+  42                    CLA   z
+  43            j1      DATA  0        (JMP 99-c)
+  44                    SFT   01
+  45                    STO   t
+  46                    CLA   f
+  47                    SFT   23
+  48                    STO   d
+  49                    CLA   cj
+  50                    SUB   d
+  51                    STO   j2
+  52                    CLA   t
+  53            j2      DATA  0        (JMP 99-b)
+  54                    SFT   01
+  55                    STO   t
+  56                    CLA   f
+  57                    SFT   02
+  58                    STO   d
+  59                    CLA   cj
+  60                    SUB   d
+  61                    STO   j3
+  62                    CLA   t
+  63            j3      DATA  0        (JMP 99-a)
+  64            ret     DATA  0
+  70            x       DATA  0
+  71            base    DATA  0
+  72            pr      DATA  0
+  73            f       DATA  0
+  74            y       DATA  0
+  75            d       DATA  0
+  76            t       DATA  0
+  77            z       DATA  0
+  78            c100    DATA  100
+  79            cj      JMP   99
+  90            row     ADD   y        90-98: the row of nine ADD y, into 99
+  91                    ADD   y
+  92                    ADD   y
+  93                    ADD   y
+  94                    ADD   y
+  95                    ADD   y
+  96                    ADD   y
+  97                    ADD   y
+  98                    ADD   y

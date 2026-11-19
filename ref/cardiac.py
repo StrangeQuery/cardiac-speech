@@ -130,6 +130,7 @@ class Net:
         self.deal = {}
         self.dealt = {}
         self.log = None
+        self.fetch = {}
 
     def add(self, name, path, inp, out):
         deck, labels = assemble(path)
@@ -143,6 +144,11 @@ class Net:
     def put(self, pile, cards):
         if self.log is not None:
             self.log.setdefault(pile, []).extend(cards)
+        if pile in self.fetch:
+            table, size, off, count, to = self.fetch[pile]
+            for c in cards:
+                self.piles[to].extend(table[c * size + off:c * size + off + count])
+            return
         if pile in self.deal:
             n, to = self.deal[pile]
             for c in cards:

@@ -1,0 +1,101 @@
+; Klatt's duration rules 2 to 7. Nine cards a segment in (kind, wf, liq, after, fs, pf, bef, s, nextk); out, the
+; factors that apply to it, in hundredths, then 0. Rule 2: phrase-final (pf) 140. Rule 3: a vowel not phrase-final
+; 60; a phrase-final consonant after the vowel that is L R M N or NX (liq) 140. Rule 4: a vowel not in its word's
+; last syllable (fs 0) 85. Rule 5: a vowel in a word with more vowels (bef or after) 80. Rule 6: a consonant not
+; first in its word (wf 0) 85. Rule 7, for a segment not stressed 1: a vowel 50 if vowels of its word come before
+; and after it, else 70; a sonorant before a vowel 10; anything else 70.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   kind     03-18: a segment; a pause has no factors
+  04                    INP   wf
+  05                    INP   liq
+  06                    INP   after
+  07                    INP   fs
+  08                    INP   pf
+  09                    INP   bef
+  10                    INP   s
+  11                    INP   nextk
+  12                    CLA   kind
+  13                    SUB   c8
+  14                    TAC   sound
+  15                    JMP   end
+  16            sound   CLA   kind
+  17                    SUB   n2
+  18                    TAC   syl
+  19                    CLA   pf       19-32: a consonant: rules 2, 3 and 6
+  20                    SUB   00
+  21                    TAC   c6
+  22                    OUT   c140
+  23                    CLA   liq
+  24                    SUB   00
+  25                    TAC   c6
+  26                    OUT   c140
+  27            c6      CLA   wf
+  28                    SUB   00
+  29                    TAC   o85
+  30                    JMP   r7
+  31            o85     OUT   c85
+  32                    JMP   r7
+  33            syl     CLA   pf       33-48: a vowel: rules 2, 3, 4 and 5
+  34                    SUB   00
+  35                    TAC   v60
+  36                    OUT   c140
+  37                    JMP   v4
+  38            v60     OUT   c60
+  39            v4      CLA   fs
+  40                    SUB   00
+  41                    TAC   v85
+  42                    JMP   v5
+  43            v85     OUT   c85
+  44            v5      CLA   bef
+  45                    ADD   after
+  46                    SUB   00
+  47                    TAC   r7
+  48                    OUT   c80
+  49            r7      CLA   s        49-95: rule 7
+  50                    SUB   00
+  51                    TAC   r7go
+  52                    SUB   00
+  53                    TAC   end
+  54            r7go    CLA   kind
+  55                    SUB   n2
+  56                    TAC   r7v
+  57                    SUB   00
+  58                    TAC   r7s
+  59                    JMP   o70
+  60            r7s     CLA   nextk
+  61                    SUB   00
+  62                    TAC   o70
+  63                    SUB   00
+  64                    TAC   o10
+  65                    JMP   o70
+  66            o10     OUT   c10
+  67                    JMP   end
+  68            o70     OUT   c70
+  69                    JMP   end
+  70            r7v     CLA   bef
+  71                    ADD   after
+  72                    SUB   n2
+  73                    TAC   o70
+  74                    OUT   c50
+  75            end     OUT   z
+  76                    JMP   rec
+  77            kind    DATA  0
+  78            wf      DATA  0
+  79            liq     DATA  0
+  80            after   DATA  0
+  81            fs      DATA  0
+  82            pf      DATA  0
+  83            bef     DATA  0
+  84            s       DATA  0
+  85            nextk   DATA  0
+  86            z       DATA  0
+  87            c8      DATA  8
+  88            n2      DATA  2
+  89            c140    DATA  140
+  90            c85     DATA  85
+  91            c60     DATA  60
+  92            c80     DATA  80
+  93            c10     DATA  10
+  94            c70     DATA  70
+  95            c50     DATA  50

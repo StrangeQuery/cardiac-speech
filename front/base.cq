@@ -1,0 +1,67 @@
+; Six cards a segment in (kind, inh, mn, pms, vls, s), two out (x, base): the segment will last x pr / 100 + base
+; ms, pr from Klatt's rules (mul.cq). x = INHDUR - MINDUR and base = MINDUR, MINDUR halved when the segment is
+; unstressed (rule 7, (5 mn) / 10); a stressed vowel or sonorant right after P T K gets 25 ms more (rule 11). A
+; pause lasts its own length: x 0, base its ms.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   kind     03-16: a segment; a pause
+  04                    INP   inh
+  05                    INP   mn
+  06                    INP   pms
+  07                    INP   vls
+  08                    INP   s
+  09                    CLA   kind
+  10                    SUB   c8
+  11                    TAC   sound
+  12                    OUT   z
+  13                    OUT   pms
+  14                    CLA   z
+  15                    STO   pvls
+  16                    JMP   rec
+  17            sound   CLA   s        17-27: unstressed: MINDUR halved
+  18                    SUB   00
+  19                    TAC   half
+  20                    JMP   bas
+  21            half    CLA   mn
+  22                    ADD   mn
+  23                    ADD   mn
+  24                    ADD   mn
+  25                    ADD   mn
+  26                    SFT   01
+  27                    STO   mn
+  28            bas     CLA   mn       28-42: rule 11
+  29                    STO   base
+  30                    CLA   s
+  31                    SUB   00
+  32                    TAC   outb
+  33                    CLA   kind
+  34                    SUB   n3
+  35                    TAC   k12
+  36                    JMP   outb
+  37            k12     CLA   pvls
+  38                    SUB   00
+  39                    TAC   outb
+  40                    CLA   base
+  41                    ADD   c25
+  42                    STO   base
+  43            outb    CLA   inh      43-50: x and base out
+  44                    SUB   mn
+  45                    STO   x
+  46                    OUT   x
+  47                    OUT   base
+  48                    CLA   vls
+  49                    STO   pvls
+  50                    JMP   rec
+  60            kind    DATA  0
+  61            inh     DATA  0
+  62            mn      DATA  0
+  63            pms     DATA  0
+  64            vls     DATA  0
+  65            s       DATA  0
+  66            pvls    DATA  0
+  67            base    DATA  0
+  68            x       DATA  0
+  69            z       DATA  0
+  70            c8      DATA  8
+  71            n3      DATA  3
+  72            c25     DATA  25

@@ -1,0 +1,70 @@
+; Two cards a segment in (kind, dur in ms), the segment's frames out (25 ms each). The time so far is kept as
+; whole frames not yet handed out (D) and ms over (rem); a segment gets the frames that bring the handed-out total
+; to the time so far rounded (rem from 13 up rounds up), but at least one for a sound and two for a stop or an
+; affricate (kinds 4 and 6), none for a pause.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   kind     03-15: the time so far, in whole frames and ms over
+  04                    INP   dur
+  05                    CLA   rem
+  06                    ADD   dur
+  07                    STO   rem
+  08            whole   CLA   rem
+  09                    SUB   c25
+  10                    TAC   round
+  11                    STO   rem
+  12                    CLA   dd
+  13                    ADD   00
+  14                    STO   dd
+  15                    JMP   whole
+  16            round   CLA   rem      16-23: n = D, one more if rem rounds up
+  17                    SUB   c13
+  18                    TAC   nr
+  19                    CLA   dd
+  20                    ADD   00
+  21                    JMP   setn
+  22            nr      CLA   dd
+  23            setn    STO   n
+  24                    CLA   z        24-49: the least: none for a pause, two for a stop or affricate, else one
+  25                    STO   least
+  26                    CLA   kind
+  27                    SUB   c8
+  28                    TAC   snd
+  29                    JMP   min
+  30            snd     CLA   00
+  31                    STO   least
+  32                    CLA   kind
+  33                    SUB   n4
+  34                    TAC   min
+  35                    SUB   00
+  36                    TAC   two
+  37                    SUB   00
+  38                    TAC   min
+  39                    SUB   00
+  40                    TAC   two
+  41                    JMP   min
+  42            two     CLA   n2
+  43                    STO   least
+  44            min     CLA   n
+  45                    SUB   least
+  46                    TAC   up
+  47                    JMP   out
+  48            up      CLA   least
+  49                    STO   n
+  50            out     OUT   n        50-54: n out, D less n
+  51                    CLA   dd
+  52                    SUB   n
+  53                    STO   dd
+  54                    JMP   rec
+  60            kind    DATA  0
+  61            dur     DATA  0
+  62            rem     DATA  0
+  63            dd      DATA  0
+  64            n       DATA  0
+  65            least   DATA  0
+  66            z       DATA  0
+  67            c25     DATA  25
+  68            c13     DATA  13
+  69            c8      DATA  8
+  70            n4      DATA  4
+  71            n2      DATA  2

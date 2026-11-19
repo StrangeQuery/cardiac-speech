@@ -1,0 +1,101 @@
+; Run on the segments last first, five cards a segment in (kind, wf, cls9, after, imm), three out: nextk (the
+; segment after: 0 a pause, 1 a vowel, 2 a consonant), pfw (this word comes right before a pause) and, for a vowel,
+; p1, Klatt's rule 9 factor in hundredths: the class of the first obstruent after it in its word (cls9: 160 a
+; voiced fricative or JH, 120 B D G, 70 P T K), else of the first consonant (85 an unstressed nasal, else 100),
+; else 120 if it is the word's last vowel and 100 if not. A nasal is stressed when a stressed vowel of its word
+; comes right after it (imm). The consonants after the vowel are seen first, kept as runc and runo.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   kind     03-09: a segment
+  04                    INP   wf
+  05                    INP   cls
+  06                    INP   after
+  07                    INP   imm
+  08                    CLA   z
+  09                    STO   p1
+  10                    CLA   kind     10-30: a vowel's p1: runo, else runc, else 120 - 20 after
+  11                    SUB   n2
+  12                    TAC   vowel
+  13                    JMP   out
+  14            vowel   CLA   runo
+  15                    SUB   00
+  16                    TAC   nob
+  17                    CLA   runo
+  18                    JMP   setp
+  19            nob     CLA   runc
+  20                    SUB   00
+  21                    TAC   noc
+  22                    CLA   runc
+  23                    JMP   setp
+  24            noc     CLA   after
+  25                    SFT   10
+  26                    STO   x
+  27                    CLA   c120
+  28                    SUB   x
+  29                    SUB   x
+  30            setp    STO   p1
+  31            out     OUT   nextk    31-33: what lies ahead
+  32                    OUT   pfw
+  33                    OUT   p1
+  34                    CLA   kind     34-69: this segment is ahead now
+  35                    SUB   c8
+  36                    TAC   sound
+  37                    CLA   z        a pause: nothing ahead in a word, and a pause next
+  38                    STO   nextk
+  39                    CLA   00
+  40                    STO   pfw
+  41                    JMP   runs
+  42            sound   CLA   kind
+  43                    SUB   n2
+  44                    TAC   vow
+  45                    SUB   00
+  46                    TAC   cons
+  47                    SUB   00
+  48                    TAC   nas
+  49                    SUB   n3
+  50                    TAC   obs
+  51                    JMP   cons
+  52            nas     CLA   imm
+  53                    SUB   00
+  54                    TAC   cons
+  55                    CLA   c100
+  56                    STO   cls
+  57                    JMP   cons
+  58            obs     CLA   cls
+  59                    STO   runo
+  60            cons    CLA   cls
+  61                    STO   runc
+  62                    CLA   n2
+  63                    STO   nextk
+  64                    JMP   word
+  65            vow     CLA   00
+  66                    STO   nextk
+  67                    CLA   z
+  68                    STO   runc
+  69                    STO   runo
+  70            word    CLA   wf       70-78: at a word's start nothing of this word is ahead
+  71                    SUB   00
+  72                    TAC   rec
+  73                    CLA   z
+  74                    STO   pfw
+  75            runs    CLA   z
+  76                    STO   runc
+  77                    STO   runo
+  78                    JMP   rec
+  80            kind    DATA  0
+  81            wf      DATA  0
+  82            cls     DATA  0
+  83            after   DATA  0
+  84            imm     DATA  0
+  85            p1      DATA  0
+  86            nextk   DATA  0
+  87            pfw     DATA  0
+  88            runc    DATA  0
+  89            runo    DATA  0
+  90            x       DATA  0
+  91            z       DATA  0
+  92            c8      DATA  8
+  93            n2      DATA  2
+  94            n3      DATA  3
+  95            c100    DATA  100
+  96            c120    DATA  120

@@ -1,0 +1,95 @@
+; Forward again, seven cards a segment in (kind, s, wf, after, imm, nvs, pfw), four out (s, fs, pf, bef). A
+; consonant's stress (Klatt 1979): 1 when a stressed vowel of its word comes right after it (imm), or when no vowel
+; of its word comes before it (bef 0) and the word's next vowel is stressed (nvs); else 0. fs: the segment is in
+; its word's last syllable, no vowel after it and a vowel at or before it. pf: fs, and the word comes right before
+; a pause. bef: a vowel came earlier in this word, as the segment found it.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   kind     03-17: a segment; a pause is 0 0 0
+  04                    INP   s
+  05                    INP   wf
+  06                    INP   after
+  07                    INP   imm
+  08                    INP   nvs
+  09                    INP   pfw
+  10                    CLA   kind
+  11                    SUB   c8
+  12                    TAC   sound
+  13                    CLA   z
+  14                    STO   s
+  15                    STO   fs
+  16                    STO   pf
+  17                    JMP   out
+  18            sound   CLA   wf       18-45: bef, and a consonant's stress
+  19                    SUB   00
+  20                    TAC   kw
+  21                    CLA   z
+  22                    STO   bef
+  23            kw      CLA   kind
+  24                    SUB   n2
+  25                    TAC   vow
+  26                    CLA   imm
+  27                    SUB   00
+  28                    TAC   ci
+  29                    JMP   one
+  30            ci      CLA   bef
+  31                    SUB   00
+  32                    TAC   cn
+  33                    JMP   zero
+  34            cn      CLA   nvs
+  35                    SUB   00
+  36                    TAC   zero
+  37            one     CLA   00
+  38                    JMP   sst
+  39            zero    CLA   z
+  40            sst     STO   s
+  41                    CLA   z
+  42                    STO   syl
+  43                    JMP   fsx
+  44            vow     CLA   00
+  45                    STO   syl
+  46            fsx     CLA   z        46-65: fs = no vowel after, and a vowel here or before; pf = pfw and fs
+  47                    STO   fs
+  48                    CLA   after
+  49                    SUB   00
+  50                    TAC   na
+  51                    JMP   pfx
+  52            na      CLA   syl
+  53                    ADD   bef
+  54                    SUB   00
+  55                    TAC   pfx
+  56                    CLA   00
+  57                    STO   fs
+  58            pfx     CLA   pfw
+  59                    ADD   fs
+  60                    SUB   n2
+  61                    TAC   p0
+  62                    CLA   00
+  63                    JMP   pfs
+  64            p0      CLA   z
+  65            pfs     STO   pf
+  66            out     OUT   s        66-76: the four cards; after a vowel, a vowel came before
+  67                    OUT   fs
+  68                    OUT   pf
+  69                    OUT   bef
+  70                    CLA   kind
+  71                    SUB   n2
+  72                    TAC   setb
+  73                    JMP   rec
+  74            setb    CLA   00
+  75                    STO   bef
+  76                    JMP   rec
+  80            kind    DATA  0
+  81            s       DATA  0
+  82            wf      DATA  0
+  83            after   DATA  0
+  84            imm     DATA  0
+  85            nvs     DATA  0
+  86            pfw     DATA  0
+  87            fs      DATA  0
+  88            pf      DATA  0
+  89            bef     DATA  0
+  90            syl     DATA  0
+  91            z       DATA  0
+  92            c8      DATA  8
+  93            n2      DATA  2

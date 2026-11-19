@@ -49,7 +49,7 @@ def lattice(exc, ks_per_step):
     return out
 
 
-def frame_cards(frames, headroom=0.9):
+def frame_cards(frames, headroom=0.4):
     """The prototype's integer frame cards for a .frames file (synth_cardiac.schedule_cards, pulse excitation, the
     scale S set as synth_cardiac.run sets it), as the voice box reads them: V, P, A, K10..K1 a frame, then -1."""
     sf.SHAPE = 'pulse'
@@ -75,7 +75,7 @@ def parse_cards(deck):
 
 
 def voice(deck):
-    """The whole voice box: frame cards in, the output values out (thousands and units of 3 yd for each sample),
+    """The whole voice box: frame cards in, the output values out (thousands and units of 20 yd for each sample),
     and the largest |yd|, which must stay within the accumulator."""
     cards = parse_cards(deck)
     steps = cl.interp_steps(cards, 0, len(cards))
@@ -83,7 +83,40 @@ def voice(deck):
     yd, _ = cl.run_block(([0] * (ORDER + 1), 0, 0), steps, exc, 0, 2, 'float', True)
     out = []
     for y in yd:
-        assert -9999 <= y <= 9999, y
-        Y = 3 * y
+        assert -1638 <= y <= 1638, y
+        Y = 20 * y
         out += [Y // 1000, Y % 1000]
     return out, max(abs(y) for y in yd)
+
+
+def lattice_peak(deck):
+    """The largest |value| the lattice holds (f and every b) and the largest |yd|, for the frame cards: what the
+    scale has to keep within a cell and the accumulator."""
+    cards = parse_cards(deck)
+    steps = cl.interp_steps(cards, 0, len(cards))
+    exc = sf.excitation([(v, P, A, None) for (v, P, A, K) in steps], shape='pulse')
+    b = [0] * (ORDER + 1)
+    peak, ypk, hi, lo, n = 0, 0, 0, 0, 0
+    wraps = 0
+    for (v, P, A, K) in steps:
+        ks = [sc.reduce_k(k, 2, 'float') for k in K]
+        for _ in range(STEP_LEN):
+            sv = exc[n]; n += 1
+            f = int(sv) * A
+            for i in range(ORDER, 0, -1):
+                sg, dg = ks[i - 1]
+                p = cl.sto(cl.rmul(sg, dg, b[i - 1], True))
+                raw = f - p
+                f = cl.sto(raw)
+                wraps += raw != f
+                q = cl.sto(cl.rmul(sg, dg, f, True))
+                raw = b[i - 1] + q
+                b[i] = cl.sto(raw)
+                wraps += raw != b[i] and i < ORDER
+                peak = max(peak, abs(f), abs(b[i]) if i < ORDER else 0)
+            b[0] = f
+            yd = 900 * hi + cl.rmul(1, [(1, 9)], lo, True) + f
+            lo = cl.sto(yd)
+            hi = -((-yd) // 1000) if yd < 0 else yd // 1000
+            ypk = max(ypk, abs(yd))
+    return peak, ypk, wraps

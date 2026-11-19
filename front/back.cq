@@ -1,0 +1,46 @@
+; Forward, four cards a segment in (pc, kind, vls, te), four out: pte (the end filter of the segment before; 0 after
+; a pause), prevv (the segment before that isn't a pause, if it is a vowel), pvls (the segment before is P T K) and
+; pnpk (the kind of the segment before that isn't a pause).
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   pc       03-17: a segment, and what came before it
+  04                    INP   kind
+  05                    INP   vls
+  06                    INP   te
+  07                    OUT   pte
+  08                    CLA   pnpk
+  09                    SUB   00
+  10                    TAC   no
+  11                    SUB   00
+  12                    TAC   yes
+  13            no      OUT   z
+  14                    JMP   o2
+  15            yes     OUT   pnpc
+  16            o2      OUT   pvls
+  17                    OUT   pnpk
+  18                    CLA   kind     18-33: this segment is the one before now
+  19                    SUB   c8
+  20                    TAC   snd
+  21                    CLA   z
+  22                    STO   pte
+  23                    STO   pvls
+  24                    JMP   rec
+  25            snd     CLA   te
+  26                    STO   pte
+  27                    CLA   vls
+  28                    STO   pvls
+  29                    CLA   kind
+  30                    STO   pnpk
+  31                    CLA   pc
+  32                    STO   pnpc
+  33                    JMP   rec
+  40            pc      DATA  0
+  41            kind    DATA  0
+  42            vls     DATA  0
+  43            te      DATA  0
+  44            pte     DATA  0
+  45            pvls    DATA  0
+  46            pnpk    DATA  0
+  47            pnpc    DATA  0
+  48            z       DATA  0
+  49            c8      DATA  8
