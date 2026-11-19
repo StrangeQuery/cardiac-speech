@@ -1,0 +1,87 @@
+; The frames for the voice box, a frame behind. Per frame in: snd, V and A (INP at frm, gv, ga) and P (INP at gp);
+; the frame's Ks come from kcarry (INP at gk). Out, the frame before it as the voice box reads it: V, P, A,
+; K10..K1. A silent frame (snd 0, or 9 for the very last) is unvoiced when a sounding voiced frame comes right after
+; it, else voiced; an unvoiced frame's P is 0. After the very last frame (voiced, as nothing follows) comes -1,
+; and a stop.
+;
+; Address Contents Label Opcode Operand Comment
+  03            frm     INP   snd      03-09: a frame; the first is only held
+  04            gv      INP   v
+  05            ga      INP   a
+  06            gp      INP   p
+  07                    CLA   have
+  08                    SUB   00
+  09                    TAC   hold
+  10                    CLA   ps       10-31: the frame before: its V, if it is silent, then out
+  11                    SUB   00
+  12                    TAC   psil
+  13                    SUB   00
+  14                    TAC   pout
+  15            psil    CLA   00
+  16                    STO   pv
+  17                    CLA   snd
+  18                    SUB   00
+  19                    TAC   pout
+  20                    SUB   00
+  21                    TAC   chk
+  22                    JMP   pout
+  23            chk     CLA   v
+  24                    SUB   00
+  25                    TAC   pout
+  26                    CLA   z
+  27                    STO   pv
+  28            pout    JMP   emit
+  29                    JMP   keep
+  30            hold    CLA   00
+  31                    STO   have
+  32            keep    CLA   snd      32-47: this frame is held; after the very last, it goes out too
+  33                    STO   ps
+  34                    CLA   v
+  35                    STO   pv
+  36                    CLA   p
+  37                    STO   pp
+  38                    CLA   a
+  39                    STO   pa
+  40                    CLA   snd
+  41                    SUB   c9
+  42                    TAC   frm
+  43                    CLA   00
+  44                    STO   pv
+  45                    JMP   emit
+  46                    OUT   m1
+  47                    HRS   00
+  48            emit    CLA   99       48-67: a frame out: V, P (0 when unvoiced), A, the ten Ks
+  49                    STO   ret
+  50                    OUT   pv
+  51                    CLA   pv
+  52                    SUB   00
+  53                    TAC   p0
+  54                    OUT   pp
+  55                    JMP   pa1
+  56            p0      OUT   z
+  57            pa1     OUT   pa
+  58                    CLA   n9
+  59                    STO   i
+  60            gk      INP   k
+  61                    OUT   k
+  62                    CLA   i
+  63                    SUB   00
+  64                    STO   i
+  65                    TAC   ret
+  66                    JMP   gk
+  67            ret     DATA  0
+  70            snd     DATA  0
+  71            v       DATA  0
+  72            a       DATA  0
+  73            p       DATA  0
+  74            have    DATA  0
+  75            ps      DATA  0
+  76            pv      DATA  0
+  77            pp      DATA  0
+  78            pa      DATA  0
+  79            k       DATA  0
+  80            i       DATA  0
+  81            z       DATA  0
+  82            n9      DATA  9
+  83            c9      DATA  9
+  84            m1      DATA  -1

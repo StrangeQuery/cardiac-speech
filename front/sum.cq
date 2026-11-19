@@ -1,0 +1,97 @@
+; One summary for each sentence, for the pitch. Four cards a segment in (kind, send, s, n); at the segment that ends
+; a sentence (send 1, 2 or 3) four cards out: L (the frames from the sentence's start to the end of its last sound;
+; all of its frames if it has none), the frame where the fall to the end starts (the last vowel with stress 1, else
+; the sentence's first segment if it is a vowel, else -1 for none), M (the frames from there to the end of the last
+; sound) and the end: 2 for a question, else 1. Frames are counted from the sentence's start (f): f is 0 only at a
+; sentence's first segment, since every segment has frames.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   kind     03-18: a segment; at a sentence's first, whether it is a vowel
+  04                    INP   send
+  05                    INP   s
+  06                    INP   n
+  07                    CLA   f
+  08                    SUB   00
+  09                    TAC   fst
+  10                    JMP   chk
+  11            fst     CLA   m1
+  12                    STO   fv
+  13                    CLA   kind
+  14                    SUB   n2
+  15                    TAC   fz
+  16                    JMP   chk
+  17            fz      CLA   z
+  18                    STO   fv
+  19            chk     CLA   kind     19-43: the last stressed vowel, the end of the last sound, f on
+  20                    SUB   n2
+  21                    TAC   vow
+  22                    JMP   snd
+  23            vow     CLA   s
+  24                    SUB   00
+  25                    TAC   snd
+  26                    SUB   00
+  27                    TAC   tl
+  28                    JMP   snd
+  29            tl      CLA   f
+  30                    STO   tail
+  31            snd     CLA   kind
+  32                    SUB   c8
+  33                    TAC   sound
+  34                    JMP   adv
+  35            sound   CLA   f
+  36                    ADD   n
+  37                    STO   ls
+  38            adv     CLA   f
+  39                    ADD   n
+  40                    STO   f
+  41                    CLA   send
+  42                    SUB   00
+  43                    TAC   rec
+  44                    CLA   ls       44-78: the sentence's summary, then start the next
+  45                    TAC   lsf
+  46                    JMP   ll
+  47            lsf     CLA   f
+  48                    STO   ls
+  49            ll      OUT   ls
+  50                    CLA   tail
+  51                    TAC   tfv
+  52                    JMP   th
+  53            tfv     CLA   fv
+  54                    STO   tail
+  55            th      CLA   tail
+  56                    TAC   none
+  57                    OUT   tail
+  58                    CLA   ls
+  59                    SUB   tail
+  60                    STO   t
+  61                    OUT   t
+  62                    JMP   endo
+  63            none    OUT   m1
+  64                    OUT   00
+  65            endo    CLA   send
+  66                    SUB   n2
+  67                    TAC   e1
+  68                    SUB   00
+  69                    TAC   e2
+  70            e1      OUT   00
+  71                    JMP   rst
+  72            e2      OUT   n2
+  73            rst     CLA   z
+  74                    STO   f
+  75                    CLA   m1
+  76                    STO   ls
+  77                    STO   tail
+  78                    JMP   rec
+  80            kind    DATA  0
+  81            send    DATA  0
+  82            s       DATA  0
+  83            n       DATA  0
+  84            f       DATA  0
+  85            fv      DATA  0
+  86            tail    DATA  -1
+  87            ls      DATA  -1
+  88            t       DATA  0
+  89            z       DATA  0
+  90            m1      DATA  -1
+  91            n2      DATA  2
+  92            c8      DATA  8

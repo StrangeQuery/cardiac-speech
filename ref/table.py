@@ -27,7 +27,7 @@ NAME = {c: p for p, c in CODE.items()}
 KIND = {'vowel': 1, 'sonorant': 2, 'nasal': 3, 'stop': 4, 'fric': 5, 'affricate': 6, 'aspirate': 7}
 FEAT = 17
 # feature record fields
-F_KIND, F_INH, F_MN, F_CLS9, F_LIQ, F_VLS, F_BACK, F_VOICED, F_TS, F_TE, F_ASP, F_NOISE, F_ALT, F_VBAR, F_LOUD, \
+F_KIND, F_INH, F_MN, F_CLS9, F_LIQ, F_VLS, F_BACK, F_TS, F_TE, F_ASP, F_VOICED, F_NOISE, F_ALT, F_VBAR, F_LOUD, \
     F_CINH, F_CTOT = range(FEAT)
 
 C = 36.0         # the scale: the loudest test sentences then reach about 750 in the lattice (cells hold 999)

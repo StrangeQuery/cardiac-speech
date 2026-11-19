@@ -1,0 +1,82 @@
+; Where each frame is in its sentence's fall to the end. Per segment two cards in (n, send); at a sentence's first
+; frame its summary (L, to, M, end; INP at gl); per frame two cards out: y, how far into the fall in hundredths (-1
+; before frame to, or with no fall), and the end (1 a statement, 2 a question). y = 100 (f - to) / M by Bresenham:
+; each frame past to adds 100 to yr and takes M away as often as it goes; at most 100.
+;
+; Address Contents Label Opcode Operand Comment
+  03            seg     INP   i        03-11: a segment (i counts its frames down)
+  04                    INP   send
+  05            frm     CLA   i
+  06                    SUB   00
+  07                    TAC   eos
+  08                    STO   i
+  09                    CLA   ns
+  10                    SUB   00
+  11                    TAC   go
+  12            gl      INP   x        12-20: a new sentence's summary
+  13            g2      INP   to
+  14            g3      INP   m
+  15            g4      INP   end
+  16                    CLA   z
+  17                    STO   f
+  18                    STO   y
+  19                    STO   yr
+  20                    STO   ns
+  21            go      CLA   to       21-32: y (or -1) and the end out
+  22                    TAC   none
+  23                    CLA   f
+  24                    SUB   to
+  25                    TAC   none
+  26                    OUT   y
+  27                    JMP   nx
+  28            none    OUT   m1
+  29            nx      OUT   end
+  30                    CLA   f
+  31                    ADD   00
+  32                    STO   f
+  33                    CLA   to       33-59: y on a frame, past to
+  34                    TAC   frm
+  35                    CLA   to
+  36                    SUB   f
+  37                    TAC   yu
+  38                    JMP   frm
+  39            yu      CLA   y
+  40                    SUB   c100
+  41                    TAC   yg
+  42                    JMP   frm
+  43            yg      CLA   yr
+  44                    ADD   c100
+  45                    STO   yr
+  46            yl      CLA   yr
+  47                    SUB   m
+  48                    TAC   yc
+  49                    STO   yr
+  50                    CLA   y
+  51                    ADD   00
+  52                    STO   y
+  53                    JMP   yl
+  54            yc      CLA   y
+  55                    SUB   c100
+  56                    TAC   frm
+  57                    CLA   c100
+  58                    STO   y
+  59                    JMP   frm
+  60            eos     CLA   send     60-65: the segment ends a sentence: the next frame starts one
+  61                    SUB   00
+  62                    TAC   seg
+  63                    CLA   00
+  64                    STO   ns
+  65                    JMP   seg
+  70            i       DATA  0
+  71            send    DATA  0
+  72            ns      DATA  1
+  73            x       DATA  0
+  74            to      DATA  0
+  75            m       DATA  0
+  76            end     DATA  0
+  77            f       DATA  0
+  78            y       DATA  0
+  79            yr      DATA  0
+  80            z       DATA  0
+  81            m1      DATA  -1
+  82            c100    DATA  100

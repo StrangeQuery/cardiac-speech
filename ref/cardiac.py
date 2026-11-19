@@ -131,6 +131,8 @@ class Net:
         self.dealt = {}
         self.log = None
         self.fetch = {}
+        self.fan = {}          # pile -> piles that each get a copy of every card put on it
+        self.collates = []     # (out pile, [(source pile, record size, columns)]): whole records, columns picked
 
     def add(self, name, path, inp, out):
         deck, labels = assemble(path)
@@ -144,6 +146,10 @@ class Net:
     def put(self, pile, cards):
         if self.log is not None:
             self.log.setdefault(pile, []).extend(cards)
+        if pile in self.fan:
+            for p in self.fan[pile]:
+                self.put(p, cards)
+            return
         if pile in self.fetch:
             table, size, off, count, to = self.fetch[pile]
             for c in cards:
@@ -158,12 +164,25 @@ class Net:
         else:
             self.piles.setdefault(pile, []).extend(cards)
 
+    def collate(self):
+        moved = False
+        for out, srcs in self.collates:
+            while all(len(self.piles.get(p, [])) >= n for p, n, _ in srcs):
+                rec = []
+                for p, n, cols in srcs:
+                    r = self.piles[p][:n]
+                    del self.piles[p][:n]
+                    rec += [r[c] for c in cols]
+                self.put(out, rec)
+                moved = True
+        return moved
+
     def run(self):
         """Run every machine until none can go on.  Returns {name: why} for each machine's stop."""
         state = {n: None for n in self.machines}
         moved = True
         while moved:
-            moved = False
+            moved = self.collate()
             for n, mc in self.machines.items():
                 if mc.halted:
                     continue

@@ -1,0 +1,78 @@
+; One step of a frame's level. Per frame five cards in: snd and V and A (INP at gs, gv, ga), and a mode and a
+; factor y (INP at gm, gy); three out (snd, V, A). Mode 0 leaves A, 1 makes it A y / 1000, 2 makes it A - A y /
+; 1000, 3 makes it 0. A y / 1000 is Horner over y's three digits c, b, a: c A, SFT 01, + b A, SFT 01, + a A, SFT
+; 01, each digit times A a jump into the row of nine ADD xr (90-98), which runs into 99 and back.
+;
+; Address Contents Label Opcode Operand Comment
+  03            frm     INP   snd      03-17: a frame, and its mode
+  04            gv      INP   v
+  05            ga      INP   xr
+  06            gm      INP   mode
+  07            gy      INP   yy
+  08                    CLA   mode
+  09                    SUB   00
+  10                    TAC   same
+  11                    SUB   00
+  12                    TAC   mul
+  13                    SUB   00
+  14                    TAC   less
+  15                    CLA   z
+  16                    STO   xr
+  17                    JMP   same
+  18            mul     JMP   mul3     18-25: A y / 1000, or A less it
+  19                    STO   xr
+  20                    JMP   same
+  21            less    JMP   mul3
+  22                    STO   d
+  23                    CLA   xr
+  24                    SUB   d
+  25                    STO   xr
+  26            same    OUT   snd      26-29: the frame out
+  27                    OUT   v
+  28                    OUT   xr
+  29                    JMP   frm
+  30            mul3    CLA   99       30-57: xr yy / 1000
+  31                    STO   ret
+  32                    CLA   yy
+  33                    SFT   33
+  34                    STO   d
+  35                    CLA   cj
+  36                    SUB   d
+  37                    STO   j1
+  38                    CLA   yy
+  39                    SFT   23
+  40                    STO   d
+  41                    CLA   cj
+  42                    SUB   d
+  43                    STO   j2
+  44                    CLA   yy
+  45                    SFT   02
+  46                    STO   d
+  47                    CLA   cj
+  48                    SUB   d
+  49                    STO   j3
+  50                    CLA   z
+  51            j1      DATA  0        (JMP 99-c)
+  52                    SFT   01
+  53            j2      DATA  0        (JMP 99-b)
+  54                    SFT   01
+  55            j3      DATA  0        (JMP 99-a)
+  56                    SFT   01
+  57            ret     DATA  0
+  60            snd     DATA  0
+  61            v       DATA  0
+  62            xr      DATA  0
+  63            mode    DATA  0
+  64            yy      DATA  0
+  65            d       DATA  0
+  66            z       DATA  0
+  67            cj      JMP   99
+  90            row     ADD   xr       90-98: the row of nine ADD xr, into 99
+  91                    ADD   xr
+  92                    ADD   xr
+  93                    ADD   xr
+  94                    ADD   xr
+  95                    ADD   xr
+  96                    ADD   xr
+  97                    ADD   xr
+  98                    ADD   xr

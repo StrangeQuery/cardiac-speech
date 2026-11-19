@@ -1,0 +1,64 @@
+; The pitch's fall across a sentence. Per segment two cards in (n, send); at a sentence's first frame its summary
+; (L and three more, INP at gl); per frame out the pitch so far, 130 - q Hz, q = 30 f / L (f the frame in the
+; sentence), at most 30. q moves by Bresenham: each frame adds 30 to qr and takes L away as often as it goes.
+;
+; Address Contents Label Opcode Operand Comment
+  03            seg     INP   i        03-11: a segment (i counts its frames down); after a sentence's end, a new one
+  04                    INP   send
+  05            frm     CLA   i
+  06                    SUB   00
+  07                    TAC   eos
+  08                    STO   i
+  09                    CLA   ns
+  10                    SUB   00
+  11                    TAC   go
+  12            gl      INP   l        12-19: a new sentence: its L
+  13            g2      INP   x
+  14            g3      INP   x
+  15            g4      INP   x
+  16                    CLA   z
+  17                    STO   q
+  18                    STO   qr
+  19                    STO   ns
+  20            go      CLA   c130     20-44: 130 - q out, q on a frame
+  21                    SUB   q
+  22                    STO   b
+  23                    OUT   b
+  24                    CLA   q
+  25                    SUB   c30
+  26                    TAC   qu
+  27                    JMP   frm
+  28            qu      CLA   qr
+  29                    ADD   c30
+  30                    STO   qr
+  31            ql      CLA   qr
+  32                    SUB   l
+  33                    TAC   qd
+  34                    STO   qr
+  35                    CLA   q
+  36                    ADD   00
+  37                    STO   q
+  38                    JMP   ql
+  39            qd      CLA   q
+  40                    SUB   c30
+  41                    TAC   frm
+  42                    CLA   c30
+  43                    STO   q
+  44                    JMP   frm
+  45            eos     CLA   send     45-50: the segment ends a sentence: the next frame starts one
+  46                    SUB   00
+  47                    TAC   seg
+  48                    CLA   00
+  49                    STO   ns
+  50                    JMP   seg
+  60            i       DATA  0
+  61            send    DATA  0
+  62            ns      DATA  1
+  63            l       DATA  0
+  64            x       DATA  0
+  65            q       DATA  0
+  66            qr      DATA  0
+  67            b       DATA  0
+  68            z       DATA  0
+  69            c130    DATA  130
+  70            c30     DATA  30

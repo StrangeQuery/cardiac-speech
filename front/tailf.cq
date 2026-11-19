@@ -1,0 +1,82 @@
+; The fall itself. Per frame three cards in: the pitch so far b (INP at gb), and y and the end from taily; out, f0.
+; With y -1, b. Else delta = goal - b (goal 85 for a statement, 160 for a question) and t = delta y, Horner over
+; y's three digits with SFT 10s, each digit times delta a jump into the row of nine ADD dl (90-98, into 99); f0 = b
+; + t / 100 for a question, b + ((t / 10) 8) / 100 for a statement. t stays in the accumulator; the jump at aft,
+; set before, picks the end.
+;
+; Address Contents Label Opcode Operand Comment
+  03            frm     INP   b        03-18: a frame: no fall, or the goal and the jump at aft
+  04            gy      INP   y
+  05            ge      INP   end
+  06                    CLA   y
+  07                    TAC   out
+  08                    CLA   c85
+  09                    STO   g
+  10                    CLA   jst
+  11                    STO   aft
+  12                    CLA   end
+  13                    SUB   n2
+  14                    TAC   dlt
+  15                    CLA   c160
+  16                    STO   g
+  17                    CLA   jadd
+  18                    STO   aft
+  19            dlt     CLA   g        19-46: t = delta y: the three jumps set first, then t in the accumulator
+  20                    SUB   b
+  21                    STO   dl
+  22                    CLA   y
+  23                    SFT   02
+  24                    STO   d
+  25                    CLA   cj
+  26                    SUB   d
+  27                    STO   j1
+  28                    CLA   y
+  29                    SFT   23
+  30                    STO   d
+  31                    CLA   cj
+  32                    SUB   d
+  33                    STO   j2
+  34                    CLA   y
+  35                    SFT   33
+  36                    STO   d
+  37                    CLA   cj
+  38                    SUB   d
+  39                    STO   j3
+  40                    CLA   z
+  41            j1      DATA  0        (JMP 99-a)
+  42                    SFT   10
+  43            j2      DATA  0        (JMP 99-b)
+  44                    SFT   10
+  45            j3      DATA  0        (JMP 99-c)
+  46            aft     DATA  0        (JMP st or JMP add)
+  47            st      SFT   01       47-55: a statement's 0.8; then f0 out
+  48                    STO   dl
+  49                    CLA   z
+  50                    JMP   91
+  51            add     SFT   02
+  52                    ADD   b
+  53                    STO   b
+  54            out     OUT   b
+  55                    JMP   frm
+  70            b       DATA  0
+  71            y       DATA  0
+  72            end     DATA  0
+  73            g       DATA  0
+  74            dl      DATA  0
+  75            d       DATA  0
+  77            z       DATA  0
+  78            n2      DATA  2
+  79            c85     DATA  85
+  80            c160    DATA  160
+  81            cj      JMP   99
+  82            jst     JMP   st
+  83            jadd    JMP   add
+  90            row     ADD   dl       90-98: the row of nine ADD dl, into 99
+  91                    ADD   dl
+  92                    ADD   dl
+  93                    ADD   dl
+  94                    ADD   dl
+  95                    ADD   dl
+  96                    ADD   dl
+  97                    ADD   dl
+  98                    ADD   dl

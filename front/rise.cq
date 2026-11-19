@@ -1,0 +1,95 @@
+; A stressed vowel's rise. Per segment three cards in (kind, s, n); per frame u (INP gu) and the pitch so far (INP
+; gb); per frame the pitch out. In a vowel with stress 1 (or 2) the pitch rises by r0 = 15 (or 7) percent of it at
+; the vowel's start, falling off to 40 percent of that at its end: + r0 - r0 6 u / 100. r0 is b f / 100 by Horner
+; over f's two digits; each product is a jump into the row of nine ADD y (90-98), which runs into 99 and back.
+;
+; Address Contents Label Opcode Operand Comment
+  03            seg     INP   kind     03-09: a segment (i counts its frames down)
+  04                    INP   s
+  05                    INP   i
+  06            frm     CLA   i
+  07                    SUB   00
+  08                    TAC   seg
+  09                    STO   i
+  10            gu      INP   u        10-24: a frame: is it a stressed vowel's
+  11            gb      INP   b
+  12                    CLA   kind
+  13                    SUB   n2
+  14                    TAC   v
+  15                    JMP   out
+  16            v       CLA   s
+  17                    SUB   00
+  18                    TAC   out
+  19                    SUB   00
+  20                    TAC   r15
+  21                    CLA   c7
+  22                    JMP   rr
+  23            r15     CLA   c15
+  24            rr      STO   f
+  25                    CLA   b        25-46: r0 = b f / 100
+  26                    STO   y
+  27                    CLA   f
+  28                    SFT   33
+  29                    STO   d
+  30                    CLA   cj
+  31                    SUB   d
+  32                    STO   j1
+  33                    CLA   z
+  34            j1      DATA  0        (JMP 99-c)
+  35                    SFT   01
+  36                    STO   t
+  37                    CLA   f
+  38                    SFT   23
+  39                    STO   d
+  40                    CLA   cj
+  41                    SUB   d
+  42                    STO   j2
+  43                    CLA   t
+  44            j2      DATA  0        (JMP 99-b)
+  45                    SFT   01
+  46                    STO   r0
+  47                    STO   y        47-66: r0 u, then 6 times that, / 100
+  48                    CLA   cj
+  49                    SUB   u
+  50                    STO   j3
+  51                    CLA   z
+  52            j3      DATA  0        (JMP 99-u)
+  53                    STO   y
+  54                    CLA   cj
+  55                    SUB   six
+  56                    STO   j4
+  57                    CLA   z
+  58            j4      DATA  0        (JMP 93)
+  59                    SFT   02
+  60                    STO   t
+  61                    CLA   b
+  62                    ADD   r0
+  63                    SUB   t
+  64                    STO   b
+  65            out     OUT   b
+  66                    JMP   frm
+  70            kind    DATA  0
+  71            s       DATA  0
+  72            i       DATA  0
+  73            u       DATA  0
+  74            b       DATA  0
+  75            f       DATA  0
+  76            y       DATA  0
+  77            d       DATA  0
+  78            t       DATA  0
+  79            r0      DATA  0
+  80            z       DATA  0
+  81            n2      DATA  2
+  82            c7      DATA  7
+  83            c15     DATA  15
+  84            six     DATA  6
+  85            cj      JMP   99
+  90            row     ADD   y        90-98: the row of nine ADD y, into 99
+  91                    ADD   y
+  92                    ADD   y
+  93                    ADD   y
+  94                    ADD   y
+  95                    ADD   y
+  96                    ADD   y
+  97                    ADD   y
+  98                    ADD   y

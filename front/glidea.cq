@@ -1,0 +1,73 @@
+; A frame's filter from its two targets. Three cards a frame in (a, b, u); it asks the host for filter a (OUT at
+; aska, cards at INP ga) and filter b (OUT at askb, cards at INP gb), eleven cards each: K10..K1 and the gain G. Out,
+; each of the eleven blended, (x (10 - u) + y u) / 10: the Ks to the glide machine, G to the level (OUT at og).
+; The blend runs 10 - u ADDs of x and u ADDs of y in two rows, each entered by a jump set once a frame, then SFT 01.
+;
+; Address Contents Label Opcode Operand Comment
+  03            frm     INP   a        03-15: a frame: the jumps into the rows, and the two filters
+  04                    INP   b
+  05                    INP   u
+  06                    CLA   cxr
+  07                    ADD   u
+  08                    STO   jx
+  09                    CLA   csf
+  10                    SUB   u
+  11                    STO   jy
+  12            aska    OUT   a
+  13            askb    OUT   b
+  14                    CLA   n9
+  15                    STO   i
+  16            lp      INP   tx       16-25: the ten Ks
+  17            gb      INP   ty
+  18                    JMP   bl
+  19                    STO   k
+  20                    OUT   k
+  21                    CLA   i
+  22                    SUB   00
+  23                    STO   i
+  24                    TAC   gg
+  25                    JMP   lp
+  26            gg      INP   tx       26-31: G
+  27            gb2     INP   ty
+  28                    JMP   bl
+  29                    STO   k
+  30            og      OUT   k
+  31                    JMP   frm
+  32            bl      CLA   99       32-58: (tx (10 - u) + ty u) / 10
+  33                    STO   bret
+  34                    CLA   z
+  35            jx      DATA  0        (JMP xrow + u)
+  36            xrow    ADD   tx
+  37                    ADD   tx
+  38                    ADD   tx
+  39                    ADD   tx
+  40                    ADD   tx
+  41                    ADD   tx
+  42                    ADD   tx
+  43                    ADD   tx
+  44                    ADD   tx
+  45                    ADD   tx
+  46            jy      DATA  0        (JMP sf - u)
+  47            yrow    ADD   ty
+  48                    ADD   ty
+  49                    ADD   ty
+  50                    ADD   ty
+  51                    ADD   ty
+  52                    ADD   ty
+  53                    ADD   ty
+  54                    ADD   ty
+  55                    ADD   ty
+  56                    ADD   ty
+  57            sf      SFT   01
+  58            bret    DATA  0
+  60            a       DATA  0
+  61            b       DATA  0
+  62            u       DATA  0
+  63            i       DATA  0
+  64            k       DATA  0
+  65            tx      DATA  0
+  66            ty      DATA  0
+  67            z       DATA  0
+  68            n9      DATA  9
+  69            cxr     JMP   xrow
+  70            csf     JMP   sf

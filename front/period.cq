@@ -1,0 +1,49 @@
+; f0 in Hz in, the pitch period out (to the level, OUT at pl, and the assembler, OUT at pa): P = (8000 + f0 / 2) /
+; f0 samples, by taking f0 away as often as it goes. 8000 + f0 / 2 is more than a cell holds, so it is kept as
+; thousands (hi) and units (lo), borrowing a thousand from hi when lo goes below 0.
+;
+; Address Contents Label Opcode Operand Comment
+  03            frm     INP   f        03-14: f / 2 as (5 f) / 10, 8 thousands, P 0
+  04                    CLA   f
+  05                    ADD   f
+  06                    ADD   f
+  07                    ADD   f
+  08                    ADD   f
+  09                    SFT   01
+  10                    STO   lo
+  11                    CLA   c8
+  12                    STO   hi
+  13                    CLA   z
+  14                    STO   p
+  15            lp      CLA   hi       15-39: take f away until what is left is less than f
+  16                    SUB   00
+  17                    TAC   h0
+  18            sb      CLA   lo
+  19                    SUB   f
+  20                    TAC   bor
+  21                    STO   lo
+  22                    JMP   cnt
+  23            bor     ADD   c500
+  24                    ADD   c500
+  25                    STO   lo
+  26                    CLA   hi
+  27                    SUB   00
+  28                    STO   hi
+  29            cnt     CLA   p
+  30                    ADD   00
+  31                    STO   p
+  32                    JMP   lp
+  33            h0      CLA   lo
+  34                    SUB   f
+  35                    TAC   pl
+  36                    JMP   sb
+  37            pl      OUT   p
+  38            pa      OUT   p
+  39                    JMP   frm
+  50            f       DATA  0
+  51            lo      DATA  0
+  52            hi      DATA  0
+  53            p       DATA  0
+  54            z       DATA  0
+  55            c8      DATA  8
+  56            c500    DATA  500

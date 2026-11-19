@@ -1,0 +1,83 @@
+; The glide. Three cards a frame in (gn, go, w), and the frame's ten Ks from glidea (INP at gk); it asks the host
+; for filters gn (OUT at askn, cards at INP gx) and go (OUT at asko, cards at INP gy). For each K, m = (5 Kgn + 5
+; Kgo) / 10, halfway between them, and out goes (m (10 - w) + K w) / 10 to the assembler: with w 10, K itself. The
+; two filters' gains are read and dropped.
+;
+; Address Contents Label Opcode Operand Comment
+  03            frm     INP   gn       03-15: a frame: the jumps into the rows for w, and the two filters
+  04                    INP   go
+  05                    INP   w
+  06                    CLA   cxr
+  07                    ADD   w
+  08                    STO   jx
+  09                    CLA   csf
+  10                    SUB   w
+  11                    STO   jy
+  12            askn    OUT   gn
+  13            asko    OUT   go
+  14                    CLA   n9
+  15                    STO   i
+  16            lp      INP   tx       16-41: each K
+  17            gy      INP   ty
+  18                    CLA   tx
+  19                    ADD   tx
+  20                    ADD   tx
+  21                    ADD   tx
+  22                    ADD   tx
+  23                    ADD   ty
+  24                    ADD   ty
+  25                    ADD   ty
+  26                    ADD   ty
+  27                    ADD   ty
+  28                    SFT   01
+  29                    STO   tx
+  30            gk      INP   ty
+  31                    JMP   bl
+  32                    STO   k
+  33                    OUT   k
+  34                    CLA   i
+  35                    SUB   00
+  36                    STO   i
+  37                    TAC   gg
+  38                    JMP   lp
+  39            gg      INP   tx
+  40            gy2     INP   ty
+  41                    JMP   frm
+  42            bl      CLA   99       42-68: (tx (10 - w) + ty w) / 10
+  43                    STO   bret
+  44                    CLA   z
+  45            jx      DATA  0        (JMP xrow + w)
+  46            xrow    ADD   tx
+  47                    ADD   tx
+  48                    ADD   tx
+  49                    ADD   tx
+  50                    ADD   tx
+  51                    ADD   tx
+  52                    ADD   tx
+  53                    ADD   tx
+  54                    ADD   tx
+  55                    ADD   tx
+  56            jy      DATA  0        (JMP sf - w)
+  57            yrow    ADD   ty
+  58                    ADD   ty
+  59                    ADD   ty
+  60                    ADD   ty
+  61                    ADD   ty
+  62                    ADD   ty
+  63                    ADD   ty
+  64                    ADD   ty
+  65                    ADD   ty
+  66                    ADD   ty
+  67            sf      SFT   01
+  68            bret    DATA  0
+  70            gn      DATA  0
+  71            go      DATA  0
+  72            w       DATA  0
+  73            i       DATA  0
+  74            k       DATA  0
+  75            tx      DATA  0
+  76            ty      DATA  0
+  77            z       DATA  0
+  78            n9      DATA  9
+  79            cxr     JMP   xrow
+  80            csf     JMP   sf

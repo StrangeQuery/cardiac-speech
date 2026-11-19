@@ -49,3 +49,15 @@ for k, i in enumerate(order):
 assert max(new.values()) <= 99, 'past cell 99'
 open(path, 'w').write('\n'.join(lines))
 print(path, 'cells to', max(new.values()))
+# a warning for code that would run on into empty cells (0 is INP 00, which reads a card)
+prev_line = None
+prev_addr = None
+for i in order:
+    w = lines[i].split()
+    a = new[i]
+    if prev_addr is not None and a > prev_addr + 1 and prev_line is not None:
+        pw = prev_line.split()
+        ops = [x for x in pw[1:4] if x in ('INP', 'CLA', 'ADD', 'TAC', 'SFT', 'OUT', 'STO', 'SUB', 'JMP', 'HRS', 'DATA')]
+        if ops and ops[0] not in ('JMP', 'HRS', 'DATA'):
+            print('WARNING: cell %02d runs on into empty cell %02d' % (prev_addr, prev_addr + 1))
+    prev_line, prev_addr = lines[i], a

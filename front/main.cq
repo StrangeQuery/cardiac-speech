@@ -1,0 +1,98 @@
+; Five cards a segment in (pc, kind, ts, te, nxtpc), five out: the filters of the segment's sounding frames, ma
+; and mb (they glide from ma to mb by u when uon is 1, a vowel), vm (voiced) and gl (glides at the ends). A vowel,
+; sonorant, nasal or HH speaks through its own targets, ts to te, with glides; HH unvoiced. A fricative or
+; affricate through its noise filter (NOISE), voiced as the table says (VOICED); a stop's burst through NOISE,
+; unvoiced, or through its back form (ALT) when it has one and the next sound is a back vowel (BACK of row nxtpc,
+; OUT at askb). The table's cards VOICED NOISE ALT come from OUT at ask.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   pc       03-18: a segment; a pause: nothing
+  04                    INP   kind
+  05                    INP   ts
+  06                    INP   te
+  07                    INP   nxtpc
+  08                    CLA   z
+  09                    STO   ma
+  10                    STO   mb
+  11                    STO   uon
+  12                    STO   gl
+  13                    CLA   00
+  14                    STO   vm
+  15                    CLA   kind
+  16                    SUB   c8
+  17                    TAC   snd
+  18                    JMP   out
+  19            snd     CLA   kind     19-40: own targets: a vowel, a sonorant, a nasal, HH
+  20                    SUB   n4
+  21                    TAC   own
+  22                    SUB   n3
+  23                    TAC   ask
+  24            own     CLA   ts
+  25                    STO   ma
+  26                    CLA   te
+  27                    STO   mb
+  28                    CLA   00
+  29                    STO   gl
+  30                    CLA   kind
+  31                    SUB   n2
+  32                    TAC   vow
+  33                    SUB   n5
+  34                    TAC   out
+  35                    CLA   z
+  36                    STO   vm
+  37                    JMP   out
+  38            vow     CLA   00
+  39                    STO   uon
+  40                    JMP   out
+  41            ask     OUT   pc       41-66: an obstruent's noise, a stop's back form
+  42            gv      INP   voiced
+  43            gn      INP   noise
+  44            ga      INP   alt
+  45                    CLA   noise
+  46                    STO   ma
+  47                    STO   mb
+  48                    CLA   voiced
+  49                    STO   vm
+  50                    CLA   kind
+  51                    SUB   n5
+  52                    TAC   stop
+  53                    JMP   out
+  54            stop    CLA   z
+  55                    STO   vm
+  56                    CLA   alt
+  57                    SUB   00
+  58                    TAC   out
+  59            askb    OUT   nxtpc
+  60            gb      INP   back
+  61                    CLA   back
+  62                    SUB   00
+  63                    TAC   out
+  64                    CLA   alt
+  65                    STO   ma
+  66                    STO   mb
+  67            out     OUT   ma       67-92: the five cards
+  68                    OUT   mb
+  69                    OUT   uon
+  70                    OUT   vm
+  71                    OUT   gl
+  72                    JMP   rec
+  73            pc      DATA  0
+  74            kind    DATA  0
+  75            ts      DATA  0
+  76            te      DATA  0
+  77            nxtpc   DATA  0
+  78            ma      DATA  0
+  79            mb      DATA  0
+  80            uon     DATA  0
+  81            vm      DATA  0
+  82            gl      DATA  0
+  83            voiced  DATA  0
+  84            noise   DATA  0
+  85            alt     DATA  0
+  86            back    DATA  0
+  87            z       DATA  0
+  88            c8      DATA  8
+  89            n4      DATA  4
+  90            n3      DATA  3
+  91            n2      DATA  2
+  92            n5      DATA  5

@@ -1,0 +1,47 @@
+; A silent frame keeps the filter of the frame before it. Per frame in: snd (INP at frm) and K10..K1 (INP at gx);
+; out, the frame's Ks (OUT at wa): its own if it sounds (snd 1), else the ones before again. The Ks before go round
+; on this machine's own pile (OUT at pz and wb back to INP at go), ten zeros before the first frame. The two OUTs
+; are set each frame: OUT x (the new Ks) or OUT o (the old).
+;
+; Address Contents Label Opcode Operand Comment
+  03            start   CLA   n9       03-10: ten zeros on the pile
+  04                    STO   i
+  05            pz      OUT   z
+  06                    CLA   i
+  07                    SUB   00
+  08                    STO   i
+  09                    TAC   frm
+  10                    JMP   pz
+  11            frm     INP   snd      11-23: a frame: new Ks or old
+  12                    CLA   wox
+  13                    STO   w
+  14                    CLA   snd
+  15                    SUB   00
+  16                    TAC   old
+  17                    SUB   00
+  18                    TAC   set
+  19            old     CLA   woo
+  20                    STO   w
+  21            set     CLA   w
+  22                    STO   wa
+  23                    STO   wb
+  24                    CLA   n9       24-34: the ten Ks
+  25                    STO   i
+  26            gx      INP   x
+  27            go      INP   o
+  28            wa      DATA  0        (OUT x or OUT o)
+  29            wb      DATA  0        (OUT x or OUT o)
+  30                    CLA   i
+  31                    SUB   00
+  32                    STO   i
+  33                    TAC   frm
+  34                    JMP   gx
+  40            snd     DATA  0
+  41            x       DATA  0
+  42            o       DATA  0
+  43            w       DATA  0
+  44            i       DATA  0
+  45            z       DATA  0
+  46            n9      DATA  9
+  47            wox     OUT   x
+  48            woo     OUT   o

@@ -1,0 +1,73 @@
+; The first step of a frame's level: what multiplies the gain. Per segment five cards in (kind, n, adjv, prevv,
+; nextv); per frame snd and V (INP at gs, gv); per frame two out, a mode and a factor for mulx. A silent frame: mode
+; 3 (A is 0). A sonorant: mode 1 and the loudness (LOUD, from the table, OUT at ask) of its vowel: the vowel after
+; it if one comes right after, else the vowel before it, else AX; aspirated (V 0), the next vowel anywhere. Anything
+; else: mode 0.
+;
+; Address Contents Label Opcode Operand Comment
+  03            seg     INP   kind     03-11: a segment (i counts its frames down)
+  04                    INP   i
+  05                    INP   adjv
+  06                    INP   prevv
+  07                    INP   nextv
+  08            frm     CLA   i
+  09                    SUB   00
+  10                    TAC   seg
+  11                    STO   i
+  12            gs      INP   snd      12-30: a frame: silent, a sonorant, or neither
+  13            gv      INP   v
+  14                    CLA   z
+  15                    STO   y
+  16                    STO   mode
+  17                    CLA   snd
+  18                    SUB   00
+  19                    TAC   sil
+  20                    SUB   00
+  21                    TAC   snd1
+  22            sil     CLA   n3
+  23                    STO   mode
+  24                    JMP   out
+  25            snd1    CLA   kind
+  26                    SUB   n2
+  27                    TAC   out
+  28                    SUB   00
+  29                    TAC   son
+  30                    JMP   out
+  31            son     CLA   nextv    31-54: the sonorant's vowel and its loudness
+  32                    STO   r
+  33                    CLA   v
+  34                    SUB   00
+  35                    TAC   ask
+  36                    CLA   adjv
+  37                    STO   r
+  38                    SUB   00
+  39                    TAC   tp
+  40                    JMP   ask
+  41            tp      CLA   prevv
+  42                    STO   r
+  43                    SUB   00
+  44                    TAC   tax
+  45                    JMP   ask
+  46            tax     CLA   cax
+  47                    STO   r
+  48            ask     OUT   r
+  49            gl      INP   y
+  50                    CLA   00
+  51                    STO   mode
+  52            out     OUT   mode
+  53                    OUT   y
+  54                    JMP   frm
+  60            kind    DATA  0
+  61            i       DATA  0
+  62            adjv    DATA  0
+  63            prevv   DATA  0
+  64            nextv   DATA  0
+  65            snd     DATA  0
+  66            v       DATA  0
+  67            y       DATA  0
+  68            mode    DATA  0
+  69            r       DATA  0
+  70            z       DATA  0
+  71            n2      DATA  2
+  72            n3      DATA  3
+  73            cax     DATA  15

@@ -50,7 +50,7 @@
   43                    STO   pms
   44                    STO   snd
   45                    JMP   loop
-  46            ctl     CLA   z        46-94: -1, a boundary: the next phoneme starts a word
+  46            ctl     CLA   z        46-95: -1, a boundary: the next phoneme starts a word
   47                    STO   pc
   48                    STO   s
   49                    CLA   t
