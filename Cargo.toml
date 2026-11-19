@@ -20,3 +20,7 @@ heartburn = "0.1"
 
 [profile.release]
 debug = false
+
+[[bin]]
+name = "talk-phonemes"
+path = "src/bin/talk_phonemes.rs"

@@ -1,7 +1,16 @@
 //! A network of CARDIACs and the piles of cards between them. The host only moves cards: a machine waiting at an
 //! INP is given the next card of the pile wired to that INP's cell, and each value a machine outputs goes onto the
-//! pile wired to the OUT's cell. A pile can also be dealt: its cards go a few at a time to several piles in turn.
-//! Nothing here looks at a card's value.
+//! pile wired to the OUT's cell. What else the host does with cards, all of it bookkeeping:
+//!
+//! - deal: a pile's cards go a few at a time to several piles in turn;
+//! - copy: every card put on a pile goes onto several piles (the same deck dealt to several machines);
+//! - collate: whole records are taken from several piles and put together onto one, some of each record's cards
+//!   (columns) picked, as a collator merges decks;
+//! - fetch: a card put on a fetch pile names a record of a table deck (the phoneme table, the rule deck), and the
+//!   host deals that record (or some of its cards) onto another pile.
+//!
+//! None of this looks at what a card says, except a fetch, which uses the card as a record number, as a librarian
+//! uses a call number.
 use std::collections::VecDeque;
 
 use heartburn::assemble;
@@ -31,6 +40,14 @@ struct Node {
 enum Kind {
     Keep,
     Deal { n: usize, to: Vec<Pile>, dealt: usize },
+    Copy(Vec<Pile>),
+    Fetch { table: std::rc::Rc<Vec<i32>>, size: usize, from: usize, count: usize, to: Pile },
+}
+
+/// Whole records from several piles put together onto one: (source, record size, the cards of it kept).
+struct Collate {
+    out: Pile,
+    from: Vec<(Pile, usize, Vec<usize>)>,
 }
 
 pub struct Net {
@@ -38,6 +55,7 @@ pub struct Net {
     piles: Vec<VecDeque<i32>>,
     kinds: Vec<Kind>,
     names: Vec<String>,
+    collates: Vec<Collate>,
 }
 
 /// The values a machine outputs, onto the piles its OUTs are wired to.
@@ -53,7 +71,20 @@ fn put(piles: &mut [VecDeque<i32>], kinds: &mut [Kind], pile: Pile, card: i32) {
         Kind::Deal { n, to, dealt } => {
             let p = to[(*dealt / *n) % to.len()];
             *dealt += 1;
-            piles[p].push_back(card);
+            put(piles, kinds, p, card);
+        }
+        Kind::Copy(to) => {
+            for p in to.clone() {
+                put(piles, kinds, p, card);
+            }
+        }
+        Kind::Fetch { table, size, from, count, to } => {
+            let (table, at, to) = (table.clone(), card as usize * *size + *from, *to);
+            let count = *count;
+            assert!(card >= 0 && at + count <= table.len(), "no record {card} in the table");
+            for &c in &table[at..at + count] {
+                put(piles, kinds, to, c);
+            }
         }
     }
 }
@@ -86,7 +117,7 @@ impl Default for Net {
 
 impl Net {
     pub fn new() -> Net {
-        Net { nodes: vec![], piles: vec![], kinds: vec![], names: vec![] }
+        Net { nodes: vec![], piles: vec![], kinds: vec![], names: vec![], collates: vec![] }
     }
 
     /// The pile named `name`, made if there is none.
@@ -105,6 +136,52 @@ impl Net {
         let p = self.pile(pile);
         let to = to.iter().map(|t| self.pile(t)).collect();
         self.kinds[p] = Kind::Deal { n, to, dealt: 0 };
+    }
+
+    /// Every card put on `pile` from now on goes onto each of `to`.
+    pub fn copy(&mut self, pile: &str, to: &[&str]) {
+        let p = self.pile(pile);
+        let to = to.iter().map(|t| self.pile(t)).collect();
+        self.kinds[p] = Kind::Copy(to);
+    }
+
+    /// A card put on `pile` from now on names a record of `table` (records of `size` cards): cards `from` to
+    /// `from + count` of it go onto `to`.
+    pub fn fetch(&mut self, pile: &str, table: &std::rc::Rc<Vec<i32>>, size: usize, from: usize, count: usize, to: &str) {
+        let p = self.pile(pile);
+        let to = self.pile(to);
+        self.kinds[p] = Kind::Fetch { table: table.clone(), size, from, count, to };
+    }
+
+    /// Whenever each of `from` holds a whole record (its size), the records are taken off and the cards picked
+    /// from each put together onto `out`.
+    pub fn collate(&mut self, out: &str, from: &[(&str, usize, &[usize])]) {
+        let out = self.pile(out);
+        let from = from.iter().map(|&(p, n, c)| (self.pile(p), n, c.to_vec())).collect();
+        self.collates.push(Collate { out, from });
+    }
+
+    fn collate_all(&mut self) -> bool {
+        let mut moved = false;
+        for c in 0..self.collates.len() {
+            loop {
+                let ready = self.collates[c].from.iter().all(|(p, n, _)| self.piles[*p].len() >= *n);
+                if !ready {
+                    break;
+                }
+                let mut rec = vec![];
+                for (p, n, keep) in &self.collates[c].from {
+                    let r: Vec<i32> = self.piles[*p].drain(..*n).collect();
+                    rec.extend(keep.iter().map(|&k| r[k]));
+                }
+                let out = self.collates[c].out;
+                for card in rec {
+                    put(&mut self.piles, &mut self.kinds, out, card);
+                }
+                moved = true;
+            }
+        }
+        moved
     }
 
     /// A machine running `listing`. `inp` and `out` wire cells to piles: a cell by its label or its number, and
@@ -155,7 +232,7 @@ impl Net {
     /// One round: each machine in turn runs for as long as it has cards (at most `budget` instructions each).
     /// Returns whether anything ran.
     pub fn round(&mut self, budget: u64) -> bool {
-        let mut moved = false;
+        let mut moved = self.collate_all();
         for node in self.nodes.iter_mut() {
             if node.done {
                 continue;
