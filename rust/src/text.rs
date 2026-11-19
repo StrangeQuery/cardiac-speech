@@ -76,6 +76,21 @@ fn machine(net: &mut Net, name: &str, deck: &str) {
     net.add(name, Program::Deck(deck), &format!("{name}<"), name);
 }
 
+/// The letters' record for left or right: the letter's place i and the word.
+const LETTER: usize = 19;
+
+/// left or right: each letter's place and word (from letters's record), and after them the letter's record of the
+/// machine's rule table, fetched by the record's first card.
+fn rule_machine(net: &mut Net, name: &str, deck: &str, table: &Rc<Vec<i32>>) {
+    let word: Vec<usize> = [1].into_iter().chain(4..LETTER).collect();
+    let size = table.len() / LETTER_RECORDS;
+    net.collate(&format!("t_{name}w"), &[(&format!("letters>{name}"), LETTER, &word)]);
+    net.collate(&format!("t_{name}?"), &[(&format!("letters>{name}?"), LETTER, &[0])]);
+    net.fetch(&format!("t_{name}?"), table, size, 0, size, &format!("t_{name}r"));
+    machine(net, name, deck);
+    net.merge(&format!("{name}<"), &[(&format!("t_{name}w"), word.len()), (&format!("t_{name}r"), size)], &[]);
+}
+
 /// Wire the text machines: character cards (`text_cards`) from `chars`, phoneme cards onto `out`. The text's piles
 /// are named t_...
 pub fn wire(net: &mut Net, d: &Decks, chars: &str, out: &str) {
@@ -143,17 +158,9 @@ pub fn wire(net: &mut Net, d: &Decks, chars: &str, out: &str) {
     net.copy("excp", &["letters<"]);
     machine(net, "letters", LETTERS);
     // the rules: for each letter its records of the three tables
-    const LETTER: usize = 19;
     net.fan("letters", &["left", "left?", "right", "right?", "pick", "pick?"]);
-    let word: Vec<usize> = [1].into_iter().chain(4..LETTER).collect();
-    for (name, deck, table) in [("left", LEFT, &d.left), ("right", RIGHT, &d.right)] {
-        let size = table.len() / LETTER_RECORDS;
-        net.collate(&format!("t_{name}w"), &[(&format!("letters>{name}"), LETTER, &word)]);
-        net.collate(&format!("t_{name}?"), &[(&format!("letters>{name}?"), LETTER, &[0])]);
-        net.fetch(&format!("t_{name}?"), table, size, 0, size, &format!("t_{name}r"));
-        machine(net, name, deck);
-        net.merge(&format!("{name}<"), &[(&format!("t_{name}w"), word.len()), (&format!("t_{name}r"), size)], &[]);
-    }
+    rule_machine(net, "left", LEFT, &d.left);
+    rule_machine(net, "right", RIGHT, &d.right);
     let rules = d.left.iter().filter(|&&c| c == -2).count() / LETTER_RECORDS;
     machine(net, "first", FIRST);
     net.put("first<", &[rules as i32]);

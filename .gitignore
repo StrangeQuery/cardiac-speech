@@ -10,3 +10,5 @@ prototype/out/
 rust/machines/**/*.map
 rust/machines/target/
 rust/dev/
+rust/machines/**/*.asm
+rust/machines/**/*.cq

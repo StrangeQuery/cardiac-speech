@@ -8,6 +8,7 @@ stages, their descriptions and the labels on the arrows are written here by hand
 
   python3 docs/diagram.py              writes docs/pipeline.svg
   python3 docs/diagram.py --png OUT    also screenshots it to OUT with Playwright (headless Chromium)
+  python3 docs/diagram.py --rust       draws the Rust version instead, from rust/src/*.rs: rust/docs/pipeline.svg
 """
 import html
 import re
@@ -15,6 +16,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+RUST = "--rust" in sys.argv
 
 INK = "#1a1a1a"
 FLOW = "#9a3b1b"
@@ -34,6 +36,8 @@ CHIP_H, CHIP_GAP = 22, 6
 # --- the machines, from the code ---------------------------------------------------------------------------------
 def machines():
     """[(phase, name, listing path relative to the repo)] in the order the host adds them."""
+    if RUST:
+        return rust_machines()
     out = []
     for phase, rs, folder in (("text", "text.rs", "text"), ("front", "front.rs", "front"), ("voice", "voice.rs", "voice")):
         src = (ROOT / "src" / rs).read_text()
@@ -44,8 +48,30 @@ def machines():
     return out
 
 
+def rust_machines():
+    """The Rust version's machines, [(phase, name, source path relative to the repo)], in the order the host adds
+    them: each machine(net, "name", DECK) and net.add("name", Program::..(DECK)), its deck's source from the
+    decks! table (machines/PHASE/FILE.rs) or the include_str! of a hand-written listing (hand/FILE.cq)."""
+    out = []
+    for phase, rs in (("text", "text.rs"), ("front", "front.rs"), ("voice", "voice.rs")):
+        src = (ROOT / "rust" / "src" / rs).read_text()
+        files = {m[1]: f"rust/machines/{phase}/{m[2]}.rs" for m in re.finditer(r'(\w+) = "(\w+)"', src)}
+        files.update({m[1]: f"rust/{m[2]}" for m in re.finditer(r'const (\w+): &str = include_str!\("\.\./(hand/\w+\.cq)"\)', src)})
+        for m in re.finditer(r'(?:machine\(net, |net\.add\(|rule_machine\(net, |lattice\(net, )"(\w+)", '
+                             r'(?:Program::\w+\()?(\w+)', src):
+            # deemph and sample, and kfirst, kmid and klast, are only for --all-rust's comparison
+            if m[2] in files and m[1] not in ("deemph", "sample"):
+                out.append((phase, m[1], files[m[2]]))
+    return out
+
+
 def cells(listing):
-    """The cells a listing fills (each line that starts with an address)."""
+    """The cells a listing fills (each line that starts with an address), or for a machine in Rust the cells
+    rust/build_machines.sh found for it (rust/machines/cells.txt)."""
+    if listing.endswith(".rs"):
+        key = listing.removeprefix("rust/machines/").removesuffix(".rs")
+        sizes = dict(l.split() for l in (ROOT / "rust" / "machines" / "cells.txt").read_text().splitlines())
+        return int(sizes[key])
     return len({l[2:4] for l in (ROOT / listing).read_text().splitlines() if re.match(r"^  \d\d ", l)})
 
 
@@ -133,6 +159,92 @@ HOSTS = {
     "table": (1, "front/features, filters, glides.cards", ["the phoneme table, the filters and the glide factors:", "the one precomputed part (ref/table.py)"], 66),
     "samples": (4, "standard output", ["8 kHz signed 16-bit little-endian:", "the host joins thousands x 1000 + units"], 66),
 }
+
+# The Rust version (--rust): the same stages, its own machines, each reading one deck and punching one stream.
+GROUPS_RUST = [
+    ("words", 0, "Words and numbers", "ONCE A CHARACTER, THEN ONCE A NUMBER",
+     "small sees whether the text has a small letter and scan cuts it into words, numbers and punctuation by each "
+     "character's row of the ASCII table; numbers become words, years in pairs, each word's letters fetched by ask",
+     ["small", "scan", "numd", "unpack", "year", "numw", "say3", "ask1", "numf"], 5),
+    ("spell", 0, "Spelled words and exceptions", "ONCE A WORD",
+     "which all-capital words are spelled out, letter by letter by name; then each word as a record of 17 cards, "
+     "looked up among the function words and the exceptions, each deck dealt again after each word",
+     ["spinfo", "spcls", "spell", "ask2", "names", "items", "excl", "excx", "excp"], 5),
+    ("rules", 0, "Letter-to-sound rules (NRL, 1976)", "ONCE A LETTER",
+     "a record for each letter, with its rules fetched from three tables: left and right test every rule's two "
+     "contexts, first finds the first rule both pass, and pick gives its phonemes",
+     ["letters", "left", "right", "first", "pick"], 5),
+    ("post", 0, "Doubled consonants, stress, joins", "ONCE A PHONEME",
+     "one of each run of the same consonant; primary stress on a content word's first full vowel, secondary on the "
+     "other long ones; boundaries between words, pauses, the end",
+     ["posta", "postb", "postc", "postd", "join", "end"], 5),
+
+    ("feat", 1, "Segments", "ONCE A PHONEME OR PAUSE",
+     "a record for each segment: its code, stress, word start, pause length and sentence end; the host puts six "
+     "cards of its row of the phoneme table beside it, 11 cards in all",
+     ["seg"], 5),
+    ("ahead", 1, "What lies ahead", "ONCE A SEGMENT, LAST FIRST",
+     "run on the records in reverse, so each segment learns what comes after it in its word: a vowel later, the next "
+     "vowel's stress, the next sound's kind and filters",
+     ["after", "ahead", "p1", "next"], 5),
+    ("dur", 2, "Durations (Klatt, 1979)", "ONCE A SEGMENT",
+     "a consonant's stress; Klatt's rules 2 to 11 as factors in hundredths, 100 where a rule doesn't apply, "
+     "multiplied into PRCNT; DUR = (INHDUR - MINDUR) PRCNT / 100 + MINDUR; whole 25 ms frames",
+     ["stress", "base", "rules2", "rules5", "rules7", "rules9", "mul", "dur", "nframes"], 5),
+    ("frames", 2, "Segments into frames", "ONCE A SEGMENT, THEN ONCE A FRAME",
+     "the segment before each one; a summary of each sentence for the pitch, handed back to its segments last first; "
+     "each frame's place in its segment and the glides' weights; three spreads deal each frame its segment's cards",
+     ["back", "sum", "fill", "framer", "weights", "spreada", "spreadb", "spreadc"], 5),
+
+    ("pitch", 3, "Pitch", "ONCE A FRAME",
+     "130 Hz falling to 100 across the sentence, a rise at stressed vowels, the fall (85 Hz) or rise (160 Hz) at the "
+     "end, and the pitch period, 8000 / f0 samples",
+     ["decl", "onset", "rise", "taily", "tailt", "tailf", "period"], 5),
+    ("filters", 3, "Filters and glides", "ONCE A SEGMENT, THEN ONCE A FRAME",
+     "a stop's closure and burst, aspiration after P T K, each frame's two target filters blended by its place, the "
+     "glides at the segment's ends; a silent frame keeps the filter before it",
+     ["closure", "main", "edge", "choose", "glides", "glidea", "halfway", "glideb", "kcarry"], 5),
+    ("level", 3, "Level", "ONCE A FRAME",
+     "the filter's gain times a sonorant's loudness, 3 dB down when unstressed, falling across a vowel, times "
+     "sqrt(60 P) / 100 so a pulse carries the frame's power, and a glide's factor from the glide table",
+     ["loud", "lsel", "vsel", "psel", "gnorm", "scale1", "scale2", "fall", "scale4", "boost"], 5),
+    ("asm", 3, "Frame cards", "ONCE A FRAME",
+     "each frame as the voice box reads it, V, P, A, K10 to K1, with the next frame's sound and voicing beside it",
+     ["asm"], 5),
+
+    ("interp", 4, "Frame glides", "ONCE A FRAME, THEN ONCE A STEP",
+     "each value's step to the next frame, (next - this) / 10, none across a change of voicing; ten steps of 20 "
+     "samples a frame, V, P and A for the excitation and the Ks for reduce",
+     ["interp", "steps", "ksteps"], 5),
+    ("reduce", 4, "Coefficient digits", "TEN TIMES A STEP",
+     "each K as two digits, a sign, a shift and a rounding half (0 in a pause): five cards that become the "
+     "multiply routine",
+     ["reduce"], 2),
+    ("excite", 4, "Excitation", "ONCE A SAMPLE",
+     "a pulse of height A every P samples through e = pulse + 0.5 e, or +A and -A from a decimal random number "
+     "generator",
+     ["excite"], 2),
+    ("lattice", 4, "The lattice filter, ten stages", "ONCE A SAMPLE",
+     "written by hand: five machines of two stages each, f going down from L1 to L5 and each b back up one machine; "
+     "every multiply is a jump into a row of nine ADDs, an SFT and another jump",
+     ["L1", "L2", "L3", "L4", "L5"], 5),
+    ("output", 4, "De-emphasis and output", "ONCE A SAMPLE",
+     "written by hand: yd = f + 0.9 yd, kept as thousands and units; out goes 20 yd as two values, the thousands "
+     "and then the units",
+     ["output"], 5),
+]
+
+HOSTS_RUST = {
+    "text": (0, "the text", ["each character as its ASCII record,", "then an end record; to small and scan"], 66),
+    "decks": (0, "text/*.cards, rust/data/*.cards", ["number words, letter names, exceptions'", "phonemes; the rules as three tables"], 66),
+    "rev": (1, "the records, last first", ["the host puts the segment records", "in the opposite order"], 66),
+    "fwd": (1, "back in order, by columns", ["each machine's deck collated from whole", "records, a few columns of each"], 66),
+    "table": (1, "front/features, filters, glides.cards", ["the phoneme table, the filters and the glide factors:", "the one precomputed part (ref/table.py)"], 66),
+    "samples": (4, "standard output", ["8 kHz signed 16-bit little-endian:", "the host joins thousands x 1000 + units"], 66),
+}
+
+if RUST:
+    GROUPS, HOSTS = GROUPS_RUST, HOSTS_RUST
 
 PHASES = [
     ("text", [0], "TEXT TO PHONEMES"),
@@ -330,8 +442,12 @@ def build():
     svg.text(20, 50, "Speech, as a pipeline of CARDIAC machines", "title")
     svg.text(20, 82, f"{len(ms)} machines: {count['text']} turn text into phonemes, {count['front']} turn phonemes into "
              f"frame cards and {count['voice']} turn frame cards into 8 kHz samples; the largest fills {biggest} of its "
-             "100 cells. The host deals the text and the decks, carries each machine's output cards on to the next, and "
-             "joins each sample's two values.", "sub")
+             "100 cells. " + (
+                 "Each machine reads one deck and punches one stream; the host deals, collates and merges them in "
+                 "fixed orders, fetches table records by number, and joins each sample's two values."
+                 if RUST else
+                 "The host deals the text and the decks, carries each machine's output cards on to the next, and "
+                 "joins each sample's two values."), "sub")
     lx, ly = 20, 108
     svg.add(f'<rect class="box" x="{lx}" y="{ly}" width="34" height="22" rx="6"/>')
     svg.add(f'<rect class="chip" x="{lx + 5}" y="{ly + 5}" width="24" height="12" rx="3"/>')
@@ -363,7 +479,8 @@ def build():
     arrow([(x, y), (x, y - 20), (lane, y - 20), (lane, L("words", 0.75)[1]), (L("words")[0] - 2, L("words", 0.75)[1])])
     for k in ("spell", "rules"):
         arrow([(lane, L(k, 0.75)[1]), (L(k)[0] - 2, L(k, 0.75)[1])])
-    label(T("decks", 0.1)[0] + 6, T("decks")[1] - 26, "fetched by record number, or read through again and again")
+    label(T("decks", 0.1)[0] + 6, T("decks")[1] - 26, "fetched by record number, or dealt again after each word"
+          if RUST else "fetched by record number, or read through again and again")
 
     # --- the front end ----------------------------------------------------------------------------------------
     g0 = gap(0, 0.75)
@@ -453,7 +570,8 @@ def build():
 
 def main():
     svg, w, h = build()
-    out = ROOT / "docs" / "pipeline.svg"
+    out = ROOT / ("rust" if RUST else "") / "docs" / "pipeline.svg"
+    out.parent.mkdir(exist_ok=True)
     out.write_text(svg)
     print(out, f"{w}x{h}")
     if "--png" in sys.argv:
