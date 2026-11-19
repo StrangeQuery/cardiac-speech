@@ -514,6 +514,20 @@ EXCEPTIONS = {
     'MILLION': 'M IH1 L Y AX0 N',
     'DOESN\'T': 'D AH1 Z AX0 N T',  # rules: D AH Z N T
     'IMAGINATION': 'IH0 M AE2 JH IH0 N EY1 SH AX0 N',   # rules put the stress on the first syllable
+    'ACRONYM': 'AE1 K R AX0 N IH0 M',
+    'ILLUSTRATIVE': 'IH0 L AH1 S T R AX0 T IH0 V',
+    'COMPUTATION': 'K AA2 M P Y UW0 T EY1 SH AX0 N',
+    'OPERATION': 'AA2 P ER0 EY1 SH AX0 N',
+    'WITHOUT': 'W IH0 DH AW1 T',
+    'EVEN': 'IY1 V AX0 N',
+    'COMPUTING': 'K AX0 M P Y UW1 T IH0 NX',
+    'COMPUTERS': 'K AX0 M P Y UW1 T ER0 Z',
+    'UNDERSTAND': 'AH2 N D ER0 S T AE1 N D',
+    'UNDERSTANDING': 'AH2 N D ER0 S T AE1 N D IH0 NX',
+    'PROGRAMMING': 'P R OW1 G R AE2 M IH0 NX',
+    'ABOUT': 'AX0 B AW1 T',
+    'EFFORT': 'EH1 F ER0 T',
+    'BEHIND': 'B IH0 HH AY1 N D',
     'HELLO': 'HH AX0 L OW1',         # rules: HH EH L OW (stress would land on the first syllable)
     'WANT': 'W AA1 N T',             # rules: W AE N T
     'WANTS': 'W AA1 N T S',
