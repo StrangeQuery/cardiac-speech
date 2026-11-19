@@ -1,0 +1,24 @@
+; Records asked for. First a card T; then for each card two out: the number of the table record it asks for, its
+; last two digits when it is T or more (a number word is 700 + its record in the numbers deck, a spelled letter 100
+; or 200 + its code), else 0, and the card itself. The host fetches the record and deals it after the card to the
+; machine that needs it (numf, names).
+;
+; Address Contents Label Opcode Operand Comment
+  03                    INP   t        03-03: T
+  04            rec     INP   c        04-15: a card
+  05                    CLA   c
+  06                    SUB   t
+  07                    TAC   no
+  08                    CLA   c
+  09                    SFT   22
+  10                    STO   r
+  11                    JMP   put
+  12            no      CLA   z
+  13                    STO   r
+  14            put     OUT   r
+  15                    OUT   c
+  16                    JMP   rec
+  20            t       DATA  0
+  21            c       DATA  0
+  22            r       DATA  0
+  23            z       DATA  0

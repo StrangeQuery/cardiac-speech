@@ -1,30 +1,28 @@
-//! A network of CARDIACs and the piles of cards between them. The host only moves cards: a machine waiting at an
-//! INP is given the next card of the pile wired to that INP's cell, and each value a machine outputs goes onto the
-//! pile wired to the OUT's cell. What else the host does with cards, all of it bookkeeping:
+//! A network of CARDIACs and the piles of cards between them. Each machine has one card reader and one punch, as a
+//! real CARDIAC has: it reads one pile, its deck, a card at a time, and everything it punches goes onto one pile.
+//! The host never looks at a machine's program counter or its cells, nor at which instruction punched a card.
 //!
-//! - deal: a pile's cards go a few at a time to several piles in turn;
-//! - copy: every card put on a pile goes onto several piles (the same deck dealt to several machines);
+//! What the host does with the piles is bookkeeping, and none of it depends on what a card says (except a fetch,
+//! which uses a card as a record number, as a librarian uses a call number):
+//!
+//! - deal: the cards put on a pile go `n` at a time to several piles in turn;
+//! - copy: every card put on a pile goes onto several piles (the same cards for several machines);
 //! - collate: whole records are taken from several piles and put together onto one, some of each record's cards
 //!   (columns) picked, as a collator merges decks;
-//! - fetch: a card put on a fetch pile names a record of a table deck (the phoneme table, the rule deck), and the
-//!   host deals that record (or some of its cards) onto another pile.
-//!
-//! None of this looks at what a card says, except a fetch, which uses the card as a record number, as a librarian
-//! uses a call number.
+//! - merge: several piles go into one in a fixed order, so many cards from this pile, then so many from that, over
+//!   and over, a pile waiting its turn until it has its cards; a deck can be one of them, dealt again each time
+//!   its turn comes round;
+//! - fetch: a card put on a fetch pile names a record of a table deck (the phoneme table, the filters), and the
+//!   host puts that record onto another pile.
 use std::collections::VecDeque;
+use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering::Relaxed};
 
 use heartburn::assemble;
-use heartburn::cardiac::{At, Console, Event, Machine};
+use heartburn::cardiac::{Console, Event, Machine};
 
 /// A pile of cards, by number.
 pub type Pile = usize;
-
-/// Where a machine's INPs read and its OUTs punch: a pile for each cell, and one for the cells not named.
-struct Wiring {
-    inp: [Pile; 100],
-    out: [Pile; 100],
-}
 
 /// Cards moved, over every network made in this run: program cards loaded, cards read by INPs, values put out by
 /// OUTs. For `talk -v`.
@@ -37,26 +35,37 @@ pub fn card_counts() -> (u64, u64, u64) {
     (DECK_CARDS.load(Relaxed), CARDS_READ.load(Relaxed), VALUES_OUT.load(Relaxed))
 }
 
+/// A machine's program: a deck that `cargo cardiac build` made from Rust, or a listing written by hand.
+pub enum Program<'a> {
+    Deck(&'a str),
+    Listing(&'a str),
+}
+
 struct Node {
     name: String,
     cardiac: Machine,
-    wiring: Wiring,
+    /// the pile its reader reads
+    input: Pile,
+    /// the pile its punch punches onto
+    output: Pile,
     /// halted (HRS): it runs no more
     done: bool,
     /// waiting at an INP for a card
     waiting: bool,
+    /// what it has punched, kept when the environment's CARDIAC_SPEECH_TAP names a folder (for finding a fault)
+    punched: Option<Vec<i32>>,
 }
 
-/// What a pile does with the cards put on it: keeps them, or deals them `n` at a time to the piles in turn.
-#[derive(Clone)]
+/// What a pile does with the cards put on it.
 enum Kind {
     Keep,
     Deal { n: usize, to: Vec<Pile>, dealt: usize },
+    /// dealt by a fixed pattern: so many cards to this pile, then so many to that one, round and round
+    Split { to: Vec<(Pile, usize)>, at: usize, taken: usize },
     Copy(Vec<Pile>),
-    Fetch { table: std::rc::Rc<Vec<i32>>, size: usize, from: usize, count: usize, to: Pile },
-    /// a deck dealt onto the pile again whenever a machine waits on it empty (the rule deck, read through again
-    /// and again)
-    Cycle(std::rc::Rc<Vec<i32>>),
+    Fetch { table: Rc<Vec<i32>>, size: usize, from: usize, count: usize, to: Pile },
+    /// the first `n` cards put on it are set aside, and the rest go onto `to`: a deck dealt again from a later card
+    After { n: usize, seen: usize, to: Pile },
 }
 
 /// Whole records from several piles put together onto one: (source, record size, the cards of it kept).
@@ -65,27 +74,45 @@ struct Collate {
     from: Vec<(Pile, usize, Vec<usize>)>,
 }
 
+/// Where a merge takes its cards from: a pile, or a deck dealt again and again.
+enum Source {
+    Pile(Pile),
+    Deck { deck: Rc<Vec<i32>>, at: usize },
+}
+
+/// Several sources into one pile in a fixed order: `pattern` is (source, how many cards), round and round.
+struct Merge {
+    out: Pile,
+    sources: Vec<Source>,
+    pattern: Vec<(usize, usize)>,
+    at: usize,
+    taken: usize,
+}
+
 pub struct Net {
     nodes: Vec<Node>,
     piles: Vec<VecDeque<i32>>,
     kinds: Vec<Kind>,
     names: Vec<String>,
     collates: Vec<Collate>,
-}
-
-/// The values a machine outputs, onto the piles its OUTs are wired to.
-struct Punch<'a> {
-    out: &'a [Pile; 100],
-    piles: &'a mut Vec<VecDeque<i32>>,
-    kinds: &'a mut Vec<Kind>,
+    merges: Vec<Merge>,
 }
 
 fn put(piles: &mut [VecDeque<i32>], kinds: &mut [Kind], pile: Pile, card: i32) {
     match &mut kinds[pile] {
-        Kind::Keep | Kind::Cycle(_) => piles[pile].push_back(card),
+        Kind::Keep => piles[pile].push_back(card),
         Kind::Deal { n, to, dealt } => {
             let p = to[(*dealt / *n) % to.len()];
             *dealt += 1;
+            put(piles, kinds, p, card);
+        }
+        Kind::Split { to, at, taken } => {
+            let (p, n) = to[*at];
+            *taken += 1;
+            if *taken == n {
+                *taken = 0;
+                *at = (*at + 1) % to.len();
+            }
             put(piles, kinds, p, card);
         }
         Kind::Copy(to) => {
@@ -94,35 +121,51 @@ fn put(piles: &mut [VecDeque<i32>], kinds: &mut [Kind], pile: Pile, card: i32) {
             }
         }
         Kind::Fetch { table, size, from, count, to } => {
-            let (table, at, to) = (table.clone(), card as usize * *size + *from, *to);
-            let count = *count;
+            let (table, at, count, to) = (table.clone(), card as usize * *size + *from, *count, *to);
             assert!(card >= 0 && at + count <= table.len(), "no record {card} in the table");
             for &c in &table[at..at + count] {
                 put(piles, kinds, to, c);
             }
         }
+        Kind::After { n, seen, to } => {
+            *seen += 1;
+            if *seen > *n {
+                let to = *to;
+                put(piles, kinds, to, card);
+            }
+        }
     }
+}
+
+/// What a machine punches, onto its one pile.
+struct Punch<'a> {
+    out: Pile,
+    tap: &'a mut Option<Vec<i32>>,
+    piles: &'a mut Vec<VecDeque<i32>>,
+    kinds: &'a mut Vec<Kind>,
 }
 
 impl Console for Punch<'_> {
-    fn output(&mut self, _card: i32) {
-        unreachable!("outputs go by their cell")
-    }
-
-    fn output_at(&mut self, card: i32, at: At) {
+    fn output(&mut self, card: i32) {
         VALUES_OUT.fetch_add(1, Relaxed);
-        put(self.piles, self.kinds, self.out[at.cell], card);
+        if let Some(t) = self.tap.as_mut() {
+            t.push(card);
+        }
+        put(self.piles, self.kinds, self.out, card);
     }
 }
 
-/// A listing assembled, as carc assembles it: its deck and its labels.
-pub fn assemble(name: &str, listing: &str) -> (Vec<i32>, Vec<(String, usize)>) {
+/// A listing assembled, as carc assembles it: its deck.
+fn assemble(name: &str, listing: &str) -> Vec<i32> {
     let asm = assemble::assemble(listing);
     let errors: Vec<_> = asm.diagnostics.iter().filter(|d| !d.warning).collect();
     assert!(errors.is_empty(), "{name} doesn't assemble: {errors:?}");
-    let deck = assemble::deck(&asm, asm.start.expect("a listing with cells"));
-    let labels = asm.rows.iter().filter_map(|r| r.label.clone().map(|l| (l, r.addr))).collect();
-    (deck, labels)
+    assemble::deck(&asm, asm.start.expect("a listing with cells"))
+}
+
+/// A deck of cards written one a line, as `cargo cardiac build` writes a program's deck and as the tables are kept.
+pub fn cards(text: &str) -> Vec<i32> {
+    heartburn::tape::values(text).expect("a deck of cards")
 }
 
 impl Default for Net {
@@ -133,7 +176,7 @@ impl Default for Net {
 
 impl Net {
     pub fn new() -> Net {
-        Net { nodes: vec![], piles: vec![], kinds: vec![], names: vec![], collates: vec![] }
+        Net { nodes: vec![], piles: vec![], kinds: vec![], names: vec![], collates: vec![], merges: vec![] }
     }
 
     /// The pile named `name`, made if there is none.
@@ -154,6 +197,14 @@ impl Net {
         self.kinds[p] = Kind::Deal { n, to, dealt: 0 };
     }
 
+    /// The cards put on `pile` from now on are dealt by `pattern`: so many to this pile, then so many to that one,
+    /// round and round.
+    pub fn split(&mut self, pile: &str, pattern: &[(&str, usize)]) {
+        let p = self.pile(pile);
+        let to = pattern.iter().map(|&(t, n)| (self.pile(t), n)).collect();
+        self.kinds[p] = Kind::Split { to, at: 0, taken: 0 };
+    }
+
     /// Every card put on `pile` from now on goes onto each of `to`.
     pub fn copy(&mut self, pile: &str, to: &[&str]) {
         let p = self.pile(pile);
@@ -161,18 +212,28 @@ impl Net {
         self.kinds[p] = Kind::Copy(to);
     }
 
-    /// A card put on `pile` from now on names a record of `table` (records of `size` cards): cards `from` to
-    /// `from + count` of it go onto `to`.
-    pub fn fetch(&mut self, pile: &str, table: &std::rc::Rc<Vec<i32>>, size: usize, from: usize, count: usize, to: &str) {
+    /// A card put on `pile` from now on names a record of `table` (records of `size` cards), whose cards `from` to
+    /// `from + count` go onto `to`.
+    pub fn fetch(&mut self, pile: &str, table: &Rc<Vec<i32>>, size: usize, from: usize, count: usize, to: &str) {
         let p = self.pile(pile);
         let to = self.pile(to);
         self.kinds[p] = Kind::Fetch { table: table.clone(), size, from, count, to };
     }
 
-    /// `deck` is dealt onto `pile` again whenever a machine waits on it empty.
-    pub fn cycle(&mut self, pile: &str, deck: &std::rc::Rc<Vec<i32>>) {
+    /// The cards put on `pile` from now on go onto `to`, but for the first `n` of them: the same deck again from
+    /// its card `n` on.
+    pub fn after(&mut self, pile: &str, n: usize, to: &str) {
         let p = self.pile(pile);
-        self.kinds[p] = Kind::Cycle(deck.clone());
+        let to = self.pile(to);
+        self.kinds[p] = Kind::After { n, seen: 0, to };
+    }
+
+    /// Every card put on `pile` goes onto a pile for each of `readers`, named `pile>reader`: the same cards for
+    /// several readers.
+    pub fn fan(&mut self, pile: &str, readers: &[&str]) {
+        let to: Vec<String> = readers.iter().map(|r| format!("{pile}>{r}")).collect();
+        let to: Vec<&str> = to.iter().map(|s| s.as_str()).collect();
+        self.copy(pile, &to);
     }
 
     /// Whenever each of `from` holds a whole record (its size), the records are taken off and the cards picked
@@ -181,6 +242,35 @@ impl Net {
         let out = self.pile(out);
         let from = from.iter().map(|&(p, n, c)| (self.pile(p), n, c.to_vec())).collect();
         self.collates.push(Collate { out, from });
+    }
+
+    /// Cards go onto `out` from the piles in `pattern` in turn, so many from each, over and over (0 for every card
+    /// from then on); a pile named `deck:NAME` is the deck given for NAME in `decks`, dealt again from its start
+    /// each time its turn comes.
+    pub fn merge(&mut self, out: &str, pattern: &[(&str, usize)], decks: &[(&str, &Rc<Vec<i32>>)]) {
+        let out = self.pile(out);
+        let mut names: Vec<&str> = vec![];
+        let mut sources = vec![];
+        let mut pat = vec![];
+        for &(name, n) in pattern {
+            let i = match names.iter().position(|m| *m == name) {
+                Some(i) => i,
+                None => {
+                    names.push(name);
+                    sources.push(match name.strip_prefix("deck:") {
+                        Some(d) => {
+                            let deck = decks.iter().find(|(k, _)| *k == d).unwrap_or_else(|| panic!("no deck {d}"));
+                            Source::Deck { deck: deck.1.clone(), at: 0 }
+                        }
+                        None => Source::Pile(self.pile(name)),
+                    });
+                    sources.len() - 1
+                }
+            };
+            pat.push((i, n));
+        }
+        assert!(sources.iter().any(|s| matches!(s, Source::Pile(_))), "a merge of decks alone never waits");
+        self.merges.push(Merge { out, sources, pattern: pat, at: 0, taken: 0 });
     }
 
     fn collate_all(&mut self) -> bool {
@@ -206,30 +296,46 @@ impl Net {
         moved
     }
 
-    /// A machine running `listing`. `inp` and `out` wire cells to piles: a cell by its label or its number, and
-    /// `*` for every other cell.
-    pub fn add(&mut self, name: &str, listing: &str, inp: &[(&str, &str)], out: &[(&str, &str)]) {
-        let (deck, labels) = assemble(name, listing);
-        let cell = |k: &str| -> usize {
-            k.parse()
-                .ok()
-                .or_else(|| labels.iter().find(|(l, _)| l == k).map(|&(_, a)| a))
-                .unwrap_or_else(|| panic!("{name}: no cell {k}"))
-        };
-        let mut wire = |pairs: &[(&str, &str)]| -> [Pile; 100] {
-            let rest = pairs.iter().find(|(k, _)| *k == "*").map(|(_, p)| *p).unwrap_or("-");
-            let rest = self.pile(rest);
-            let mut w = [rest; 100];
-            for (k, p) in pairs.iter().filter(|(k, _)| *k != "*") {
-                w[cell(k)] = self.pile(p);
+    fn merge_all(&mut self) -> bool {
+        let mut moved = false;
+        for m in self.merges.iter_mut() {
+            loop {
+                let (s, n) = m.pattern[m.at];
+                let card = match &mut m.sources[s] {
+                    Source::Pile(p) => match self.piles[*p].pop_front() {
+                        Some(c) => c,
+                        None => break,
+                    },
+                    Source::Deck { deck, at } => {
+                        let c = deck[*at];
+                        *at = (*at + 1) % deck.len();
+                        c
+                    }
+                };
+                put(&mut self.piles, &mut self.kinds, m.out, card);
+                moved = true;
+                m.taken += 1;
+                if m.taken == n && n > 0 {
+                    m.taken = 0;
+                    m.at = (m.at + 1) % m.pattern.len();
+                }
             }
-            w
+        }
+        moved
+    }
+
+    /// A machine running `program`: its reader reads pile `input`, and its punch punches onto pile `output`.
+    pub fn add(&mut self, name: &str, program: Program, input: &str, output: &str) {
+        let deck = match program {
+            Program::Deck(text) => cards(text),
+            Program::Listing(text) => assemble(name, text),
         };
-        let wiring = Wiring { inp: wire(inp), out: wire(out) };
+        let (input, output) = (self.pile(input), self.pile(output));
         let mut cardiac = Machine::new();
         cardiac.push(&deck);
         DECK_CARDS.fetch_add(deck.len() as u64, Relaxed);
-        self.nodes.push(Node { name: name.into(), cardiac, wiring, done: false, waiting: false });
+        let punched = std::env::var_os("CARDIAC_SPEECH_TAP").map(|_| vec![]);
+        self.nodes.push(Node { name: name.into(), cardiac, input, output, done: false, waiting: false, punched });
     }
 
     /// Put cards on a pile.
@@ -246,16 +352,11 @@ impl Net {
         self.piles[p].drain(..).collect()
     }
 
-    /// How many cards a pile holds.
-    pub fn len(&mut self, pile: &str) -> usize {
-        let p = self.pile(pile);
-        self.piles[p].len()
-    }
-
-    /// One round: each machine in turn runs for as long as it has cards (at most `budget` instructions each).
-    /// Returns whether anything ran.
+    /// One round: the collators and merges move what they can, then each machine in turn runs for as long as its
+    /// reader has cards (at most `budget` instructions each). Returns whether anything moved.
     pub fn round(&mut self, budget: u64) -> bool {
         let mut moved = self.collate_all();
+        moved |= self.merge_all();
         for node in self.nodes.iter_mut() {
             if node.done {
                 continue;
@@ -263,19 +364,14 @@ impl Net {
             let mut spent = 0;
             loop {
                 if node.waiting {
-                    let p = node.wiring.inp[node.cardiac.pc()];
-                    if self.piles[p].is_empty() {
-                        if let Kind::Cycle(deck) = &self.kinds[p] {
-                            self.piles[p].extend(deck.iter().copied());
-                        }
-                    }
-                    let Some(card) = self.piles[p].pop_front() else { break };
+                    let Some(card) = self.piles[node.input].pop_front() else { break };
                     node.cardiac.push(&[card]);
                     CARDS_READ.fetch_add(1, Relaxed);
                     node.waiting = false;
                 }
                 let before = node.cardiac.steps();
-                let mut punch = Punch { out: &node.wiring.out, piles: &mut self.piles, kinds: &mut self.kinds };
+                let mut punch =
+                    Punch { out: node.output, tap: &mut node.punched, piles: &mut self.piles, kinds: &mut self.kinds };
                 let event = node.cardiac.run(budget.saturating_sub(spent).max(1), &mut punch);
                 spent += node.cardiac.steps() - before;
                 moved = true;
@@ -296,18 +392,41 @@ impl Net {
         moved
     }
 
-    /// Run every machine until none can go on.
+    /// Run every machine until none can go on. With CARDIAC_SPEECH_TAP set, what each machine punched is written
+    /// out afterwards, or when something goes wrong.
     pub fn run(&mut self) {
-        while self.round(u64::MAX) {}
+        // with taps on, a machine that runs on and on without reading or punching is stopped, to see why
+        let tapping = std::env::var_os("CARDIAC_SPEECH_TAP").is_some();
+        let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            while self.round(if tapping { 10_000_000 } else { u64::MAX }) {
+                if tapping {
+                    if let Some((n, s)) = self.steps().into_iter().find(|(_, s)| *s > 2_000_000_000) {
+                        panic!("{n} has run {s} instructions");
+                    }
+                }
+            }
+        }));
+        self.tap();
+        if let Err(e) = run {
+            std::panic::resume_unwind(e);
+        }
+    }
+
+    /// With CARDIAC_SPEECH_TAP set to a folder, write what each machine punched there, a file a machine.
+    pub fn tap(&self) {
+        let Some(dir) = std::env::var_os("CARDIAC_SPEECH_TAP") else { return };
+        std::fs::create_dir_all(&dir).expect("the tap folder");
+        let piles: String = self.names.iter().zip(&self.piles).filter(|(_, p)| !p.is_empty())
+            .map(|(n, p)| format!("{n} {}\n", p.len())).collect();
+        std::fs::write(std::path::Path::new(&dir).join("_piles"), piles).expect("a tap file");
+        for n in &self.nodes {
+            let text: String = n.punched.iter().flatten().map(|c| format!("{c}\n")).collect();
+            std::fs::write(std::path::Path::new(&dir).join(&n.name), text).expect("a tap file");
+        }
     }
 
     /// Each machine's name and the instructions it has run (the loader's among them).
     pub fn steps(&self) -> Vec<(String, u64)> {
         self.nodes.iter().map(|n| (n.name.clone(), n.cardiac.steps())).collect()
-    }
-
-    /// The machines, and whether each has halted.
-    pub fn halted(&self) -> Vec<(String, bool)> {
-        self.nodes.iter().map(|n| (n.name.clone(), n.done)).collect()
     }
 }

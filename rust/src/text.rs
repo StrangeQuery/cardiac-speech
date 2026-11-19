@@ -30,9 +30,9 @@ decks! {
     JOIN = "join", END = "end",
 }
 
-/// The decks the text machines read: the hand-written version's (text/: ASCII, the number words, the letters'
-/// names, the exceptions' phonemes), and this version's layout of the rules and the exceptions (rust/data/, made
-/// from text/ by rust/tables.py).
+/// The decks the text machines read, in text/ (made by ref/text_tables.py): the ASCII table, the number words, the
+/// letters' names, the exceptions' phonemes, the function words and the exceptions, and the NRL rules as three
+/// tables of one record a letter.
 pub struct Decks {
     pub ascii: Rc<Vec<i32>>,
     pub numbers: Rc<Vec<i32>>,
@@ -56,11 +56,11 @@ impl Decks {
             numbers: read(include_str!("../../text/numbers.cards")),
             letters: read(include_str!("../../text/letters.cards")),
             exphon: read(include_str!("../../text/exphon.cards")),
-            function: read(include_str!("../data/function.cards")),
-            exceptions: read(include_str!("../data/exceptions.cards")),
-            left: read(include_str!("../data/left.cards")),
-            right: read(include_str!("../data/right.cards")),
-            phonemes: read(include_str!("../data/phonemes.cards")),
+            function: read(include_str!("../../text/function.cards")),
+            exceptions: read(include_str!("../../text/exception_words.cards")),
+            left: read(include_str!("../../text/rules_left.cards")),
+            right: read(include_str!("../../text/rules_right.cards")),
+            phonemes: read(include_str!("../../text/rules_phonemes.cards")),
         }
     }
 }

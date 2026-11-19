@@ -1,0 +1,35 @@
+; Run on the segments last first. Each segment's five cards from sum in (send, and after the segment that ends a
+; sentence its summary: L, the tail's start, M and the end); its sentence's summary out, four cards, taken from the
+; segment that ends the sentence, which comes first when they run last first.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   send     03-19: a segment: a new summary, or the one before
+  04                    INP   a
+  05                    INP   b
+  06                    INP   c
+  07                    INP   d
+  08                    CLA   send
+  09                    SUB   00
+  10                    TAC   out
+  11                    CLA   a
+  12                    STO   l
+  13                    CLA   b
+  14                    STO   t
+  15                    CLA   c
+  16                    STO   m
+  17                    CLA   d
+  18                    STO   e
+  19            out     OUT   l
+  20                    OUT   t
+  21                    OUT   m
+  22                    OUT   e
+  23                    JMP   rec
+  30            send    DATA  0
+  31            a       DATA  0
+  32            b       DATA  0
+  33            c       DATA  0
+  34            d       DATA  0
+  35            l       DATA  0
+  36            t       DATA  0
+  37            m       DATA  0
+  38            e       DATA  0

@@ -3,7 +3,7 @@
 //! With --values, the output values themselves, one a line, instead of samples.
 use std::io::{Read, Write};
 
-use cardiac_speech::net::Net;
+use cardiac_speech::net::{cards, Net};
 use cardiac_speech::voice;
 
 fn main() {
@@ -18,11 +18,11 @@ fn main() {
         }
         Some(f) => text = std::fs::read_to_string(f).unwrap_or_else(|e| panic!("{f}: {e}")),
     }
-    let cards = heartburn::tape::values(&text).expect("frame cards");
+    let deck = cards(&text);
     let started = std::time::Instant::now();
     let mut net = Net::new();
-    voice::wire(&mut net, "frames", "out");
-    net.put("frames", &cards);
+    voice::wire(&mut net, "frames", "frames2", "out");
+    voice::deal_frames(&mut net, &deck, "frames", "frames2");
     let stdout = std::io::stdout();
     let mut w = std::io::BufWriter::new(stdout.lock());
     let mut pending: Vec<i32> = vec![];

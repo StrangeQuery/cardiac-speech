@@ -4,82 +4,81 @@
 ; table (OUT at ask); none of anything else. The division is n steps of adding CINH and taking away CTOT.
 ;
 ; Address Contents Label Opcode Operand Comment
-  03            rec     INP   pc       03-27: a segment: a pause, a stop
+  03            rec     INP   pc       03-29: a segment: a pause, a stop
   04                    INP   kind
   05                    INP   n
-  06                    CLA   z
-  07                    STO   c
-  08                    CLA   kind
-  09                    SUB   c8
-  10                    TAC   nap
-  11                    CLA   n
-  12                    STO   c
-  13                    JMP   out
-  14            nap     CLA   kind
-  15                    SUB   n4
-  16                    TAC   out
-  17                    SUB   00
-  18                    TAC   stop
+  06                    INP   cinh
+  07                    INP   ctot
+  08                    CLA   z
+  09                    STO   c
+  10                    CLA   kind
+  11                    SUB   c8
+  12                    TAC   nap
+  13                    CLA   n
+  14                    STO   c
+  15                    JMP   out
+  16            nap     CLA   kind
+  17                    SUB   n4
+  18                    TAC   out
   19                    SUB   00
-  20                    TAC   out
+  20                    TAC   stop
   21                    SUB   00
-  22                    TAC   ask
-  23                    JMP   out
-  24            stop    CLA   n
-  25                    SUB   00
-  26                    STO   c
-  27                    JMP   out
-  28            ask     OUT   pc       28-81: an affricate
-  29            gci     INP   cinh
-  30            gct     INP   ctot
-  31                    CLA   ctot
+  22                    TAC   out
+  23                    SUB   00
+  24                    TAC   ask
+  25                    JMP   out
+  26            stop    CLA   n
+  27                    SUB   00
+  28                    STO   c
+  29                    JMP   out
+  30            ask     CLA   ctot    30-80: an affricate
+  31                    ADD   ctot
   32                    ADD   ctot
   33                    ADD   ctot
   34                    ADD   ctot
-  35                    ADD   ctot
-  36                    SFT   01
-  37                    STO   rem
-  38                    CLA   n
-  39                    STO   i
-  40            lp      CLA   i
-  41                    SUB   00
-  42                    TAC   clamp
-  43                    STO   i
-  44                    CLA   rem
-  45                    ADD   cinh
-  46                    STO   rem
-  47            wl      CLA   rem
-  48                    SUB   ctot
-  49                    TAC   lp
-  50                    STO   rem
-  51                    CLA   c
-  52                    ADD   00
-  53                    STO   c
-  54                    JMP   wl
-  55            clamp   CLA   c
-  56                    SUB   00
-  57                    TAC   c1
-  58                    JMP   cmax
-  59            c1      CLA   00
-  60                    STO   c
-  61            cmax    CLA   n
-  62                    SUB   00
-  63                    SUB   c
-  64                    TAC   cn
-  65                    JMP   out
-  66            cn      CLA   n
-  67                    SUB   00
-  68                    STO   c
-  69            out     OUT   c
-  70                    JMP   rec
-  71            pc      DATA  0
-  72            kind    DATA  0
-  73            n       DATA  0
-  74            c       DATA  0
-  75            cinh    DATA  0
-  76            ctot    DATA  0
-  77            rem     DATA  0
-  78            i       DATA  0
-  79            z       DATA  0
-  80            c8      DATA  8
-  81            n4      DATA  4
+  35                    SFT   01
+  36                    STO   rem
+  37                    CLA   n
+  38                    STO   i
+  39            lp      CLA   i
+  40                    SUB   00
+  41                    TAC   clamp
+  42                    STO   i
+  43                    CLA   rem
+  44                    ADD   cinh
+  45                    STO   rem
+  46            wl      CLA   rem
+  47                    SUB   ctot
+  48                    TAC   lp
+  49                    STO   rem
+  50                    CLA   c
+  51                    ADD   00
+  52                    STO   c
+  53                    JMP   wl
+  54            clamp   CLA   c
+  55                    SUB   00
+  56                    TAC   c1
+  57                    JMP   cmax
+  58            c1      CLA   00
+  59                    STO   c
+  60            cmax    CLA   n
+  61                    SUB   00
+  62                    SUB   c
+  63                    TAC   cn
+  64                    JMP   out
+  65            cn      CLA   n
+  66                    SUB   00
+  67                    STO   c
+  68            out     OUT   c
+  69                    JMP   rec
+  70            pc      DATA  0
+  71            kind    DATA  0
+  72            n       DATA  0
+  73            c       DATA  0
+  74            cinh    DATA  0
+  75            ctot    DATA  0
+  76            rem     DATA  0
+  77            i       DATA  0
+  78            z       DATA  0
+  79            c8      DATA  8
+  80            n4      DATA  4

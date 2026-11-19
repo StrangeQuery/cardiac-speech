@@ -1,0 +1,87 @@
+; Klatt's duration rules 5 to 7. Six cards a segment in (kind, wf, after, bef, s, nextk); out three factors in
+; hundredths, one a rule in turn, 100 where a rule doesn't apply, then 0, the end of the list rules2 starts. Rule 5:
+; a vowel in a word with more vowels (bef or after) 80. Rule 6: a consonant not first in its word (wf 0) 85. Rule 7,
+; for a segment not stressed 1: a vowel 50 if vowels of its word come before and after it, else 70; a sonorant
+; before a vowel 10; anything else 70. A pause (kind 8) has none of them.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   kind     03-16: a segment; a pause: three 100s
+  04                    INP   wf
+  05                    INP   after
+  06                    INP   bef
+  07                    INP   s
+  08                    INP   nextk
+  09                    CLA   c100
+  10                    STO   f
+  11                    CLA   kind
+  12                    SUB   c8
+  13                    TAC   sound
+  14                    OUT   f
+  15                    OUT   f
+  16                    JMP   pad
+  17            sound   CLA   kind     17-35: rule 5 for a vowel, rule 6 for a consonant
+  18                    SUB   n2
+  19                    TAC   syl
+  20                    OUT   c100
+  21                    CLA   wf
+  22                    SUB   00
+  23                    TAC   o85
+  24                    OUT   c100
+  25                    JMP   r7
+  26            o85     OUT   c85
+  27                    JMP   r7
+  28            syl     CLA   bef
+  29                    ADD   after
+  30                    SUB   00
+  31                    TAC   v100
+  32                    OUT   c80
+  33                    JMP   v6
+  34            v100    OUT   c100
+  35            v6      OUT   c100
+  36            r7      CLA   s        36-66: rule 7, then 0
+  37                    SUB   00
+  38                    TAC   sev
+  39                    SUB   00
+  40                    TAC   pad
+  41            sev     CLA   c70
+  42                    STO   f
+  43                    CLA   kind
+  44                    SUB   n2
+  45                    TAC   r7v
+  46                    SUB   00
+  47                    TAC   r7s
+  48                    JMP   pad
+  49            r7s     CLA   nextk
+  50                    SUB   00
+  51                    TAC   pad
+  52                    SUB   00
+  53                    TAC   ten
+  54                    JMP   pad
+  55            ten     CLA   c10
+  56                    STO   f
+  57                    JMP   pad
+  58            r7v     CLA   bef
+  59                    ADD   after
+  60                    SUB   n2
+  61                    TAC   pad
+  62                    CLA   c50
+  63                    STO   f
+  64            pad     OUT   f
+  65                    OUT   z
+  66                    JMP   rec
+  70            kind    DATA  0
+  71            wf      DATA  0
+  72            after   DATA  0
+  73            bef     DATA  0
+  74            s       DATA  0
+  75            nextk   DATA  0
+  76            f       DATA  0
+  77            z       DATA  0
+  78            c8      DATA  8
+  79            n2      DATA  2
+  80            c100    DATA  100
+  81            c85     DATA  85
+  82            c80     DATA  80
+  83            c70     DATA  70
+  84            c50     DATA  50
+  85            c10     DATA  10

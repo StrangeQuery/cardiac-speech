@@ -1,0 +1,69 @@
+; A record for each letter. Each item (17 cards, from excp: its end card, n, and its run with an edge on each side)
+; in; for a word for the rules (an item ended by -21 or -22), a record of 19 cards for each of its letters out: the
+; number of the rule tables' record to fetch (the letter's code, or 0 for an apostrophe), the letter's place i, the
+; word's length n, its end card and the word with its edges (15 cards, kept in cells 80-94). Anything else goes out
+; as one record, with 0 to fetch, i and n 0, its end card and its cards. The host deals each record, but for its
+; first card, with the records fetched for it, to left, right and pick.
+;
+; Address Contents Label Opcode Operand Comment
+  03            item    INP   end      03-19: an item: its cards into 80-94; a word for the rules, or not
+  04                    INP   n
+  05                    CLA   i80
+  06                    STO   rd
+  07            rd      DATA  0        (INP 80 + k)
+  08                    CLA   rd
+  09                    ADD   00
+  10                    STO   rd
+  11                    SUB   i95
+  12                    TAC   rd
+  13                    CLA   z
+  14                    STO   i
+  15                    CLA   end
+  16                    ADD   c20
+  17                    TAC   lett
+  18            pass    CLA   z
+  19                    STO   n
+  20            lett    CLA   z        20-51: each letter's record (one for anything else)
+  21                    STO   req
+  22                    CLA   n
+  23                    SUB   00
+  24                    TAC   put
+  25                    CLA   c81
+  26                    ADD   i
+  27                    STO   lc
+  28            lc      DATA  0        (CLA 81 + i)
+  29                    STO   req
+  30                    SUB   c27
+  31                    TAC   put
+  32                    CLA   z
+  33                    STO   req
+  34            put     OUT   req
+  35                    OUT   i
+  36                    OUT   n
+  37                    OUT   end
+  38                    CLA   o80
+  39                    STO   wo
+  40            wo      DATA  0        (OUT 80 + k)
+  41                    CLA   wo
+  42                    ADD   00
+  43                    STO   wo
+  44                    SUB   o95
+  45                    TAC   wo
+  46                    CLA   i
+  47                    ADD   00
+  48                    STO   i
+  49                    SUB   n
+  50                    TAC   lett
+  51                    JMP   item
+  60            end     DATA  0
+  61            n       DATA  0
+  62            i       DATA  0
+  63            req     DATA  0
+  64            z       DATA  0
+  65            c20     DATA  20
+  67            c27     DATA  27
+  68            i80     INP   80
+  69            i95     INP   95
+  70            c81     CLA   81
+  71            o80     OUT   80
+  72            o95     OUT   95

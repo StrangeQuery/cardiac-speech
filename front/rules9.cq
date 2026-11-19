@@ -1,82 +1,95 @@
-; Klatt's duration rules 9 and 10. Four cards a segment in (kind, nextk, p1, pf); out, the factors that apply, in
-; hundredths, then 0. Rule 9, a vowel: p1 when phrase-final, else 70 + 3 p1 / 10. Rule 10, a vowel: 120 before a
-; vowel, 70 after one; a consonant: 50 between consonants, 70 next to one (a pause is neither).
+; Klatt's duration rules 9 and 10. Four cards a segment in (kind, nextk, p1, pf); out three factors in hundredths,
+; 100 where none applies, then 0, so that every segment has the same number of cards (multiplying by 100 leaves
+; PRCNT as it is). Rule 9, a vowel: p1 when phrase-final, else 70 + 3 p1 / 10. Rule 10, a vowel: 120 before a
+; vowel, 70 after one; a consonant: 50 between consonants, 70 next to one (a pause is neither, and has no factors).
 ;
 ; Address Contents Label Opcode Operand Comment
-  03            rec     INP   kind     03-17: a segment; a pause has no factors
+  03            rec     INP   kind     03-16: a segment; a pause: three 100s
   04                    INP   nextk
   05                    INP   p1
   06                    INP   pf
   07                    CLA   kind
   08                    SUB   c8
   09                    TAC   sound
-  10                    OUT   z
-  11                    CLA   z
-  12                    STO   pkind
-  13                    JMP   rec
-  14            sound   CLA   kind
-  15                    SUB   n2
-  16                    TAC   v9
-  17                    JMP   c10
-  18            v9      CLA   pf       18-44: a vowel: rules 9 and 10
-  19                    SUB   00
-  20                    TAC   np
-  21                    OUT   p1
-  22                    JMP   v10
-  23            np      CLA   p1
-  24                    ADD   p1
-  25                    ADD   p1
-  26                    SFT   01
-  27                    ADD   c70
-  28                    STO   t
-  29                    OUT   t
-  30            v10     CLA   nextk
-  31                    SUB   00
-  32                    TAC   v10b
-  33                    SUB   00
-  34                    TAC   o120
-  35                    JMP   v10b
-  36            o120    OUT   c120
-  37            v10b    CLA   pkind
-  38                    SUB   00
-  39                    TAC   end
-  40                    SUB   00
-  41                    TAC   o70
-  42                    JMP   end
-  43            o70     OUT   c70
-  44                    JMP   end
-  45            c10     CLA   z        45-67: a consonant: t = consonants next to it
-  46                    STO   t
-  47                    CLA   pkind
-  48                    SUB   n2
-  49                    TAC   cn
-  50                    CLA   00
+  10                    OUT   c100
+  11                    OUT   c100
+  12                    OUT   c100
+  13                    OUT   z
+  14                    CLA   z
+  15                    STO   pkind
+  16                    JMP   rec
+  17            sound   CLA   kind
+  18                    SUB   n2
+  19                    TAC   v9
+  20                    JMP   c10
+  21            v9      CLA   pf       21-51: a vowel: rule 9; rule 10, before a vowel and after one
+  22                    SUB   00
+  23                    TAC   np
+  24                    OUT   p1
+  25                    JMP   v10
+  26            np      CLA   p1
+  27                    ADD   p1
+  28                    ADD   p1
+  29                    SFT   01
+  30                    ADD   c70
+  31                    STO   t
+  32                    OUT   t
+  33            v10     CLA   nextk
+  34                    SUB   00
+  35                    TAC   n100
+  36                    SUB   00
+  37                    TAC   n120
+  38            n100    OUT   c100
+  39                    JMP   p
+  40            n120    OUT   c120
+  41            p       CLA   pkind
+  42                    SUB   00
+  43                    TAC   p100
+  44                    SUB   00
+  45                    TAC   p70
+  46            p100    OUT   c100
+  47                    JMP   end
+  48            p70     OUT   c70
+  49                    JMP   end
+  50            c10     CLA   z        50-76: a consonant: t = consonants next to it, 50, 70 or 100
   51                    STO   t
-  52            cn      CLA   nextk
+  52                    CLA   pkind
   53                    SUB   n2
-  54                    TAC   cc
-  55                    CLA   t
-  56                    ADD   00
-  57                    STO   t
-  58            cc      CLA   t
-  59                    SUB   00
-  60                    TAC   end
-  61                    SUB   00
-  62                    TAC   o70
-  63                    OUT   c50
-  64            end     OUT   z
-  65                    CLA   kind
-  66                    STO   pkind
-  67                    JMP   rec
-  70            kind    DATA  0
-  71            nextk   DATA  0
-  72            p1      DATA  0
-  73            pf      DATA  0
-  74            pkind   DATA  0
-  75            t       DATA  0
-  76            z       DATA  0
-  77            c8      DATA  8
-  78            n2      DATA  2
-  79            c70     DATA  70
-  80            c120    DATA  120
-  81            c50     DATA  50
+  54                    TAC   cn
+  55                    CLA   00
+  56                    STO   t
+  57            cn      CLA   nextk
+  58                    SUB   n2
+  59                    TAC   cc
+  60                    CLA   t
+  61                    ADD   00
+  62                    STO   t
+  63            cc      CLA   t
+  64                    SUB   00
+  65                    TAC   k100
+  66                    SUB   00
+  67                    TAC   k70
+  68                    OUT   c50
+  69                    JMP   k
+  70            k100    OUT   c100
+  71                    JMP   k
+  72            k70     OUT   c70
+  73            k       OUT   c100
+  74                    OUT   c100
+  75            end     OUT   z
+  76                    CLA   kind
+  77                    STO   pkind
+  78                    JMP   rec
+  80            kind    DATA  0
+  81            nextk   DATA  0
+  82            p1      DATA  0
+  83            pf      DATA  0
+  84            pkind   DATA  0
+  85            t       DATA  0
+  86            z       DATA  0
+  87            c8      DATA  8
+  88            n2      DATA  2
+  89            c70     DATA  70
+  90            c100    DATA  100
+  91            c120    DATA  120
+  92            c50     DATA  50

@@ -1,0 +1,71 @@
+; The value and step of A and of each of K10 to K1, of each frame in (interp's last 22 cards); for each of the
+; frame's ten steps, each K after the step's A, for reduce (A says whether the multiplies round or truncate). Each
+; value then moves on by its step. The Ks are kept in cells 70-79 and their steps in 80-89; the instructions that
+; reach them are moved on a cell for each K.
+;
+; Address Contents Label Opcode Operand Comment
+  03            frame   INP   a        03-21: a frame: A and its step, then each K and its step
+  04                    INP   da
+  05                    CLA   i70
+  06                    STO   rk
+  07                    CLA   i80
+  08                    STO   rd
+  09            rk      DATA  0        (INP 70 + k)
+  10            rd      DATA  0        (INP 80 + k)
+  11                    CLA   rk
+  12                    ADD   00
+  13                    STO   rk
+  14                    CLA   rd
+  15                    ADD   00
+  16                    STO   rd
+  17                    SUB   i90
+  18                    TAC   rk
+  19                    CLA   n9
+  20                    STO   s
+  21            step    CLA   o70      21-55: a step: A and each K, each K then moved on
+  22                    STO   ok
+  23                    CLA   c70
+  24                    STO   ck
+  25                    CLA   a80
+  26                    STO   ak
+  27                    CLA   s70
+  28                    STO   sk
+  29            each    OUT   a
+  30            ok      DATA  0        (OUT 70 + k)
+  31            ck      DATA  0        (CLA 70 + k)
+  32            ak      DATA  0        (ADD 80 + k)
+  33            sk      DATA  0        (STO 70 + k)
+  34                    CLA   ok
+  35                    ADD   00
+  36                    STO   ok
+  37                    CLA   ck
+  38                    ADD   00
+  39                    STO   ck
+  40                    CLA   ak
+  41                    ADD   00
+  42                    STO   ak
+  43                    CLA   sk
+  44                    ADD   00
+  45                    STO   sk
+  46                    SUB   s80
+  47                    TAC   each
+  48                    CLA   a
+  49                    ADD   da
+  50                    STO   a
+  51                    CLA   s
+  52                    SUB   00
+  53                    STO   s
+  54                    TAC   frame
+  55                    JMP   step
+  56            a       DATA  0
+  57            da      DATA  0
+  58            s       DATA  0
+  59            n9      DATA  9
+  60            i70     INP   70
+  61            i80     INP   80
+  62            i90     INP   90
+  63            o70     OUT   70
+  64            c70     CLA   70
+  65            a80     ADD   80
+  66            s70     STO   70
+  67            s80     STO   80

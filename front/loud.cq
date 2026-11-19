@@ -1,0 +1,37 @@
+; The loudness a sonorant's frames take from the vowel next to it. First the LOUD card of AX's row of the phoneme
+; table; then five cards a segment in: adjv (the vowel right after it in its word, 0 for none), prevv (the vowel
+; before it, 0 for none), and the LOUD cards of the rows of adjv, prevv and nextv (the next vowel anywhere). Out two:
+; for a voiced frame the loudness of adjv, else of prevv, else of AX; for the breathy first frame after P, T or K
+; that of nextv.
+;
+; Address Contents Label Opcode Operand Comment
+  03                    INP   lax      03-03: AX's loudness
+  04            rec     INP   adjv     04-19: a segment
+  05                    INP   prevv
+  06                    INP   ladj
+  07                    INP   lprev
+  08                    INP   lnext
+  09                    CLA   ladj
+  10                    STO   lv
+  11                    CLA   adjv
+  12                    SUB   00
+  13                    TAC   np
+  14                    JMP   out
+  15            np      CLA   lprev
+  16                    STO   lv
+  17                    CLA   prevv
+  18                    SUB   00
+  19                    TAC   ax
+  20                    JMP   out
+  21            ax      CLA   lax
+  22                    STO   lv
+  23            out     OUT   lv
+  24                    OUT   lnext
+  25                    JMP   rec
+  30            lax     DATA  0
+  31            adjv    DATA  0
+  32            prevv   DATA  0
+  33            ladj    DATA  0
+  34            lprev   DATA  0
+  35            lnext   DATA  0
+  36            lv      DATA  0

@@ -12,7 +12,7 @@ deck = vr.frame_cards(frames)
 want, peak = vr.voice(deck)
 net = cardiac.Net()
 nets.voice_box(net)
-net.put('frames', deck)
+nets.deal_frames(net, deck)
 state = net.run()
 got = net.piles['out']
 print(name, nf, 'frames:', len(got) // 2, 'samples', 'match' if got == want else 'DIFFER', 'peak |yd|', peak)

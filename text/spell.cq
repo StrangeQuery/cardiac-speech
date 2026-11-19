@@ -1,81 +1,89 @@
-; Words to be spelled, made ready. Cards pass through except words: a word's letters (1-27) go onto this machine's
-; own pile (OUT at keep, back to INP at gp), counting n (cards) and l (letters). A word ended by -10 goes on as it
-; came, then -10. One ended by -11 goes on as its letters, apostrophes dropped, as 100 + code, the last as 200 +
-; code, then -11, for names.
+; Spelled words marked. Cards pass through except words' letters (1 to 27, apostrophes 27), which are held in
+; cells 73-85 until the word's end card says which word it is: a word to be spelled (-11) goes out as its letters
+; without the apostrophes, each as 100 + code and the last as 200 + code, then -11; any other word (-10) as it was,
+; then -10. Letters past the 13th are dropped (the rules take words of 13 letters at most).
 ;
 ; Address Contents Label Opcode Operand Comment
-  03            rec     INP   x        03-16: a card: pass it on, a letter, or a word's end
-  04                    CLA   x
-  05                    TAC   neg
-  06                    SUB   c28
-  07                    TAC   let
-  08            pass    OUT   x
-  09                    JMP   rec
-  10            neg     ADD   c11
-  11                    TAC   pass
-  12                    SUB   00
-  13                    TAC   e11
-  14                    SUB   00
-  15                    TAC   e10
-  16                    JMP   pass
-  17            let     ADD   c28      17-29: onto the pile, counted
-  18            keep    OUT   x
-  19                    CLA   n
-  20                    ADD   00
-  21                    STO   n
-  22                    CLA   x
-  23                    SUB   c27
-  24                    TAC   lt
+  03            rec     INP   c        03-26: a letter is held, and the last one that isn't an apostrophe noted
+  04                    CLA   c
+  05                    SUB   00
+  06                    TAC   end
+  07                    CLA   n
+  08                    SUB   n13
+  09                    TAC   st
+  10                    JMP   rec
+  11            st      CLA   s70
+  12                    ADD   n
+  13                    STO   wr
+  14                    CLA   c
+  15            wr      DATA  0        (STO 73 + n)
+  16                    CLA   n
+  17                    ADD   00
+  18                    STO   n
+  19                    CLA   c
+  20                    SUB   c27
+  21                    TAC   lt
+  22                    JMP   rec
+  23            lt      CLA   n
+  24                    STO   last
   25                    JMP   rec
-  26            lt      CLA   l
-  27                    ADD   00
-  28                    STO   l
-  29                    JMP   rec
-  30            e10     CLA   n        30-38: not spelled: the word as it came
-  31                    SUB   00
-  32                    TAC   o10
-  33                    STO   n
-  34            gp      INP   y
-  35                    OUT   y
-  36                    JMP   e10
-  37            o10     OUT   m10
-  38                    JMP   rst
-  39            e11     CLA   n        39-65: spelled: the letters marked, the last 200
-  40                    SUB   00
-  41                    TAC   o11
-  42                    STO   n
-  43            gp2     INP   y
-  44                    CLA   y
-  45                    SUB   c27
-  46                    TAC   lm
-  47                    JMP   e11
-  48            lm      CLA   l
-  49                    SUB   00
-  50                    STO   l
-  51                    SUB   00
-  52                    TAC   last
-  53                    CLA   y
-  54                    ADD   c100
-  55                    JMP   oy
-  56            last    CLA   y
-  57                    ADD   c200
-  58            oy      STO   y
-  59                    OUT   y
-  60                    JMP   e11
-  61            o11     OUT   m11
-  62            rst     CLA   z
-  63                    STO   n
-  64                    STO   l
-  65                    JMP   rec
-  70            x       DATA  0
-  71            y       DATA  0
-  72            n       DATA  0
-  73            l       DATA  0
-  74            z       DATA  0
-  75            c11     DATA  11
-  76            c27     DATA  27
-  77            c28     DATA  28
-  78            c100    DATA  100
-  79            c200    DATA  200
-  80            m10     DATA  -10
-  81            m11     DATA  -11
+  26            end     CLA   z        26-63: the word's end: spelled (-11) or not, then its letters and the card
+  27                    STO   add
+  28                    CLA   c
+  29                    ADD   n10
+  30                    TAC   sp
+  31                    JMP   go
+  32            sp      CLA   c100
+  33                    STO   add
+  34            go      CLA   z
+  35                    STO   i
+  36            lp      CLA   i
+  37                    SUB   n
+  38                    TAC   body
+  39                    JMP   fin
+  40            body    CLA   c70
+  41                    ADD   i
+  42                    STO   rd
+  43            rd      DATA  0        (CLA 73 + i)
+  44                    STO   x
+  45                    CLA   add
+  46                    SUB   00
+  47                    TAC   put
+  48                    CLA   x
+  49                    SUB   c27
+  50                    TAC   mark
+  51                    JMP   nx
+  52            mark    CLA   i
+  53                    ADD   00
+  54                    SUB   last
+  55                    TAC   m1
+  56                    CLA   x
+  57                    ADD   add
+  58                    ADD   add
+  59                    STO   x
+  60                    JMP   put
+  61            m1      CLA   x
+  62                    ADD   add
+  63                    STO   x
+  64            put     OUT   x
+  65            nx      CLA   i
+  66                    ADD   00
+  67                    STO   i
+  68                    JMP   lp
+  69            fin     OUT   c
+  70                    CLA   z
+  71                    STO   n
+  72                    JMP   rec
+  86            n       DATA  0
+  87            last    DATA  0
+  88            c       DATA  0
+  89            x       DATA  0
+  90            i       DATA  0
+  91            add     DATA  0
+  92            z       DATA  0
+  93            n13     DATA  13
+  94            c27     DATA  27
+  95            n10     DATA  10
+  96            c100    DATA  100
+  97            s70     STO   73
+  98            c70     CLA   73

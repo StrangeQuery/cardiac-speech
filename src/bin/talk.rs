@@ -1,7 +1,7 @@
 //! talk: text in (the arguments, or standard input), speech out: raw 8 kHz signed 16-bit little-endian samples on
-//! standard output, every step worked out by CARDIACs (65 of them, in three phases). The host deals and moves
-//! cards: the text as character cards, the decks the machines read, the records put in the opposite order between
-//! phases, and each output pair joined into a 16-bit sample.
+//! standard output, every step worked out by CARDIACs, in phases. The host deals and moves cards: the text as its
+//! characters' records of the ASCII table, the decks and table records the machines read, the records put in the
+//! opposite order between phases, and each output pair joined into a 16-bit sample.
 //!
 //!   --phonemes   print the phoneme cards (the text machines' output) instead, one a line
 //!   --frames     print the frame cards (the front end's output) instead, one a line
@@ -27,11 +27,11 @@ fn main() {
     let tables = front::Tables::load();
     let mut steps: Vec<(String, u64)> = vec![];
 
-    // phase 1: text to phonemes to segment records
+    // text to phonemes, and phonemes to segment records
     let mut net = Net::new();
     text::wire(&mut net, &decks, "chars", "tokens");
     if phonemes {
-        net.put("chars", &text::text_cards(&input));
+        text::deal_text(&mut net, "chars", &input);
         net.run();
         for c in net.take("tokens") {
             println!("{c}");
@@ -40,27 +40,23 @@ fn main() {
     }
     net.copy("tokens", &["tokens_f"]);
     front::segments(&mut net, &tables, "tokens_f", "r1");
-    net.put("chars", &text::text_cards(&input));
+    text::deal_text(&mut net, "chars", &input);
     net.run();
     let r1 = net.take("r1");
     steps.extend(net.steps());
-    // phase 2: what lies ahead, last first
-    let mut net = Net::new();
-    front::ahead(&mut net, &tables, &r1);
-    net.run();
-    let (a, b, c) = (net.take("A"), net.take("B"), net.take("C"));
-    steps.extend(net.steps());
-    // phase 3: frames, and the voice box, streaming
-    let mut net = Net::new();
-    front::frames(&mut net, &tables, &r1, &a, &b, &c, "frames");
+    // the rest of the front end, phase by phase
+    let (frames, more) = front::segments_to_frames(&tables, &r1);
+    steps.extend(more);
     if frames_only {
-        net.run();
-        for c in net.take("frames") {
+        for c in &frames {
             println!("{c}");
         }
         return;
     }
-    voice::wire(&mut net, "frames", "out");
+    // the voice box
+    let mut net = Net::new();
+    voice::wire(&mut net, "frames", "frames2", "out");
+    voice::deal_frames(&mut net, &frames, "frames", "frames2");
     let stdout = std::io::stdout();
     let mut w = std::io::BufWriter::new(stdout.lock());
     let mut pending: Vec<i32> = vec![];

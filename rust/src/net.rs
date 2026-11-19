@@ -376,7 +376,17 @@ impl Net {
     /// Run every machine until none can go on. With CARDIAC_SPEECH_TAP set, what each machine punched is written
     /// out afterwards, or when something goes wrong.
     pub fn run(&mut self) {
-        let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| while self.round(u64::MAX) {}));
+        // with taps on, a machine that runs on and on without reading or punching is stopped, to see why
+        let tapping = std::env::var_os("CARDIAC_SPEECH_TAP").is_some();
+        let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            while self.round(if tapping { 10_000_000 } else { u64::MAX }) {
+                if tapping {
+                    if let Some((n, s)) = self.steps().into_iter().find(|(_, s)| *s > 2_000_000_000) {
+                        panic!("{n} has run {s} instructions");
+                    }
+                }
+            }
+        }));
         self.tap();
         if let Err(e) = run {
             std::panic::resume_unwind(e);

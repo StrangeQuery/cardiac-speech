@@ -1,72 +1,32 @@
-; Each frame's values and steps in, the ten steps of the frame out (20 samples each): for every step V, P and A
-; to the excitation machine and K10 down to K1 to the coefficient machine, each K after the step's A, and each value
-; then moved on by its step.
-; The values and steps go round through this machine's own pile (OUT at 08, 25, 26, 34, 35, 45 and 46 come back
-; to INP at 06, 19, 21, 27, 29, 39 and 41): at a new frame the old ones are read off and the new ones put on.
+; V, and the values and steps of P and A, of each frame in (interp's first five cards); the frame's ten steps of 20
+; samples out, for the excitation: V, P and A for each step, P and A then moving on by their steps.
 ;
 ; Address Contents Label Opcode Operand Comment
-  03            frame   INP   v        03-17: a new frame's V, and its 24 cards onto the pile in place of the old
-  04                    CLA   n23
-  05                    STO   i
-  06            drain   CLA   z        (CLA z at the first frame, INP x after)
-  07            cp      INP   x
-  08                    OUT   x
-  09                    CLA   i
-  10                    SUB   00
-  11                    STO   i
-  12                    TAC   go
-  13                    JMP   drain
-  14            go      CLA   inpx
-  15                    STO   drain
-  16                    CLA   n9
-  17                    STO   s
-  18            step    OUT   v        18-35: V, P and A out; P and A moved on
-  19                    INP   x
-  20                    OUT   x
-  21                    INP   d
-  22                    CLA   x
-  23                    ADD   d
-  24                    STO   x
-  25                    OUT   x
-  26                    OUT   d
-  27                    INP   x
-  28                    OUT   x
-  29                    INP   d
-  30                    CLA   x
-  31                    STO   a
-  32                    ADD   d
-  33                    STO   x
-  34                    OUT   x
-  35                    OUT   d
-  36                    CLA   n9       36-51: the ten Ks out, each moved on
-  37                    STO   j
-  38            k       OUT   a        (each K comes after the step's A, for the rounding)
-  39                    INP   x
-  40                    OUT   x
-  41                    INP   d
-  42                    CLA   x
-  43                    ADD   d
-  44                    STO   x
-  45                    OUT   x
-  46                    OUT   d
-  47                    CLA   j
-  48                    SUB   00
-  49                    STO   j
-  50                    TAC   nxt
-  51                    JMP   k
-  52            nxt     CLA   s        52-56: ten steps, then the next frame
-  53                    SUB   00
-  54                    STO   s
-  55                    TAC   frame
-  56                    JMP   step
-  60            v       DATA  0
-  61            x       DATA  0
-  62            d       DATA  0
-  63            i       DATA  0
-  64            j       DATA  0
-  65            s       DATA  0
-  66            n23     DATA  23
-  67            n9      DATA  9
-  68            inpx    INP   x
-  69            z       DATA  0
-  70            a       DATA  0
+  03            frame   INP   v        03-08: a frame
+  04                    INP   p
+  05                    INP   dp
+  06                    INP   a
+  07                    INP   da
+  08                    CLA   n9
+  09                    STO   s
+  10            step    OUT   v        10-27: ten steps
+  11                    OUT   p
+  12                    OUT   a
+  13                    CLA   p
+  14                    ADD   dp
+  15                    STO   p
+  16                    CLA   a
+  17                    ADD   da
+  18                    STO   a
+  19                    CLA   s
+  20                    SUB   00
+  21                    STO   s
+  22                    TAC   frame
+  23                    JMP   step
+  30            v       DATA  0
+  31            p       DATA  0
+  32            dp      DATA  0
+  33            a       DATA  0
+  34            da      DATA  0
+  35            s       DATA  0
+  36            n9      DATA  9

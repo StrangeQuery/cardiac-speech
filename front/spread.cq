@@ -1,0 +1,41 @@
+; A segment's cards, again for each of its frames. First a card saying how many cards a segment has besides its
+; frames n, w (at most 20); then for each segment n and those w cards. Out, for each of its n frames, the w cards
+; again, so that the machines that work frame by frame read each frame's segment beside it. The cards are kept in
+; cells 70 onwards; the INP and OUT that reach them are moved on a cell for each card.
+;
+; Address Contents Label Opcode Operand Comment
+  03                    INP   w        03-05: w, and the instructions' ends
+  04                    CLA   i70
+  05                    ADD   w
+  06                    STO   iend
+  07                    CLA   o70
+  08                    ADD   w
+  09                    STO   oend
+  10            seg     INP   n        10-22: a segment: its cards
+  11                    CLA   i70
+  12                    STO   rd
+  13            rd      DATA  0        (INP 70 + k)
+  14                    CLA   rd
+  15                    ADD   00
+  16                    STO   rd
+  17                    SUB   iend
+  18                    TAC   rd
+  19            frm     CLA   n        19-34: each frame: the cards again
+  20                    SUB   00
+  21                    TAC   seg
+  22                    STO   n
+  23                    CLA   o70
+  24                    STO   wr
+  25            wr      DATA  0        (OUT 70 + k)
+  26                    CLA   wr
+  27                    ADD   00
+  28                    STO   wr
+  29                    SUB   oend
+  30                    TAC   wr
+  31                    JMP   frm
+  40            w       DATA  0
+  41            n       DATA  0
+  42            iend    DATA  0
+  43            oend    DATA  0
+  44            i70     INP   70
+  45            o70     OUT   70

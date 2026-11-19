@@ -1,8 +1,7 @@
-; Phonemes in, one segment record of 11 cards out for each phoneme and pause: pc s wf pms send kind inh mn cls9
-; liq vls. A phoneme card is 10 x code + stress; -1 is a word boundary, -2 a comma, -3 a period, -4 a question
-; mark, -5 an exclamation mark, -9 the end. For each record it asks the host for row pc of the phoneme table (OUT
-; at 21; a pause is pc 0, whose row is kind 8) and copies the row's first six cards (kind inh mn cls9 liq vls). A
-; pause's record has its length in ms (300 for a comma, else 600) and whether it ends a sentence (send 1, or 2 for
+; Phonemes in, a record of five cards out for each phoneme and pause: pc s wf pms send; the host puts the first six
+; cards of row pc of the phoneme table beside it (kind inh mn cls9 liq vls; a pause is pc 0, whose row is kind 8),
+; to make the segment's record of 11. A phoneme card is 10 x code + stress; -1 is a word boundary, -2 a comma, -3 a
+; period, -4 a question mark, -5 an exclamation mark, -9 the end. A pause's record has its length in ms (300 for a comma, else 600) and whether it ends a sentence (send 1, or 2 for
 ; a question). A 50 ms pause comes first; a 150 ms pause comes last and ends the last sentence too (send 3). The
 ; segment after a pause or a boundary starts a word (wf 1). WH's row is W's.
 ;
@@ -20,83 +19,71 @@
   13                    CLA   t
   14                    SUB   x
   15                    STO   s
-  16            rec     OUT   pc       16-30: the record, with the table's six cards
-  17                    OUT   pc
-  18                    OUT   s
-  19                    OUT   wf
-  20                    OUT   pms
-  21                    OUT   snd
-  22                    CLA   n5
-  23                    STO   i
-  24            cp      INP   x
-  25                    OUT   x
-  26                    CLA   i
-  27                    SUB   00
-  28                    STO   i
-  29                    TAC   nxt
-  30                    JMP   cp
-  31            nxt     CLA   snd      31-45: stop after the end pause; wf 1 after a pause, else 0
-  32                    SUB   n3
-  33                    TAC   go
-  34                    HRS   00
-  35            go      CLA   z
-  36                    SUB   pms
-  37                    TAC   one
-  38                    CLA   z
-  39                    JMP   setw
-  40            one     CLA   00
-  41            setw    STO   wf
-  42                    CLA   z
-  43                    STO   pms
-  44                    STO   snd
-  45                    JMP   loop
-  46            ctl     CLA   z        46-95: -1, a boundary: the next phoneme starts a word
-  47                    STO   pc
-  48                    STO   s
-  49                    CLA   t
-  50                    ADD   00
-  51                    TAC   pa
-  52                    CLA   00
-  53                    STO   wf
-  54                    JMP   loop
-  55            pa      ADD   00       60-100: -2 to -5 pauses, -9 the end pause
-  56                    TAC   p3
-  57                    CLA   c300
-  58                    STO   pms
-  59                    JMP   rec
-  60            p3      CLA   c600
-  61                    STO   pms
-  62                    CLA   t
-  63                    ADD   n3
-  64                    TAC   p4
-  65                    CLA   00
-  66                    JMP   sn
-  67            p4      ADD   00
-  68                    TAC   p5
-  69                    CLA   n2
-  70                    JMP   sn
-  71            p5      ADD   00
-  72                    TAC   pend
-  73                    CLA   00
-  74                    JMP   sn
-  75            pend    CLA   c150
-  76                    STO   pms
-  77                    CLA   n3
-  78            sn      STO   snd
-  79                    JMP   rec
-  80            t       DATA  0
-  81            pc      DATA  0
-  82            s       DATA  0
-  83            wf      DATA  0
-  84            pms     DATA  0
-  85            snd     DATA  0
-  86            x       DATA  0
-  87            i       DATA  0
-  88            z       DATA  0
-  89            c50     DATA  50
-  90            n5      DATA  5
-  91            n3      DATA  3
-  92            n2      DATA  2
-  93            c300    DATA  300
-  94            c600    DATA  600
-  95            c150    DATA  150
+  16            rec     OUT   pc       16-20: the record
+  17                    OUT   s
+  18                    OUT   wf
+  19                    OUT   pms
+  20                    OUT   snd
+  21            nxt     CLA   snd      21-35: stop after the end pause; wf 1 after a pause, else 0
+  22                    SUB   n3
+  23                    TAC   go
+  24                    HRS   00
+  25            go      CLA   z
+  26                    SUB   pms
+  27                    TAC   one
+  28                    CLA   z
+  29                    JMP   setw
+  30            one     CLA   00
+  31            setw    STO   wf
+  32                    CLA   z
+  33                    STO   pms
+  34                    STO   snd
+  35                    JMP   loop
+  36            ctl     CLA   z        36-83: -1, a boundary: the next phoneme starts a word
+  37                    STO   pc
+  38                    STO   s
+  39                    CLA   t
+  40                    ADD   00
+  41                    TAC   pa
+  42                    CLA   00
+  43                    STO   wf
+  44                    JMP   loop
+  45            pa      ADD   00       60-100: -2 to -5 pauses, -9 the end pause
+  46                    TAC   p3
+  47                    CLA   c300
+  48                    STO   pms
+  49                    JMP   rec
+  50            p3      CLA   c600
+  51                    STO   pms
+  52                    CLA   t
+  53                    ADD   n3
+  54                    TAC   p4
+  55                    CLA   00
+  56                    JMP   sn
+  57            p4      ADD   00
+  58                    TAC   p5
+  59                    CLA   n2
+  60                    JMP   sn
+  61            p5      ADD   00
+  62                    TAC   pend
+  63                    CLA   00
+  64                    JMP   sn
+  65            pend    CLA   c150
+  66                    STO   pms
+  67                    CLA   n3
+  68            sn      STO   snd
+  69                    JMP   rec
+  70            t       DATA  0
+  71            pc      DATA  0
+  72            s       DATA  0
+  73            wf      DATA  0
+  74            pms     DATA  0
+  75            snd     DATA  0
+  76            x       DATA  0
+  77            z       DATA  0
+  78            c50     DATA  50
+  79            n3      DATA  3
+  80            n2      DATA  2
+  81            c300    DATA  300
+  82            c600    DATA  600
+  83            c150    DATA  150

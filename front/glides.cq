@@ -1,71 +1,65 @@
-; The glides at a segment's ends. Per segment three cards in (n, pte, nts), per frame six (a, b, uu, g from the
-; chooser, wl, wr from the framer); per frame six out (a, b, uu, gn, go, w) for the filter machines. A frame with
-; glides (g) at the segment's start (wl, and a sound before: pte) glides from halfway between pte and a: gn pte, go
-; a, weight wl; at its end (wr, and a sound after: nts) from halfway between b and nts. Otherwise gn = go = a and the
-; weight is 10, all the frame's own.
+; The glides at a segment's ends. Eight cards a frame in: a, b, uu and g from the chooser, wl and wr from the
+; framer, and its segment's pte and nts (from spread); per frame six out (a, b, uu, gn, go, w) for the filter
+; machines. A frame with glides (g) at the segment's start (wl, and a sound before: pte) glides from halfway between
+; pte and a: gn pte, go a, weight wl; at its end (wr, and a sound after: nts) from halfway between b and nts.
+; Otherwise gn = go = a and the weight is 10, all the frame's own.
 ;
 ; Address Contents Label Opcode Operand Comment
-  03            seg     INP   i        03-09: a segment (i counts its frames down)
-  04                    INP   pte
-  05                    INP   nts
-  06            frm     CLA   i
-  07                    SUB   00
-  08                    TAC   seg
-  09                    STO   i
-  10            ca      INP   a        10-34: a frame: none, or a glide at the start
-  11            cb      INP   b
-  12            cu      INP   uu
-  13            cg      INP   g
-  14            fl      INP   wl
-  15            fr      INP   wr
-  16                    CLA   a
-  17                    STO   gn
-  18                    STO   go
-  19                    CLA   c10
-  20                    STO   w
-  21                    CLA   g
-  22                    SUB   00
-  23                    TAC   out
-  24                    CLA   wl
-  25                    SUB   00
-  26                    TAC   rt
-  27                    CLA   pte
-  28                    SUB   00
-  29                    TAC   rt
-  30                    CLA   pte
-  31                    STO   gn
-  32                    CLA   wl
-  33                    STO   w
-  34                    JMP   out
-  35            rt      CLA   wr       35-46: a glide at the end
-  36                    SUB   00
-  37                    TAC   out
-  38                    CLA   nts
-  39                    SUB   00
-  40                    TAC   out
-  41                    CLA   nts
-  42                    STO   gn
-  43                    CLA   b
-  44                    STO   go
-  45                    CLA   wr
-  46                    STO   w
-  47            out     OUT   a        47-53: the cards
-  48                    OUT   b
-  49                    OUT   uu
-  50                    OUT   gn
-  51                    OUT   go
-  52                    OUT   w
-  53                    JMP   frm
-  60            i       DATA  0
-  61            pte     DATA  0
-  62            nts     DATA  0
-  63            a       DATA  0
-  64            b       DATA  0
-  65            uu      DATA  0
-  66            g       DATA  0
-  67            wl      DATA  0
-  68            wr      DATA  0
-  69            gn      DATA  0
-  70            go      DATA  0
-  71            w       DATA  0
-  72            c10     DATA  10
+  03            frm     INP   a        03-29: a frame, and its segment's pte and nts
+  04                    INP   b
+  05                    INP   uu
+  06                    INP   g
+  07                    INP   wl
+  08                    INP   wr
+  09                    INP   pte
+  10                    INP   nts
+  11                    CLA   a
+  12                    STO   gn
+  13                    STO   go
+  14                    CLA   c10
+  15                    STO   w
+  16                    CLA   g
+  17                    SUB   00
+  18                    TAC   out
+  19                    CLA   wl
+  20                    SUB   00
+  21                    TAC   rt
+  22                    CLA   pte
+  23                    SUB   00
+  24                    TAC   rt
+  25                    CLA   pte
+  26                    STO   gn
+  27                    CLA   wl
+  28                    STO   w
+  29                    JMP   out
+  30            rt      CLA   wr       30-41: a glide at the end
+  31                    SUB   00
+  32                    TAC   out
+  33                    CLA   nts
+  34                    SUB   00
+  35                    TAC   out
+  36                    CLA   nts
+  37                    STO   gn
+  38                    CLA   b
+  39                    STO   go
+  40                    CLA   wr
+  41                    STO   w
+  42            out     OUT   a        42-60: the cards
+  43                    OUT   b
+  44                    OUT   uu
+  45                    OUT   gn
+  46                    OUT   go
+  47                    OUT   w
+  48                    JMP   frm
+  49            pte     DATA  0
+  50            nts     DATA  0
+  51            a       DATA  0
+  52            b       DATA  0
+  53            uu      DATA  0
+  54            g       DATA  0
+  55            wl      DATA  0
+  56            wr      DATA  0
+  57            gn      DATA  0
+  58            go      DATA  0
+  59            w       DATA  0
+  60            c10     DATA  10

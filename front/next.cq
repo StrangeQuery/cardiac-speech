@@ -1,73 +1,70 @@
-; Run on the segments last first, two cards a segment in (pc, kind), six out: nxtpc (the next segment that isn't a
-; pause), adjv (the segment after, if it is a vowel), nextv (the next vowel anywhere ahead, AX if none), ts and te
-; (the segment's start and end filters) and nts (the start filter of the segment after; 0 for a pause). The filters
-; come from the table: the host deals cards TS TE ASP of the row asked for (OUT at ask). HH's filter is the
-; aspirated form of the vowel after it (AX's if no vowel comes next).
+; Run on the segments last first. First the ASP card of AX's row of the phoneme table; then five cards a segment
+; in (pc, kind, and the TS, TE and ASP cards of row pc), six out: nxtpc (the next segment that isn't a pause), adjv
+; (the segment after, if it is a vowel), nextv (the next vowel anywhere ahead, AX if none), ts and te (the
+; segment's start and end filters) and nts (the start filter of the segment after; 0 for a pause). HH's filter is
+; the aspirated form of the vowel after it (AX's if no vowel comes next): the ASP card of nxtpc's row, kept from
+; when that segment went by.
 ;
 ; Address Contents Label Opcode Operand Comment
-  03            rec     INP   pc       03-17: a pause: what lies ahead, and no filters
-  04                    INP   kind
-  05                    CLA   kind
-  06                    SUB   c8
-  07                    TAC   sound
-  08                    OUT   nxtpc
-  09                    OUT   adjv
-  10                    OUT   nextv
-  11                    OUT   z
-  12                    OUT   z
-  13                    OUT   nts
-  14                    CLA   z
-  15                    STO   adjv
-  16                    STO   nts
-  17                    JMP   rec
-  18            sound   CLA   pc       18-39: the row: the segment's own, or for HH the next vowel's (or AX's)
-  19                    STO   q
-  20                    CLA   kind
-  21                    SUB   n7
-  22                    TAC   ask
-  23                    CLA   cax
-  24                    STO   q
-  25                    CLA   nxtv
-  26                    SUB   00
-  27                    TAC   ask
-  28                    CLA   nxtpc
-  29                    STO   q
-  30            ask     OUT   q
-  31            gts     INP   ts
-  32            gte     INP   te
-  33            gasp    INP   asp
-  34                    CLA   kind
-  35                    SUB   n7
-  36                    TAC   emit
-  37                    CLA   asp
-  38                    STO   ts
-  39                    STO   te
-  40            emit    OUT   nxtpc    40-62: the cards, then this segment is the one ahead
-  41                    OUT   adjv
-  42                    OUT   nextv
-  43                    OUT   ts
-  44                    OUT   te
-  45                    OUT   nts
-  46                    CLA   pc
-  47                    STO   nxtpc
-  48                    CLA   ts
-  49                    STO   nts
-  50                    CLA   kind
-  51                    SUB   n2
-  52                    TAC   vw
-  53                    CLA   z
+  03            start   INP   axasp    03-03: AX's ASP
+  04            rec     INP   pc       04-23: a segment; a pause: what lies ahead, and no filters
+  05                    INP   kind
+  06                    INP   ts
+  07                    INP   te
+  08                    INP   asp
+  09                    CLA   kind
+  10                    SUB   c8
+  11                    TAC   sound
+  12                    OUT   nxtpc
+  13                    OUT   adjv
+  14                    OUT   nextv
+  15                    OUT   z
+  16                    OUT   z
+  17                    OUT   nts
+  18                    CLA   z
+  19                    STO   adjv
+  20                    STO   nts
+  21                    JMP   rec
+  22            sound   CLA   kind     22-33: HH: the next vowel's ASP, or AX's
+  23                    SUB   n7
+  24                    TAC   emit
+  25                    CLA   axasp
+  26                    STO   ts
+  27                    CLA   nxtv
+  28                    SUB   00
+  29                    TAC   hh
+  30                    CLA   nasp
+  31                    STO   ts
+  32            hh      CLA   ts
+  33                    STO   te
+  34            emit    OUT   nxtpc    34-58: the cards, then this segment is the one ahead
+  35                    OUT   adjv
+  36                    OUT   nextv
+  37                    OUT   ts
+  38                    OUT   te
+  39                    OUT   nts
+  40                    CLA   pc
+  41                    STO   nxtpc
+  42                    CLA   ts
+  43                    STO   nts
+  44                    CLA   asp
+  45                    STO   nasp
+  46                    CLA   kind
+  47                    SUB   n2
+  48                    TAC   vw
+  49                    CLA   z
+  50                    STO   nxtv
+  51                    STO   adjv
+  52                    JMP   rec
+  53            vw      CLA   00
   54                    STO   nxtv
-  55                    STO   adjv
-  56                    JMP   rec
-  57            vw      CLA   00
-  58                    STO   nxtv
-  59                    CLA   pc
-  60                    STO   adjv
-  61                    STO   nextv
-  62                    JMP   rec
+  55                    CLA   pc
+  56                    STO   adjv
+  57                    STO   nextv
+  58                    JMP   rec
   70            pc      DATA  0
   71            kind    DATA  0
-  72            q       DATA  0
+  72            nasp    DATA  0
   73            ts      DATA  0
   74            te      DATA  0
   75            asp     DATA  0
@@ -80,4 +77,4 @@
   82            c8      DATA  8
   83            n7      DATA  7
   84            n2      DATA  2
-  85            cax     DATA  18
+  85            axasp   DATA  0

@@ -1,6 +1,6 @@
 """A CARDIAC for development: the same machine as heartburn (cells -999..999, accumulator -9999..9999, cell 00
-wired to 001, JMP leaves 8xx in 99, negative words skipped, STO 00 ignored), and a network of machines whose
-INP and OUT instructions are wired to piles of cards, as the Rust host (src/net.rs) wires them.  Only for trying
+wired to 001, JMP leaves 8xx in 99, negative words skipped, STO 00 ignored), and a network of machines, each
+reading one pile of cards and punching onto one, as the Rust host (src/net.rs) wires them.  Only for trying
 programs quickly; every result reported is checked under heartburn."""
 import os
 import shutil
@@ -120,53 +120,67 @@ def run_alone(path, cards, budget=10 ** 9):
 
 
 class Net:
-    """Machines wired by pile.  inp[name] = {cell: pile}, out[name] = {cell: pile} ('*' for the rest).
-    A machine waiting at an INP gets the next card of the pile wired to that INP's cell.  deal[pile] = (n, [piles])
-    deals a pile's cards n at a time to the piles in turn."""
+    """Machines wired as the host wires them (src/net.rs): each machine reads one pile and punches onto one pile.
+    Cards put on a pile are kept, or dealt (deal[pile] = (n, [piles]): n at a time to the piles in turn), copied
+    (fan[pile] = [piles]), fetched (fetch[pile] = (table, size, off, count, to): each card names a record of the
+    table, whose cards off to off + count go onto `to`), or passed on after the first few (after[pile] = (n, to)).
+    collate(out, [(pile, size, columns)]) puts whole records together; merge(out, [(pile, n)], decks) takes n cards
+    from each pile in turn, over and over (n 0: all from then on; a pile 'deck:NAME' is decks[NAME], dealt again
+    each time its turn comes)."""
     def __init__(self):
         self.machines = {}
-        self.inp = {}
-        self.outw = {}
+        self.wires = {}
         self.piles = {}
         self.deal = {}
         self.dealt = {}
-        self.log = None
         self.fetch = {}
-        self.fan = {}          # pile -> piles that each get a copy of every card put on it
+        self.fan = {}
+        self.after = {}
+        self.seen = {}
         self.collates = []
-        self.cycle = {}        # pile -> a deck dealt onto it again whenever a machine waits on it empty     # (out pile, [(source pile, record size, columns)]): whole records, columns picked
+        self.merges = []
 
     def add(self, name, path, inp, out):
         deck, labels = assemble(path)
         self.machines[name] = Machine(deck, name)
-        self.inp[name] = {labels.get(k, k) if isinstance(k, str) and k != '*' else k: v for k, v in inp.items()}
-        self.outw[name] = {labels.get(k, k) if isinstance(k, str) and k != '*' else k: v for k, v in out.items()}
-        for p in list(inp.values()) + list(out.values()):
+        self.wires[name] = (inp, out)
+        for p in (inp, out):
             self.piles.setdefault(p, [])
         return labels
 
     def put(self, pile, cards):
-        if self.log is not None:
-            self.log.setdefault(pile, []).extend(cards)
+        for c in cards:
+            self.put1(pile, c)
+
+    def put1(self, pile, c):
         if pile in self.fan:
             for p in self.fan[pile]:
-                self.put(p, cards)
-            return
-        if pile in self.fetch:
+                self.put1(p, c)
+        elif pile in self.fetch:
             table, size, off, count, to = self.fetch[pile]
-            for c in cards:
-                self.piles[to].extend(table[c * size + off:c * size + off + count])
-            return
-        if pile in self.deal:
+            assert c >= 0 and c * size + off + count <= len(table), (pile, c)
+            self.put(to, table[c * size + off:c * size + off + count])
+        elif pile in self.deal:
             n, to = self.deal[pile]
-            for c in cards:
-                k = self.dealt.get(pile, 0)
-                self.piles[to[(k // n) % len(to)]].append(c)
-                self.dealt[pile] = k + 1
+            k = self.dealt.get(pile, 0)
+            self.dealt[pile] = k + 1
+            self.put1(to[(k // n) % len(to)], c)
+        elif pile in self.after:
+            n, to = self.after[pile]
+            k = self.seen.get(pile, 0)
+            self.seen[pile] = k + 1
+            if k >= n:
+                self.put1(to, c)
         else:
-            self.piles.setdefault(pile, []).extend(cards)
+            self.piles.setdefault(pile, []).append(c)
 
-    def collate(self):
+    def collate(self, out, srcs):
+        self.collates.append((out, srcs))
+
+    def merge(self, out, pattern, decks=None):
+        self.merges.append([out, pattern, decks or {}, 0, 0, {}])
+
+    def move(self):
         moved = False
         for out, srcs in self.collates:
             while all(len(self.piles.get(p, [])) >= n for p, n, _ in srcs):
@@ -177,6 +191,27 @@ class Net:
                     rec += [r[c] for c in cols]
                 self.put(out, rec)
                 moved = True
+        for m in self.merges:
+            out, pattern, decks, at, taken, pos = m
+            while True:
+                p, n = pattern[at]
+                if p.startswith('deck:'):
+                    d = decks[p[5:]]
+                    k = pos.get(p, 0)
+                    c = d[k]
+                    pos[p] = (k + 1) % len(d)
+                else:
+                    q = self.piles.get(p)
+                    if not q:
+                        break
+                    c = q.pop(0)
+                self.put1(out, c)
+                moved = True
+                taken += 1
+                if taken == n and n > 0:
+                    taken = 0
+                    at = (at + 1) % len(pattern)
+            m[3], m[4] = at, taken
         return moved
 
     def run(self):
@@ -184,21 +219,16 @@ class Net:
         state = {n: None for n in self.machines}
         moved = True
         while moved:
-            moved = self.collate()
+            moved = self.move()
             for n, mc in self.machines.items():
                 if mc.halted:
                     continue
+                inp, outp = self.wires[n]
                 if state[n] == 'input':
-                    p = self.inp[n].get(mc.pc, self.inp[n].get('*'))
-                    q = self.piles.get(p)
-                    if not q and p in self.cycle:
-                        self.piles[p] = q = list(self.cycle[p])
+                    q = self.piles.get(inp)
                     if not q:
                         continue
                     mc.push([q.pop(0)])
-                ow = self.outw[n]
-                def out(cell, v, ow=ow):
-                    self.put(ow.get(cell, ow.get('*')), [v])
-                state[n] = mc.run(out)
+                state[n] = mc.run(lambda cell, v, o=outp: self.put1(o, v))
                 moved = True
         return state

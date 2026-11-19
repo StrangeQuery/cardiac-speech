@@ -1,82 +1,80 @@
-; The stress, first part. A rules word's phonemes (10 x code) go onto this machine's own pile (OUT at keep, back to
-; INP at gy and gw), counting n, noting a vowel other than AX (hv). At its end (-13, or -14 for a function word) out go a
-; header (-30, then 1 for a function word, else 0, then 1 for a word that isn't one with no vowel but AX, else 0),
-; the phonemes (the last as -100
-; less it, so the stress can tell IY at the word's end), and -20. Anything else on the pile (a finished word, or a part of a spelled one) goes on as it was, then the card
-; that came after it.
+; The stress, first part. A rules word's phonemes (10 x code) are kept in cells 80-95, noting whether one is a vowel
+; other than AX (below 180). At its end (-21, or -22 for a function word) out go that card, ah (1 when the word has
+; no vowel but AX), the phonemes with the last as -100 - it, then -20, for posth. Anything else goes through as it
+; is, phonemes before it first. Phonemes past the 16th are dropped.
 ;
 ; Address Contents Label Opcode Operand Comment
-  03            rec     INP   x        03-16: a phoneme onto the pile, or another card
+  03            rec     INP   x        03-23: a phoneme is kept; is it a vowel other than AX
   04                    CLA   x
-  05                    TAC   neg
-  06            keep    OUT   x
-  07                    CLA   n
-  08                    ADD   00
-  09                    STO   n
-  10                    CLA   x
-  11                    SUB   c180
-  12                    TAC   hv1
-  13                    JMP   rec
-  14            hv1     CLA   00
-  15                    STO   hv
-  16                    JMP   rec
-  17            neg     ADD   c14      17-20: a rules word's end?
-  18                    TAC   fl
-  19                    SUB   n2
-  20                    TAC   word
-  21            fl      CLA   n        21-76: the pile as it was, then the card
-  22                    SUB   00
-  23                    TAC   flo
-  24                    STO   n
-  25            gy      INP   y
-  26                    OUT   y
-  27                    JMP   fl
-  28            flo     OUT   x
-  29                    JMP   rst
-  30            word    OUT   m30      the header: -30, fn (a function word), ah (not one, and no vowel but AX); then the pile, -20
-  31                    CLA   z
-  32                    SUB   x
-  33                    SUB   c13
-  34                    STO   fn
-  35                    OUT   fn
-  36                    CLA   00
-  37                    SUB   fn
-  38                    SUB   hv
-  39                    TAC   a0
-  40                    JMP   ao
-  41            a0      CLA   z
-  42            ao      STO   h
-  43                    OUT   h
-  44            wl      CLA   n        the word's phonemes, the last as -100 - it
-  45                    SUB   00
-  46                    TAC   wo
-  47                    STO   n
-  48            gw      INP   y
-  49                    SUB   00
-  50                    TAC   lastp
-  51                    OUT   y
-  52                    JMP   wl
-  53            lastp   CLA   z
-  54                    SUB   y
-  55                    SUB   c100
-  56                    STO   y
-  57                    OUT   y
-  58            wo      OUT   m20
-  59            rst     CLA   z
-  60                    STO   n
-  61                    STO   hv
-  62                    JMP   rec
-  63            x       DATA  0
-  64            y       DATA  0
+  05                    TAC   end
+  06                    SUB   c180
+  07                    TAC   vow
+  08                    JMP   kp
+  09            vow     CLA   z
+  10                    STO   ah
+  11            kp      CLA   n
+  12                    SUB   n16
+  13                    TAC   st
+  14                    JMP   rec
+  15            st      CLA   s80
+  16                    ADD   n
+  17                    STO   wr
+  18                    CLA   x
+  19            wr      DATA  0        (STO 80 + n)
+  20                    CLA   n
+  21                    ADD   00
+  22                    STO   n
+  23                    JMP   rec
+  24            end     CLA   n16      24-37: a rules word: its end card and ah first, the last phoneme marked
+  25                    STO   last
+  26                    CLA   x
+  27                    SUB   m20
+  28                    TAC   word
+  29                    JMP   out
+  30            word    OUT   x
+  31                    OUT   ah
+  32                    CLA   n
+  33                    SUB   00
+  34                    STO   last
+  35                    CLA   m20
+  36                    STO   x
+  37            out     CLA   z        37-63: the phonemes, then the end card
+  38                    STO   i
+  39            lp      CLA   i
+  40                    SUB   n
+  41                    TAC   one
+  42                    OUT   x
+  43                    CLA   z
+  44                    STO   n
+  45                    CLA   00
+  46                    STO   ah
+  47                    JMP   rec
+  48            one     CLA   c80
+  49                    ADD   i
+  50                    STO   rd
+  51            rd      DATA  0        (CLA 80 + i)
+  52                    STO   y
+  53                    CLA   i
+  54                    SUB   last
+  55                    TAC   put
+  56                    CLA   m100
+  57                    SUB   y
+  58                    STO   y
+  59            put     OUT   y
+  60                    CLA   i
+  61                    ADD   00
+  62                    STO   i
+  63                    JMP   lp
+  64            x       DATA  0
   65            n       DATA  0
-  66            hv      DATA  0
-  67            fn      DATA  0
-  68            h       DATA  0
-  69            z       DATA  0
-  70            n2      DATA  2
-  71            c13     DATA  13
-  72            c14     DATA  14
-  73            m30     DATA  -30
-  74            c100    DATA  100
-  75            c180    DATA  180
-  76            m20     DATA  -20
+  66            ah      DATA  1
+  67            last    DATA  0
+  68            i       DATA  0
+  69            y       DATA  0
+  70            z       DATA  0
+  71            c180    DATA  180
+  72            n16     DATA  16
+  73            m20     DATA  -20
+  74            m100    DATA  -100
+  75            s80     STO   80
+  76            c80     CLA   80

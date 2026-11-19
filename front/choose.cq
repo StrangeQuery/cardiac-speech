@@ -1,99 +1,93 @@
-; Each frame's filters. Per segment nine cards in (n, c, ma, mb, uon, vm, gl, cf, af), per frame three (j, u,
-; end); per frame four cards out to glide (a, b, uu, g) and two to the level (snd, V, OUT at ls and lv). A frame
+; Each frame's filters. Eleven cards a frame in: j, u and end (from framer), and its segment's c, ma, mb, uon, vm,
+; gl, cf and af (from spread); per frame four cards out to glide (a, b, uu, g) and two to the level (snd, V). A frame
 ; j < c is the closure: filter cf, sounding if cf is a voice bar, else silent (snd 0, or 9 at the very end). Frame 0
 ; of a segment with af is aspirated: af, unvoiced. Any other frame speaks through ma to mb (by u if uon), voiced if
 ; vm, with glides if gl.
 ;
 ; Address Contents Label Opcode Operand Comment
-  03            seg     INP   i        03-15: a segment (i counts its frames down)
-  04                    INP   c
-  05                    INP   ma
-  06                    INP   mb
-  07                    INP   uon
-  08                    INP   vm
-  09                    INP   gl
-  10                    INP   cf
-  11                    INP   af
-  12            frm     CLA   i
-  13                    SUB   00
-  14                    TAC   seg
-  15                    STO   i
-  16            fj      INP   j        16-31: a frame: the closure, the aspirated frame or the rest
-  17            fu      INP   u
-  18            fe      INP   e
-  19                    CLA   z
-  20                    STO   g
-  21                    STO   uu
-  22                    CLA   00
-  23                    STO   snd
-  24                    STO   v
-  25                    CLA   j
-  26                    SUB   c
-  27                    TAC   clo
-  28                    CLA   j
-  29                    SUB   00
-  30                    TAC   j0
-  31                    JMP   norm
-  32            j0      CLA   af       32-40: aspirated
-  33                    SUB   00
-  34                    TAC   norm
-  35                    CLA   af
-  36                    STO   a
-  37                    STO   b
-  38                    CLA   z
-  39                    STO   v
-  40                    JMP   out
-  41            clo     CLA   cf       41-54: the closure
-  42                    STO   a
-  43                    STO   b
-  44                    SUB   00
-  45                    TAC   sil
-  46                    JMP   out
-  47            sil     CLA   z
+  03            frm     INP   j        03-26: a frame: its place, and its segment's cards
+  04                    INP   u
+  05                    INP   e
+  06                    INP   c
+  07                    INP   ma
+  08                    INP   mb
+  09                    INP   uon
+  10                    INP   vm
+  11                    INP   gl
+  12                    INP   cf
+  13                    INP   af
+  14                    CLA   z
+  15                    STO   g
+  16                    STO   uu
+  17                    CLA   00
+  18                    STO   snd
+  19                    STO   v
+  20                    CLA   j
+  21                    SUB   c
+  22                    TAC   clo
+  23                    CLA   j
+  24                    SUB   00
+  25                    TAC   j0
+  26                    JMP   norm
+  27            j0      CLA   af       27-35: aspirated
+  28                    SUB   00
+  29                    TAC   norm
+  30                    CLA   af
+  31                    STO   a
+  32                    STO   b
+  33                    CLA   z
+  34                    STO   v
+  35                    JMP   out
+  36            clo     CLA   cf       36-49: the closure
+  37                    STO   a
+  38                    STO   b
+  39                    SUB   00
+  40                    TAC   sil
+  41                    JMP   out
+  42            sil     CLA   z
+  43                    STO   snd
+  44                    CLA   e
+  45                    SUB   00
+  46                    TAC   out
+  47                    CLA   c9
   48                    STO   snd
-  49                    CLA   e
-  50                    SUB   00
-  51                    TAC   out
-  52                    CLA   c9
-  53                    STO   snd
-  54                    JMP   out
-  55            norm    CLA   ma       55-67: the rest
-  56                    STO   a
-  57                    CLA   mb
-  58                    STO   b
-  59                    CLA   vm
-  60                    STO   v
-  61                    CLA   gl
-  62                    STO   g
-  63                    CLA   uon
-  64                    SUB   00
-  65                    TAC   out
-  66                    CLA   u
-  67                    STO   uu
-  68            out     OUT   a        68-94: the cards
-  69                    OUT   b
-  70                    OUT   uu
-  71                    OUT   g
-  72            ls      OUT   snd
-  73            lv      OUT   v
-  74                    JMP   frm
-  75            c       DATA  0
-  76            ma      DATA  0
-  77            mb      DATA  0
-  78            uon     DATA  0
-  79            vm      DATA  0
-  80            gl      DATA  0
-  81            cf      DATA  0
-  82            af      DATA  0
-  83            i       DATA  0
-  84            j       DATA  0
-  85            u       DATA  0
-  86            e       DATA  0
-  87            a       DATA  0
-  88            b       DATA  0
-  89            uu      DATA  0
-  90            g       DATA  0
-  91            snd     DATA  0
-  92            v       DATA  0
-  93            z       DATA  0
-  94            c9      DATA  9
+  49                    JMP   out
+  50            norm    CLA   ma       50-62: the rest
+  51                    STO   a
+  52                    CLA   mb
+  53                    STO   b
+  54                    CLA   vm
+  55                    STO   v
+  56                    CLA   gl
+  57                    STO   g
+  58                    CLA   uon
+  59                    SUB   00
+  60                    TAC   out
+  61                    CLA   u
+  62                    STO   uu
+  63            out     OUT   a        63-88: the cards
+  64                    OUT   b
+  65                    OUT   uu
+  66                    OUT   g
+  67            ls      OUT   snd
+  68            lv      OUT   v
+  69                    JMP   frm
+  70            c       DATA  0
+  71            ma      DATA  0
+  72            mb      DATA  0
+  73            uon     DATA  0
+  74            vm      DATA  0
+  75            gl      DATA  0
+  76            cf      DATA  0
+  77            af      DATA  0
+  78            j       DATA  0
+  79            u       DATA  0
+  80            e       DATA  0
+  81            a       DATA  0
+  82            b       DATA  0
+  83            uu      DATA  0
+  84            g       DATA  0
+  85            snd     DATA  0
+  86            v       DATA  0
+  87            z       DATA  0
+  88            c9      DATA  9

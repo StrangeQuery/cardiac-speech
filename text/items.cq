@@ -1,0 +1,62 @@
+; Words as records. names's cards in; out a record of 17 cards for each run of cards 0 or more and the card below 0
+; that ends it: that end card, how many cards the run has (n), and the run with an edge (28) on each side, padded
+; with 0 to 15 cards (a word's letters and -10, a spelled letter's phonemes and -1 or -20, a punctuation card with no
+; run). With every record the same size, the host can deal each beside a deck or a table record. A run has at most
+; 13 cards; more are dropped. The run is kept in cells 74-88, 74 always the edge.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   c        03-25: a card of the run: kept, with the edge after it
+  04                    CLA   c
+  05                    TAC   end
+  06                    CLA   n
+  07                    SUB   n13
+  08                    TAC   st
+  09                    JMP   rec
+  10            st      CLA   n
+  11                    ADD   00
+  12                    STO   n
+  13                    ADD   s74
+  14                    STO   wr
+  15                    ADD   00
+  16                    STO   we
+  17                    CLA   c
+  18            wr      DATA  0        (STO 74 + n)
+  19                    CLA   c28
+  20            we      DATA  0        (STO 75 + n)
+  21                    JMP   rec
+  22            end     OUT   c        22-48: the record out, and the run cleared
+  23                    OUT   n
+  24                    CLA   o74
+  25                    STO   wo
+  26            wo      DATA  0        (OUT 74 + k)
+  27                    CLA   wo
+  28                    ADD   00
+  29                    STO   wo
+  30                    SUB   o89
+  31                    TAC   wo
+  32                    CLA   s75
+  33                    STO   wc
+  34            wz      CLA   z
+  35            wc      DATA  0        (STO 75 + k: 0)
+  36                    CLA   wc
+  37                    ADD   00
+  38                    STO   wc
+  39                    SUB   s89
+  40                    TAC   wz
+  41                    CLA   c28
+  42                    STO   75
+  43                    CLA   z
+  44                    STO   n
+  45                    JMP   rec
+  50            c       DATA  0
+  51            n       DATA  0
+  52            z       DATA  0
+  53            n13     DATA  13
+  54            c28     DATA  28
+  55            s74     STO   74
+  56            s75     STO   75
+  57            s89     STO   89
+  58            o74     OUT   74
+  59            o89     OUT   89
+  74            w0      DATA  28
+  75            w1      DATA  28

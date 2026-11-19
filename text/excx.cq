@@ -1,0 +1,81 @@
+; The exceptions. Each item (17 cards, from items: its end card, n, and its run with an edge on each side) and
+; after it the whole deck of exceptions (text/exception_words.cards: each its letters and -100 - its number, then
+; -99) in; out its number k for a word (an item ended by -10) that is an exception, else 0. The word's letters are
+; kept in cells 80-93, and matched against each word of the deck as the deck goes by: at is the next letter to
+; match, 99 once one has failed. Anything that isn't a word has n -1, and nothing matches.
+;
+; Address Contents Label Opcode Operand Comment
+  03            item    INP   end      03-23: an item: its letters into 80-93
+  04                    INP   n
+  05                    INP   d
+  06                    CLA   s80
+  07                    STO   wr
+  08            wr      DATA  0        (INP 80 + k)
+  09                    CLA   wr
+  10                    ADD   00
+  11                    STO   wr
+  12                    SUB   s94
+  13                    TAC   wr
+  14                    CLA   z
+  15                    STO   r
+  16                    CLA   end
+  17                    ADD   n10
+  18                    TAC   nw
+  19                    SUB   00
+  20                    TAC   word
+  21            nw      CLA   m1
+  22                    STO   n
+  23            word    CLA   00       23-46: the deck, a card at a time
+  24                    STO   at
+  25            dk      INP   d
+  26                    CLA   d
+  27                    TAC   neg
+  28                    CLA   n
+  29                    SUB   at
+  30                    TAC   no
+  31                    CLA   c79
+  32                    ADD   at
+  33                    STO   rd
+  34            rd      DATA  0        (CLA 79 + at)
+  35                    SUB   d
+  36                    TAC   no
+  37                    SUB   00
+  38                    TAC   yes
+  39            no      CLA   c99
+  40                    STO   at
+  41                    JMP   dk
+  42            yes     CLA   at
+  43                    ADD   00
+  44                    STO   at
+  45                    JMP   dk
+  46            neg     ADD   c99      46-61: -99, the deck's end; or a word of the deck ends: the item's, if it matched all of it
+  47                    TAC   wend
+  48                    SUB   00
+  49                    TAC   out
+  50            wend    CLA   n
+  51                    ADD   00
+  52                    SUB   at
+  53                    TAC   word
+  54                    SUB   00
+  55                    TAC   hit
+  56                    JMP   word
+  57            hit     CLA   z
+  58                    SUB   d
+  59                    SUB   c99
+  60                    SUB   00
+  61                    STO   r
+  62                    JMP   word
+  63            out     OUT   r
+  64                    JMP   item
+  70            end     DATA  0
+  71            n       DATA  0
+  72            r       DATA  0
+  73            at      DATA  0
+  74            d       DATA  0
+  75            z       DATA  0
+  76            m1      DATA  -1
+  77            n10     DATA  10
+  78            c99     DATA  99
+  94            s80     INP   80
+  95            s94     INP   94
+  96            c79     CLA   79

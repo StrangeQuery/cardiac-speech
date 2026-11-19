@@ -1,0 +1,24 @@
+; For the pitch, which frames start a sentence. A segment's frames n and send in (two cards); out a card for each of
+; its frames: 1 for the first frame after a segment that ends a sentence (and the very first frame), else 0.
+;
+; Address Contents Label Opcode Operand Comment
+  03            seg     INP   n        03-17: a segment, and its frames
+  04                    INP   send
+  05            frm     CLA   n
+  06                    SUB   00
+  07                    TAC   eos
+  08                    STO   n
+  09                    OUT   ns
+  10                    CLA   z
+  11                    STO   ns
+  12                    JMP   frm
+  13            eos     CLA   send     13-17: it ends a sentence: the next frame starts one
+  14                    SUB   00
+  15                    TAC   seg
+  16                    CLA   00
+  17                    STO   ns
+  18                    JMP   seg
+  30            n       DATA  0
+  31            send    DATA  0
+  32            ns      DATA  1
+  33            z       DATA  0

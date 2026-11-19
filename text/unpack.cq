@@ -1,0 +1,55 @@
+; A number's six digits, held as two numbers of three digits, out as the digits. Cards pass through but for -15
+; and -17 (from numd): after -15 and the count come hi and lo, and out go -15, the count and the six digits, for
+; numw; after -17 come hi and lo, the first six digits of a number of seven or more, and out go the six digits as
+; word cards, 700 + d. Each digit is the first of hi, which then moves on a digit (lo's first coming in at its end).
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   x        03-21: a card; a number's digits
+  04                    CLA   x
+  05                    ADD   n16
+  06                    TAC   long
+  07                    OUT   x
+  08                    SUB   00
+  09                    SUB   00
+  10                    TAC   num
+  11                    JMP   rec
+  12            num     INP   x
+  13                    OUT   x
+  14                    CLA   z
+  15                    JMP   set
+  16            long    CLA   c700
+  17            set     STO   base
+  18                    INP   hi
+  19                    INP   lo
+  20                    CLA   n5
+  21                    STO   i
+  22            each    CLA   hi       22-41: six digits
+  23                    SFT   02
+  24                    ADD   base
+  25                    STO   x
+  26                    OUT   x
+  27                    CLA   lo
+  28                    SFT   02
+  29                    STO   t
+  30                    CLA   hi
+  31                    SFT   10
+  32                    ADD   t
+  33                    STO   hi
+  34                    CLA   lo
+  35                    SFT   10
+  36                    STO   lo
+  37                    CLA   i
+  38                    SUB   00
+  39                    STO   i
+  40                    TAC   rec
+  41                    JMP   each
+  50            x       DATA  0
+  51            hi      DATA  0
+  52            lo      DATA  0
+  53            t       DATA  0
+  54            i       DATA  0
+  55            base    DATA  0
+  56            z       DATA  0
+  57            n16     DATA  16
+  58            n5      DATA  5
+  59            c700    DATA  700

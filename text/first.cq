@@ -1,0 +1,36 @@
+; The first rule that matches. First how many rules each letter has a verdict for; then for each letter, left's and
+; right's verdicts on each rule side by side (1 a context matches, 0 not) in; out the number of the first rule whose
+; contexts both match (the first rule that matches wins), -1 if none does.
+;
+; Address Contents Label Opcode Operand Comment
+  03                    INP   rules    03-03: the verdicts a letter
+  04            let     CLA   m1       04-24: a letter's verdicts
+  05                    STO   ch
+  06                    CLA   z
+  07                    STO   r
+  08            each    INP   a
+  09                    INP   b
+  10                    CLA   ch
+  11                    TAC   chk
+  12                    JMP   nx
+  13            chk     CLA   a
+  14                    ADD   b
+  15                    SUB   n2
+  16                    TAC   nx
+  17                    CLA   r
+  18                    STO   ch
+  19            nx      CLA   r
+  20                    ADD   00
+  21                    STO   r
+  22                    SUB   rules
+  23                    TAC   each
+  24                    OUT   ch
+  25                    JMP   let
+  30            rules   DATA  0
+  31            ch      DATA  0
+  32            r       DATA  0
+  33            a       DATA  0
+  34            b       DATA  0
+  35            z       DATA  0
+  36            m1      DATA  -1
+  37            n2      DATA  2

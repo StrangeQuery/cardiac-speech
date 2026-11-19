@@ -1,14 +1,27 @@
-//! The voice box: frame cards in, samples out, on ten CARDIACs.
+//! The voice box: frame cards in, samples out, on eleven CARDIACs.
 //!
 //! interp -> steps -> excite -> L1 -> L2 -> L3 -> L4 -> L5 -> output
-//!                 -> reduce (dealt ten cards a step to each of L1..L5)
+//!        -> ksteps -> reduce (dealt ten cards a step to each of L1..L5)
 //!
-//! A frame is 13 cards: V, P, A, K10..K1; a card below zero ends the frames. Each sample comes out as two values,
-//! the thousands and the units of the sample (as lubdub's decoder outputs them).
-use crate::net::Net;
+//! A frame is 13 cards: V, P, A, K10..K1; the frames end with a card below zero. Each sample comes out as two
+//! values, the thousands and the units of the sample (as lubdub's decoder outputs them).
+//!
+//! What the host does, under the one-reader rule:
+//! - interp reads the frames twice over, merged a card at a time: the frames, and the frames again from the
+//!   second one on, so that each card of a frame comes beside the same card of the next frame. The host deals
+//!   twelve blank cards after the end card, so that the end is a whole record.
+//! - interp punches a record of 25 cards a frame; the host collates its first five (V, P and A with their steps)
+//!   for steps and its last 22 (A and the Ks with their steps) for ksteps.
+//! - reduce's cards are dealt ten at a time to L1, L2, L3, L4 and L5 in turn: two coefficients a machine a step.
+//! - each lattice machine's deck is merged: its ten coefficient cards, then twenty times one card from the machine
+//!   above (the excitation, for L1) and one from the machine below (none for L5).
+//! - L2 to L5 punch two cards a sample, b for the machine above and then f for the one below, dealt a card at a time
+//!   to the two.
+use crate::net::{Net, Program};
 
 pub const INTERP: &str = include_str!("../voice/interp.cq");
 pub const STEPS: &str = include_str!("../voice/steps.cq");
+pub const KSTEPS: &str = include_str!("../voice/ksteps.cq");
 pub const REDUCE: &str = include_str!("../voice/reduce.cq");
 pub const EXCITE: &str = include_str!("../voice/excite.cq");
 pub const LATTICE_TOP: &str = include_str!("../voice/lattice_top.cq");
@@ -16,22 +29,58 @@ pub const LATTICE: &str = include_str!("../voice/lattice.cq");
 pub const LATTICE_BOTTOM: &str = include_str!("../voice/lattice_bottom.cq");
 pub const OUTPUT: &str = include_str!("../voice/output.cq");
 
-/// Wire the voice box into `net`: it reads frame cards from pile `frames` and puts the output values on `out`. Its
-/// own piles are named v_...
-pub fn wire(net: &mut Net, frames: &str, out: &str) {
-    net.add("interp", INTERP, &[("3", frames), ("6", frames), ("13", frames), ("27", frames), ("*", "v_iself")],
-        &[("7", "v_iself"), ("35", "v_iself"), ("*", "v_tosteps")]);
-    net.add("steps", STEPS, &[("3", "v_tosteps"), ("7", "v_tosteps"), ("*", "v_sself")],
-        &[("18", "v_exc"), ("20", "v_exc"), ("28", "v_exc"), ("38", "v_kin"), ("40", "v_kin"), ("*", "v_sself")]);
-    net.add("reduce", REDUCE, &[("*", "v_kin")], &[("*", "v_coef")]);
+/// Frame cards: V, P, A and K10 to K1 a frame.
+pub const FRAME: usize = 13;
+
+/// A lattice machine: its deck merged from its ten coefficient cards and then, twenty times, a card from the
+/// machine above and one from the machine below (none for the bottom one); it punches onto `NAME_out`.
+fn lattice(net: &mut Net, name: &str, listing: &str, coef: &str, above: &str, below: Option<&str>) {
+    let mut pattern = vec![(coef, 10)];
+    for _ in 0..20 {
+        pattern.push((above, 1));
+        if let Some(b) = below {
+            pattern.push((b, 1));
+        }
+    }
+    let input = format!("v_{name}<");
+    net.merge(&input, &pattern, &[]);
+    net.add(name, Program::Listing(listing), &input, &format!("v_{name}"));
+}
+
+/// Wire the voice box into `net`: it reads frame cards from the piles `frames` (the deck) and `frames2` (the deck
+/// from its second frame on), and puts the output values on `out`. Its own piles are named v_...
+pub fn wire(net: &mut Net, frames: &str, frames2: &str, out: &str) {
+    net.merge("v_pairs", &[(frames, 1), (frames2, 1)], &[]);
+    net.add("interp", Program::Listing(INTERP), "v_pairs", "v_int");
+    net.copy("v_int", &["v_int_p", "v_int_k"]);
+    let all: Vec<usize> = (0..25).collect();
+    net.collate("v_steps", &[("v_int_p", 25, &all[..5])]);
+    net.collate("v_ksteps", &[("v_int_k", 25, &all[3..])]);
+    net.add("steps", Program::Listing(STEPS), "v_steps", "v_exc");
+    net.add("ksteps", Program::Listing(KSTEPS), "v_ksteps", "v_kin");
+    net.add("reduce", Program::Listing(REDUCE), "v_kin", "v_coef");
     net.deal("v_coef", 10, &["v_c1", "v_c2", "v_c3", "v_c4", "v_c5"]);
-    net.add("excite", EXCITE, &[("*", "v_exc")], &[("*", "v_e")]);
-    net.add("L1", LATTICE_TOP, &[("go", "v_e"), ("getb", "v_b8"), ("*", "v_c1")], &[("*", "v_f9")]);
-    net.add("L2", LATTICE, &[("go", "v_f9"), ("getb", "v_b6"), ("*", "v_c2")], &[("loop", "v_b8"), ("*", "v_f7")]);
-    net.add("L3", LATTICE, &[("go", "v_f7"), ("getb", "v_b4"), ("*", "v_c3")], &[("loop", "v_b6"), ("*", "v_f5")]);
-    net.add("L4", LATTICE, &[("go", "v_f5"), ("getb", "v_b2"), ("*", "v_c4")], &[("loop", "v_b4"), ("*", "v_f3")]);
-    net.add("L5", LATTICE_BOTTOM, &[("go", "v_f3"), ("*", "v_c5")], &[("loop", "v_b2"), ("*", "v_f0")]);
-    net.add("output", OUTPUT, &[("*", "v_f0")], &[("*", out)]);
+    net.add("excite", Program::Listing(EXCITE), "v_exc", "v_e");
+    lattice(net, "L1", LATTICE_TOP, "v_c1", "v_e", Some("v_b8"));
+    net.copy("v_L1", &["v_f9"]);
+    lattice(net, "L2", LATTICE, "v_c2", "v_f9", Some("v_b6"));
+    net.deal("v_L2", 1, &["v_b8", "v_f7"]);
+    lattice(net, "L3", LATTICE, "v_c3", "v_f7", Some("v_b4"));
+    net.deal("v_L3", 1, &["v_b6", "v_f5"]);
+    lattice(net, "L4", LATTICE, "v_c4", "v_f5", Some("v_b2"));
+    net.deal("v_L4", 1, &["v_b4", "v_f3"]);
+    lattice(net, "L5", LATTICE_BOTTOM, "v_c5", "v_f3", None);
+    net.deal("v_L5", 1, &["v_b2", "v_f0"]);
+    net.add("output", Program::Listing(OUTPUT), "v_f0", out);
+}
+
+/// Deal a deck of frame cards (ending with a card below zero) to the voice box's two frame piles: the deck with
+/// twelve blank cards after its end card, and the same from the second frame on.
+pub fn deal_frames(net: &mut Net, deck: &[i32], frames: &str, frames2: &str) {
+    let mut whole = deck.to_vec();
+    whole.extend([0; FRAME - 1]);
+    net.put(frames, &whole);
+    net.put(frames2, &whole[FRAME.min(whole.len())..]);
 }
 
 /// A sample from its two values, the thousands and the units; none if they aren't a 16-bit sample.

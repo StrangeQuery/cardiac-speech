@@ -1,35 +1,42 @@
-; Number words spelled. Cards pass through except 700 + k: for those it asks the host for record k of the numbers
-; deck (OUT at ask; ten cards come to INP at gf: the word's letters, -10, then 0s) and sends the letters and -10 on,
-; then 2 (all capitals, as in an all-capitals text). The 0s are dropped.
+; Number words spelled. Each card, and after it the record of the numbers deck that ask asked for (ten cards: a
+; word's letters, -10, then 0s), in. Cards pass through except 700 + k: for those the record is word k's, and the
+; letters and -10 go on, then 2 (all capitals, as in an all-capitals text); the 0s are dropped. For any other card
+; the record is passed over.
 ;
 ; Address Contents Label Opcode Operand Comment
-  03            rec     INP   x        03-10: a card: pass it on, or a word to spell
+  03            rec     INP   x        03-09: a card: pass it on, or a word to spell
   04                    CLA   x
   05                    SUB   c700
   06                    TAC   pass
   07                    STO   x
-  08            ask     OUT   x
-  09                    CLA   n9
-  10                    STO   i
-  11            gf      INP   y        11-26: the record's cards
-  12                    CLA   y
-  13                    TAC   end
-  14                    SUB   00
-  15                    TAC   nx
-  16                    OUT   y
-  17                    JMP   nx
-  18            end     OUT   y
-  19                    OUT   n2
-  20            nx      CLA   i
-  21                    SUB   00
-  22                    STO   i
-  23                    TAC   rec
-  24                    JMP   gf
-  25            pass    OUT   x
-  26                    JMP   rec
-  30            x       DATA  0
-  31            y       DATA  0
-  32            i       DATA  0
-  33            c700    DATA  700
-  34            n9      DATA  9
-  35            n2      DATA  2
+  08                    CLA   n9
+  09                    STO   i
+  10            gf      INP   y        10-38: the record's cards
+  11                    CLA   y
+  12                    TAC   end
+  13                    SUB   00
+  14                    TAC   nx
+  15                    OUT   y
+  16                    JMP   nx
+  17            end     OUT   y
+  18                    OUT   n2
+  19            nx      CLA   i
+  20                    SUB   00
+  21                    STO   i
+  22                    TAC   rec
+  23                    JMP   gf
+  24            pass    OUT   x
+  25                    CLA   n9
+  26                    STO   i
+  27            sk      INP   y
+  28                    CLA   i
+  29                    SUB   00
+  30                    STO   i
+  31                    TAC   rec
+  32                    JMP   sk
+  33            x       DATA  0
+  34            y       DATA  0
+  35            i       DATA  0
+  36            c700    DATA  700
+  37            n9      DATA  9
+  38            n2      DATA  2

@@ -1,0 +1,29 @@
+; The stress's header. postb's cards in; for a rules word (its end card, -21 or -22 for a function word, then ah)
+; out the header postc reads: -30, fn (1 for a function word) and ah (0 for a function word). Anything else goes
+; through as it is.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   x        03-21: a card: a header, or pass it on
+  04                    CLA   x
+  05                    ADD   c23
+  06                    TAC   pass
+  07                    SUB   n3
+  08                    TAC   hdr
+  09            pass    OUT   x
+  10                    JMP   rec
+  11            hdr     INP   ah
+  12                    OUT   m30
+  13                    ADD   00
+  14                    TAC   fw
+  15                    OUT   z
+  16                    OUT   ah
+  17                    JMP   rec
+  18            fw      OUT   00
+  19                    OUT   z
+  20                    JMP   rec
+  30            x       DATA  0
+  31            ah      DATA  0
+  32            z       DATA  0
+  33            c23     DATA  23
+  34            n3      DATA  3
+  35            m30     DATA  -30

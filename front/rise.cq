@@ -1,76 +1,70 @@
-; A stressed vowel's rise. Per segment three cards in (kind, s, n); per frame u (INP gu) and the pitch so far (INP
-; gb); per frame the pitch out. In a vowel with stress 1 (or 2) the pitch rises by r0 = 15 (or 7) percent of it at
-; the vowel's start, falling off to 40 percent of that at its end: + r0 - r0 6 u / 100. r0 is b f / 100 by Horner
-; over f's two digits; each product is a jump into the row of nine ADD y (90-98), which runs into 99 and back.
+; A stressed vowel's rise. Four cards a frame in: u, its segment's kind and s, and the pitch so far; per frame the
+; pitch out. In a vowel with stress 1 (or 2) the pitch rises by r0 = 15 (or 7) percent of it at the vowel's start,
+; falling off to 40 percent of that at its end: + r0 - r0 6 u / 100. r0 is b f / 100 by Horner over f's two digits;
+; each product is a jump into the row of nine ADD y (90-98), which runs into 99 and back.
 ;
 ; Address Contents Label Opcode Operand Comment
-  03            seg     INP   kind     03-09: a segment (i counts its frames down)
-  04                    INP   s
-  05                    INP   i
-  06            frm     CLA   i
-  07                    SUB   00
-  08                    TAC   seg
-  09                    STO   i
-  10            gu      INP   u        10-24: a frame: is it a stressed vowel's
-  11            gb      INP   b
-  12                    CLA   kind
-  13                    SUB   n2
-  14                    TAC   v
-  15                    JMP   out
-  16            v       CLA   s
-  17                    SUB   00
-  18                    TAC   out
-  19                    SUB   00
-  20                    TAC   r15
-  21                    CLA   c7
-  22                    JMP   rr
-  23            r15     CLA   c15
-  24            rr      STO   f
-  25                    CLA   b        25-46: r0 = b f / 100
-  26                    STO   y
-  27                    CLA   f
-  28                    SFT   33
-  29                    STO   d
-  30                    CLA   cj
-  31                    SUB   d
-  32                    STO   j1
-  33                    CLA   z
-  34            j1      DATA  0        (JMP 99-c)
-  35                    SFT   01
-  36                    STO   t
-  37                    CLA   f
-  38                    SFT   23
-  39                    STO   d
-  40                    CLA   cj
-  41                    SUB   d
-  42                    STO   j2
-  43                    CLA   t
-  44            j2      DATA  0        (JMP 99-b)
-  45                    SFT   01
-  46                    STO   r0
-  47                    STO   y        47-66: r0 u, then 6 times that, / 100
-  48                    CLA   cj
-  49                    SUB   u
-  50                    STO   j3
-  51                    CLA   z
-  52            j3      DATA  0        (JMP 99-u)
-  53                    STO   y
-  54                    CLA   cj
-  55                    SUB   six
-  56                    STO   j4
-  57                    CLA   z
-  58            j4      DATA  0        (JMP 93)
-  59                    SFT   02
-  60                    STO   t
-  61                    CLA   b
-  62                    ADD   r0
-  63                    SUB   t
-  64                    STO   b
-  65            out     OUT   b
-  66                    JMP   frm
+  03            frm     INP   u        03-19: a frame: is it a stressed vowel's
+  04                    INP   kind
+  05                    INP   s
+  06                    INP   b
+  07                    CLA   kind
+  08                    SUB   n2
+  09                    TAC   v
+  10                    JMP   out
+  11            v       CLA   s
+  12                    SUB   00
+  13                    TAC   out
+  14                    SUB   00
+  15                    TAC   r15
+  16                    CLA   c7
+  17                    JMP   rr
+  18            r15     CLA   c15
+  19            rr      STO   f
+  20                    CLA   b        20-41: r0 = b f / 100
+  21                    STO   y
+  22                    CLA   f
+  23                    SFT   33
+  24                    STO   d
+  25                    CLA   cj
+  26                    SUB   d
+  27                    STO   j1
+  28                    CLA   z
+  29            j1      DATA  0        (JMP 99-c)
+  30                    SFT   01
+  31                    STO   t
+  32                    CLA   f
+  33                    SFT   23
+  34                    STO   d
+  35                    CLA   cj
+  36                    SUB   d
+  37                    STO   j2
+  38                    CLA   t
+  39            j2      DATA  0        (JMP 99-b)
+  40                    SFT   01
+  41                    STO   r0
+  42                    STO   y        42-61: r0 u, then 6 times that, / 100
+  43                    CLA   cj
+  44                    SUB   u
+  45                    STO   j3
+  46                    CLA   z
+  47            j3      DATA  0        (JMP 99-u)
+  48                    STO   y
+  49                    CLA   cj
+  50                    SUB   six
+  51                    STO   j4
+  52                    CLA   z
+  53            j4      DATA  0        (JMP 93)
+  54                    SFT   02
+  55                    STO   t
+  56                    CLA   b
+  57                    ADD   r0
+  58                    SUB   t
+  59                    STO   b
+  60            out     OUT   b
+  61                    JMP   frm
   70            kind    DATA  0
   71            s       DATA  0
-  72            i       DATA  0
   73            u       DATA  0
   74            b       DATA  0
   75            f       DATA  0

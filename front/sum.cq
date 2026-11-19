@@ -1,5 +1,6 @@
-; One summary for each sentence, for the pitch. Four cards a segment in (kind, send, s, n); at the segment that ends
-; a sentence (send 1, 2 or 3) four cards out: L (the frames from the sentence's start to the end of its last sound;
+; A summary of each sentence, for the pitch. Four cards a segment in (kind, send, s, n); five out, send and then,
+; at the segment that ends a sentence (send 1, 2 or 3), its summary (0s at the other segments, so that every
+; segment has the same number of cards; fill hands the summary back to the sentence's segments): L (the frames from the sentence's start to the end of its last sound;
 ; all of its frames if it has none), the frame where the fall to the end starts (the last vowel with stress 1, else
 ; the sentence's first segment if it is a vowel, else -1 for none), M (the frames from there to the end of the last
 ; sound) and the end: 2 for a question, else 1. Frames are counted from the sentence's start (f): f is 0 only at a
@@ -22,7 +23,7 @@
   16                    JMP   chk
   17            fz      CLA   z
   18                    STO   fv
-  19            chk     CLA   kind     19-43: the last stressed vowel, the end of the last sound, f on
+  19            chk     CLA   kind     19-44: the last stressed vowel, the end of the last sound, f on
   20                    SUB   n2
   21                    TAC   vow
   22                    JMP   snd
@@ -46,52 +47,59 @@
   40                    STO   f
   41                    CLA   send
   42                    SUB   00
-  43                    TAC   rec
-  44                    CLA   ls       44-78: the sentence's summary, then start the next
-  45                    TAC   lsf
-  46                    JMP   ll
-  47            lsf     CLA   f
-  48                    STO   ls
-  49            ll      OUT   ls
-  50                    CLA   tail
-  51                    TAC   tfv
-  52                    JMP   th
-  53            tfv     CLA   fv
-  54                    STO   tail
-  55            th      CLA   tail
-  56                    TAC   none
-  57                    OUT   tail
-  58                    CLA   ls
-  59                    SUB   tail
-  60                    STO   t
-  61                    OUT   t
-  62                    JMP   endo
-  63            none    OUT   m1
-  64                    OUT   00
-  65            endo    CLA   send
-  66                    SUB   n2
-  67                    TAC   e1
-  68                    SUB   00
-  69                    TAC   e2
-  70            e1      OUT   00
-  71                    JMP   rst
-  72            e2      OUT   n2
-  73            rst     CLA   z
-  74                    STO   f
-  75                    CLA   m1
-  76                    STO   ls
-  77                    STO   tail
-  78                    JMP   rec
-  80            kind    DATA  0
-  81            send    DATA  0
-  82            s       DATA  0
-  83            n       DATA  0
-  84            f       DATA  0
-  85            fv      DATA  0
-  86            tail    DATA  -1
-  87            ls      DATA  -1
-  88            t       DATA  0
-  89            z       DATA  0
-  90            m1      DATA  -1
-  91            n2      DATA  2
-  92            c8      DATA  8
+  43                    TAC   nos
+  44                    OUT   send
+  45                    CLA   ls       45-98: the sentence's summary, then start the next
+  46                    TAC   lsf
+  47                    JMP   ll
+  48            lsf     CLA   f
+  49                    STO   ls
+  50            ll      OUT   ls
+  51                    CLA   tail
+  52                    TAC   tfv
+  53                    JMP   th
+  54            tfv     CLA   fv
+  55                    STO   tail
+  56            th      CLA   tail
+  57                    TAC   none
+  58                    OUT   tail
+  59                    CLA   ls
+  60                    SUB   tail
+  61                    STO   t
+  62                    OUT   t
+  63                    JMP   endo
+  64            none    OUT   m1
+  65                    OUT   00
+  66            endo    CLA   send
+  67                    SUB   n2
+  68                    TAC   e1
+  69                    SUB   00
+  70                    TAC   e2
+  71            e1      OUT   00
+  72                    JMP   rst
+  73            e2      OUT   n2
+  74            rst     CLA   z
+  75                    STO   f
+  76                    CLA   m1
+  77                    STO   ls
+  78                    STO   tail
+  79                    JMP   rec
+  80            nos     OUT   z
+  81                    OUT   z
+  82                    OUT   z
+  83                    OUT   z
+  84                    OUT   z
+  85                    JMP   rec
+  86            kind    DATA  0
+  87            send    DATA  0
+  88            s       DATA  0
+  89            n       DATA  0
+  90            f       DATA  0
+  91            fv      DATA  0
+  92            tail    DATA  -1
+  93            ls      DATA  -1
+  94            t       DATA  0
+  95            z       DATA  0
+  96            m1      DATA  -1
+  97            n2      DATA  2
+  98            c8      DATA  8

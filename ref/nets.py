@@ -4,22 +4,44 @@ import cardiac
 V = '../voice/'
 
 
+FRAME = 13
+
+
+def lattice(net, name, listing, coef, above, below):
+    pattern = [(coef, 10)] + ([(above, 1)] + ([(below, 1)] if below else [])) * 20
+    net.merge(name + '<', pattern)
+    net.add(name, V + listing, name + '<', name)
+
+
 def voice_box(net, frames_pile='frames', out_pile='out'):
-    net.add('interp', V + 'interp.cq', {3: frames_pile, 6: frames_pile, 13: frames_pile, 27: frames_pile, '*': 'iself'},
-            {7: 'iself', 35: 'iself', '*': 'tosteps'})
-    net.add('steps', V + 'steps.cq', {3: 'tosteps', 7: 'tosteps', '*': 'sself'},
-            {18: 'exc', 20: 'exc', 28: 'exc', 38: 'kin', 40: 'kin', '*': 'sself'})
-    net.add('reduce', V + 'reduce.cq', {'*': 'kin'}, {'*': 'coef'})
+    """The voice box as src/voice.rs wires it: frames_pile gets the frame cards (deal_frames), out_pile the
+    output values."""
+    net.merge('pairs', [(frames_pile, 1), (frames_pile + '2', 1)])
+    net.add('interp', V + 'interp.cq', 'pairs', 'int')
+    net.fan['int'] = ['int_p', 'int_k']
+    net.collate('tosteps', [('int_p', 25, list(range(5)))])
+    net.collate('toksteps', [('int_k', 25, list(range(3, 25)))])
+    net.add('steps', V + 'steps.cq', 'tosteps', 'exc')
+    net.add('ksteps', V + 'ksteps.cq', 'toksteps', 'kin')
+    net.add('reduce', V + 'reduce.cq', 'kin', 'coef')
     net.deal['coef'] = (10, ['c1', 'c2', 'c3', 'c4', 'c5'])
-    net.add('excite', V + 'excite.cq', {'*': 'exc'}, {'*': 'e'})
-    net.add('L1', V + 'lattice_top.cq', {'go': 'e', 'getb': 'b8', '*': 'c1'}, {'*': 'f9'})
+    net.add('excite', V + 'excite.cq', 'exc', 'e')
+    lattice(net, 'L1', 'lattice_top.cq', 'c1', 'e', 'b8')
+    net.fan['L1'] = ['f9']
     for j, n in enumerate(['L2', 'L3', 'L4']):
-        net.add(n, V + 'lattice.cq', {'go': ['f9', 'f7', 'f5'][j], 'getb': ['b6', 'b4', 'b2'][j], '*': 'c%d' % (j + 2)},
-                {'loop': ['b8', 'b6', 'b4'][j], '*': ['f7', 'f5', 'f3'][j]})
-    net.add('L5', V + 'lattice_bottom.cq', {'go': 'f3', '*': 'c5'}, {'loop': 'b2', '*': 'f0'})
-    net.add('output', V + 'output.cq', {'*': 'f0'}, {'*': out_pile})
-    for p in ('c1', 'c2', 'c3', 'c4', 'c5', frames_pile, out_pile):
-        net.piles.setdefault(p, [])
+        lattice(net, n, 'lattice.cq', 'c%d' % (j + 2), ['f9', 'f7', 'f5'][j], ['b6', 'b4', 'b2'][j])
+        net.deal[n] = (1, [['b8', 'b6', 'b4'][j], ['f7', 'f5', 'f3'][j]])
+    lattice(net, 'L5', 'lattice_bottom.cq', 'c5', 'f3', None)
+    net.deal['L5'] = (1, ['b2', 'f0'])
+    net.add('output', V + 'output.cq', 'f0', out_pile)
+
+
+def deal_frames(net, deck, frames_pile='frames'):
+    """The frame cards to the voice box: the deck with twelve blank cards after its end card, and the same from the
+    second frame on."""
+    whole = list(deck) + [0] * (FRAME - 1)
+    net.put(frames_pile, whole)
+    net.put(frames_pile + '2', whole[FRAME:])
 
 
 FR = '../front/'

@@ -1,63 +1,56 @@
-; A vowel's level. Per segment three cards in (kind, s, n); per frame snd, V and u (INP at gs, gv, gu); per frame two
-; modes and factors out for two mulx machines (OUT at m2, y2 and m3, oy3). A sounding, voiced vowel frame: 708 /
-; 1000 (3 dB down) if the vowel is unstressed, then less 30 u / 1000 (it falls off across the vowel). Otherwise
-; mode 0 for both.
+; A vowel's level. Five cards a frame in: snd, V and u, and its segment's kind and s; per frame two modes and factors
+; out for two mulx machines. A sounding, voiced vowel frame: 708 / 1000 (3 dB down) if the vowel is unstressed, then
+; less 30 u / 1000 (it falls off across the vowel). Otherwise mode 0 for both.
 ;
 ; Address Contents Label Opcode Operand Comment
-  03            seg     INP   kind     03-09: a segment (i counts its frames down)
-  04                    INP   s
-  05                    INP   i
-  06            frm     CLA   i
-  07                    SUB   00
-  08                    TAC   seg
-  09                    STO   i
-  10            gs      INP   snd      10-47: a frame: is it a sounding, voiced vowel's
-  11            gv      INP   v
-  12            gu      INP   u
-  13                    CLA   z
-  14                    STO   md2
-  15                    STO   md3
-  16                    STO   y3
-  17                    CLA   kind
-  18                    SUB   n2
-  19                    TAC   vow
-  20                    JMP   m2
-  21            vow     CLA   snd
-  22                    SUB   00
-  23                    TAC   m2
-  24                    SUB   00
-  25                    TAC   on
-  26                    JMP   m2
-  27            on      CLA   v
-  28                    SUB   00
-  29                    TAC   m2
-  30                    CLA   n2
-  31                    STO   md3
-  32                    CLA   u
-  33                    ADD   u
-  34                    ADD   u
-  35                    SFT   10
-  36                    STO   y3
-  37                    CLA   s
-  38                    SUB   00
-  39                    TAC   un
-  40                    JMP   m2
-  41            un      CLA   00
-  42                    STO   md2
-  43            m2      OUT   md2
-  44            y2      OUT   c708
-  45            m3      OUT   md3
-  46            oy3     OUT   y3
-  47                    JMP   frm
-  50            kind    DATA  0
-  51            s       DATA  0
-  52            i       DATA  0
-  53            snd     DATA  0
-  54            v       DATA  0
-  55            u       DATA  0
-  56            md2     DATA  0
-  57            md3     DATA  0
-  58            y3      DATA  0
-  59            z       DATA  0
-  60            n2      DATA  2
-  61            c708    DATA  708
+  03            frm     INP   snd      a frame: is it a sounding, voiced vowel's
+  04                    INP   v
+  05                    INP   u
+  06                    INP   kind
+  07                    INP   s
+  08                    CLA   z
+  09                    STO   md2
+  10                    STO   md3
+  11                    STO   y3
+  12                    CLA   kind
+  13                    SUB   n2
+  14                    TAC   vow
+  15                    JMP   m2
+  16            vow     CLA   snd
+  17                    SUB   00
+  18                    TAC   m2
+  19                    SUB   00
+  20                    TAC   on
+  21                    JMP   m2
+  22            on      CLA   v
+  23                    SUB   00
+  24                    TAC   m2
+  25                    CLA   n2
+  26                    STO   md3
+  27                    CLA   u
+  28                    ADD   u
+  29                    ADD   u
+  30                    SFT   10
+  31                    STO   y3
+  32                    CLA   s
+  33                    SUB   00
+  34                    TAC   un
+  35                    JMP   m2
+  36            un      CLA   00
+  37                    STO   md2
+  38            m2      OUT   md2
+  39            y2      OUT   c708
+  40            m3      OUT   md3
+  41            oy3     OUT   y3
+  42                    JMP   frm
+  43            kind    DATA  0
+  44            s       DATA  0
+  45            snd     DATA  0
+  46            v       DATA  0
+  47            u       DATA  0
+  48            md2     DATA  0
+  49            md3     DATA  0
+  50            y3      DATA  0
+  51            z       DATA  0
+  52            n2      DATA  2
+  53            c708    DATA  708

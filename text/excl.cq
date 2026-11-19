@@ -1,105 +1,77 @@
-; The function words and the exceptions. Cards pass through except words: a word's letters (1-27) go onto this
-; machine's own pile (OUT at keep; the pile goes round through INP gw / OUT kw and INP gy / OUT ky), counting n. At
-; its end (-10) the word is looked for in the words deck, read through to its end (-99; dealt again for each word,
-; INP at gd): the function words, each its letters and -52, then the exceptions, each its letters and -100 - its
-; number, compared
-; letter by letter with the word as the word goes round the pile once. Then the word goes on: its letters, -99, 1 if
-; it is a function word (else 0), and -100 - its number in the exception list if it is one (else 0).
+; The function words. Each item (17 cards, from items: its end card, n, and its run with an edge on each side) and
+; after it the whole deck of function words (text/function.cards: each its letters and -52, then -99) in; out 1 for
+; a word (an item ended by -10) that is a function word, else 0. The word's letters are kept in cells 80-93, and
+; matched against each word of the deck as the deck goes by: at is the next letter to match, 99 once one has failed.
+; Anything that isn't a word has n -1, and nothing matches.
 ;
 ; Address Contents Label Opcode Operand Comment
-  03            rec     INP   w        03-19: a card: pass it on, a letter onto the pile, or a word's end
-  04                    CLA   w
-  05                    TAC   neg
-  06                    SUB   c28
-  07                    TAC   keep
-  08            pass    OUT   w
-  09                    JMP   rec
-  10            neg     ADD   c10
-  11                    TAC   pass
-  12                    SUB   00
-  13                    TAC   look
-  14                    JMP   pass
-  15            keep    OUT   w
-  16                    CLA   n
-  17                    ADD   00
-  18                    STO   n
-  19                    JMP   rec
-  20            look    CLA   z        20-48: an entry, compared with the word
-  21                    STO   fn
-  22                    STO   k
-  23            ent     CLA   z
-  24                    STO   i
-  25                    CLA   00
-  26                    STO   m
-  27            gd      INP   e
-  28                    CLA   e
-  29                    TAC   mk
-  30                    CLA   n
-  31                    SUB   i
-  32                    SUB   00
-  33                    TAC   mis
-  34            cmp     CLA   i
-  35                    ADD   00
-  36                    STO   i
-  37            gw      INP   w
-  38            kw      OUT   w
-  39                    CLA   w
-  40                    SUB   e
-  41                    TAC   mis
-  42                    CLA   e
-  43                    SUB   w
-  44                    TAC   mis
-  45                    JMP   gd
-  46            mis     CLA   z
-  47                    STO   m
-  48                    JMP   gd
-  49            mk      CLA   i        49-60: the entry's end: the rest of the word round the pile
-  50                    SUB   n
-  51                    TAC   cy
-  52                    JMP   kind
-  53            cy      CLA   z
-  54                    STO   m
-  55                    CLA   i
-  56                    ADD   00
-  57                    STO   i
-  58            gy      INP   w
-  59            ky      OUT   w
-  60                    JMP   mk
-  61            kind    CLA   e        61-69: a function word (-52), an exception (-100 - its number), or the end
-  62                    ADD   c52
-  63                    TAC   nf
-  64                    CLA   fn
-  65                    ADD   m
-  66                    STO   fn
-  67                    JMP   ent
-  68            nf      ADD   c47
-  69                    TAC   ex
-  70            end     CLA   n        70-98: the word goes on
-  71                    SUB   00
-  72                    TAC   fin
-  73                    STO   n
-  74            gz      INP   w
-  75                    OUT   w
-  76                    JMP   end
-  77            fin     OUT   e
-  78                    OUT   fn
-  79                    OUT   k
-  80                    JMP   rec
-  81            ex      CLA   m
-  82                    SUB   00
-  83                    TAC   ent
-  84                    CLA   e
-  85                    STO   k
-  86                    JMP   ent
-  87            n       DATA  0
-  88            i       DATA  0
-  89            m       DATA  0
-  90            e       DATA  0
-  91            w       DATA  0
-  92            fn      DATA  0
-  93            k       DATA  0
-  94            z       DATA  0
-  95            c10     DATA  10
-  96            c28     DATA  28
-  97            c52     DATA  52
-  98            c47     DATA  47
+  03            item    INP   end      03-23: an item: its letters into 80-93
+  04                    INP   n
+  05                    INP   d
+  06                    CLA   s80
+  07                    STO   wr
+  08            wr      DATA  0        (INP 80 + k)
+  09                    CLA   wr
+  10                    ADD   00
+  11                    STO   wr
+  12                    SUB   s94
+  13                    TAC   wr
+  14                    CLA   z
+  15                    STO   r
+  16                    CLA   end
+  17                    ADD   n10
+  18                    TAC   nw
+  19                    SUB   00
+  20                    TAC   word
+  21            nw      CLA   m1
+  22                    STO   n
+  23            word    CLA   00       23-46: the deck, a card at a time
+  24                    STO   at
+  25            dk      INP   d
+  26                    CLA   d
+  27                    TAC   neg
+  28                    CLA   n
+  29                    SUB   at
+  30                    TAC   no
+  31                    CLA   c79
+  32                    ADD   at
+  33                    STO   rd
+  34            rd      DATA  0        (CLA 79 + at)
+  35                    SUB   d
+  36                    TAC   no
+  37                    SUB   00
+  38                    TAC   yes
+  39            no      CLA   c99
+  40                    STO   at
+  41                    JMP   dk
+  42            yes     CLA   at
+  43                    ADD   00
+  44                    STO   at
+  45                    JMP   dk
+  46            neg     ADD   c98      46-61: a word of the deck ends: the item's, if it matched all of it; -99 the deck's end
+  47                    TAC   out
+  48                    CLA   n
+  49                    ADD   00
+  50                    SUB   at
+  51                    TAC   word
+  52                    SUB   00
+  53                    TAC   hit
+  54                    JMP   word
+  55            hit     CLA   00
+  56                    STO   r
+  57                    JMP   word
+  58            out     OUT   r
+  59                    JMP   item
+  70            end     DATA  0
+  71            n       DATA  0
+  72            r       DATA  0
+  73            at      DATA  0
+  74            d       DATA  0
+  75            z       DATA  0
+  76            m1      DATA  -1
+  77            n10     DATA  10
+  78            c99     DATA  99
+  79            c98     DATA  98
+  94            s80     INP   80
+  95            s94     INP   94
+  96            c79     CLA   79

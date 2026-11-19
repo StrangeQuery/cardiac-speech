@@ -1,0 +1,83 @@
+; Whether each NRL rule's right context matches at a letter. letters's record for the letter (its place i, and its
+; word with an edge, 28, on each side, padded to 15 cards, kept in cells 80-94) and then the letter's record of the
+; right table (text/rules_right.cards) in: each rule's right context, its elements, then -2; then 0s, and -1. Out, for
+; each rule, 1 if its context matches and 0 if not (a rule with no context matches). An element is four cards: the
+; most letters it matches, the fewest, and the range of codes they can be. The right context is read rightwards from
+; the letter itself.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   i        03-16: a letter's record
+  04                    CLA   i80
+  05                    STO   rd
+  06            rd      DATA  0        (INP 80 + k)
+  07                    CLA   rd
+  08                    ADD   00
+  09                    STO   rd
+  10                    SUB   i95
+  11                    TAC   rd
+  12            new     CLA   i        12-15: a rule starts at the letter itself, matching so far
+  13                    ADD   00
+  14                    STO   pos
+  15                    CLA   00
+  16                    STO   ok
+  17            el      INP   most     16-48: an element; or -2, the rule's end, 0 nothing, -1 the record's end
+  18                    CLA   most
+  19                    SUB   00
+  20                    TAC   low
+  21                    INP   least
+  22                    INP   lo
+  23                    INP   hi
+  24                    CLA   ok
+  25                    SUB   00
+  26                    TAC   el
+  27                    CLA   z
+  28                    STO   cnt
+  29            wl      CLA   cnt
+  30                    SUB   most
+  31                    TAC   chk
+  32                    JMP   done
+  33            chk     CLA   c80
+  34                    ADD   pos
+  35                    STO   rw
+  36            rw      DATA  0        (CLA 80 + pos)
+  37                    STO   c
+  38                    SUB   lo
+  39                    TAC   done
+  40                    CLA   hi
+  41                    SUB   c
+  42                    TAC   done
+  43                    CLA   pos
+  44            mv      ADD   00
+  45                    STO   pos
+  46                    CLA   cnt
+  47                    ADD   00
+  48                    STO   cnt
+  49                    JMP   wl
+  50            done    CLA   cnt      49-60: too few; the rule's end
+  51                    SUB   least
+  52                    TAC   fail
+  53                    JMP   el
+  54            fail    CLA   z
+  55                    STO   ok
+  56                    JMP   el
+  57            low     CLA   most
+  58                    ADD   00
+  59                    TAC   rend
+  60                    SUB   00
+  61                    TAC   rec
+  62                    JMP   el
+  63            rend    OUT   ok
+  64                    JMP   new
+  70            i       DATA  0
+  71            pos     DATA  0
+  72            ok      DATA  0
+  73            most    DATA  0
+  74            least   DATA  0
+  75            lo      DATA  0
+  76            hi      DATA  0
+  77            cnt     DATA  0
+  78            c       DATA  0
+  79            z       DATA  0
+  95            i80     INP   80
+  96            i95     INP   95
+  97            c80     CLA   80

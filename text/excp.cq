@@ -1,83 +1,80 @@
-; An exception's phonemes. Cards pass through except words: a word's letters (1-27) go onto this machine's own pile
-; (OUT at keep, back to INP at gw), counting n; at its end come -99, fn (1 a function word) and k (-100 - its
-; number in the exception list, 0 for none). With k, the letters are dropped and out go the phonemes of that record
-; of the exceptions' phonemes deck (OUT at ask; twelve cards to INP at gp: 10 x code + stress, then 0s), stress 0 in a
-; function word, then -20. Without, the letters go on, then -14 for a function word, else -13.
+; Exceptions replaced. excl's fn and excx's k, the item (17 cards: its end card, n, and its run with an edge on each
+; side), and the record of the exceptions' phonemes for k (12 cards, 10 x code + stress, padded with 0) in; out an
+; item of 17 cards: an exception as -20, 0 and its phonemes (stress 0 for a function word), then 0s; another word as
+; -22 (a function word) or -21 and its letters, for the rules; anything else as it was.
 ;
 ; Address Contents Label Opcode Operand Comment
-  03            rec     INP   x        03-19: a card: pass it on, a letter onto the pile, or a word's end
-  04                    CLA   x
-  05                    TAC   neg
-  06                    SUB   c28
-  07                    TAC   keep
-  08            pass    OUT   x
-  09                    JMP   rec
-  10            neg     ADD   c99
-  11                    TAC   pass
-  12                    SUB   00
-  13                    TAC   end
-  14                    JMP   pass
-  15            keep    OUT   x
-  16                    CLA   n
-  17                    ADD   00
-  18                    STO   n
-  19                    JMP   rec
-  20            end     INP   fn       20-30: the word's letters on, or dropped
-  21                    INP   k
-  22            dr      CLA   n
+  03            rec     INP   fn       03-11: an exception, or not
+  04                    INP   k
+  05                    INP   end
+  06                    CLA   k
+  07                    SUB   00
+  08                    TAC   word
+  09                    CLA   n15
+  10                    STO   i
+  11            skip    INP   x        11-38: an exception: the item passed over, the phonemes out
+  12                    CLA   i
+  13                    SUB   00
+  14                    STO   i
+  15                    TAC   ph
+  16                    JMP   skip
+  17            ph      OUT   m20
+  18                    OUT   z
+  19                    CLA   n11
+  20                    STO   i
+  21            pl      INP   x
+  22                    CLA   fn
   23                    SUB   00
-  24                    TAC   fin
-  25                    STO   n
-  26            gw      INP   w
-  27                    CLA   k
-  28                    TAC   dr
-  29                    OUT   w
-  30                    JMP   dr
-  31            fin     CLA   k        31-78: the end card, or the exception's phonemes
-  32                    TAC   exc
-  33                    JMP   fw
-  34            exc     CLA   z
-  35                    SUB   k
-  36                    SUB   c100
-  37                    STO   k
-  38            ask     OUT   k
-  39                    CLA   n11
-  40                    STO   i
-  41            gp      INP   p
-  42                    CLA   p
-  43                    SUB   00
-  44                    TAC   nx
-  45                    CLA   fn
-  46                    SUB   00
-  47                    TAC   po
-  48                    CLA   p
-  49                    SFT   01
-  50                    SFT   10
-  51                    STO   p
-  52            po      OUT   p
-  53            nx      CLA   i
+  24                    TAC   po
+  25                    CLA   x
+  26                    SFT   01
+  27                    SFT   10
+  28                    STO   x
+  29            po      OUT   x
+  30                    CLA   i
+  31                    SUB   00
+  32                    STO   i
+  33                    TAC   zs
+  34                    JMP   pl
+  35            zs      OUT   z
+  36                    OUT   z
+  37                    OUT   z
+  38                    JMP   rec
+  39            word    CLA   end      38-56: a word for the rules, or anything else: the item, the record passed over
+  40                    ADD   n10
+  41                    TAC   copy
+  42                    SUB   00
+  43                    TAC   rul
+  44                    JMP   copy
+  45            rul     CLA   m21
+  46                    SUB   fn
+  47                    STO   end
+  48            copy    OUT   end
+  49                    CLA   n15
+  50                    STO   i
+  51            cp      INP   x
+  52                    OUT   x
+  53                    CLA   i
   54                    SUB   00
   55                    STO   i
-  56                    TAC   o20
-  57                    JMP   gp
-  58            o20     OUT   m20
-  59                    JMP   rec
-  60            fw      CLA   m13
-  61                    SUB   fn
-  62                    STO   x
-  63                    OUT   x
-  64                    JMP   rec
-  65            x       DATA  0
-  66            n       DATA  0
-  67            fn      DATA  0
-  68            k       DATA  0
-  69            w       DATA  0
-  70            p       DATA  0
-  71            i       DATA  0
-  72            z       DATA  0
-  73            c99     DATA  99
-  74            c100    DATA  100
-  75            c28     DATA  28
-  76            n11     DATA  11
-  77            m13     DATA  -13
-  78            m20     DATA  -20
+  56                    TAC   drop
+  57                    JMP   cp
+  58            drop    CLA   n11
+  59                    STO   i
+  60            dl      INP   x
+  61                    CLA   i
+  62                    SUB   00
+  63                    STO   i
+  64                    TAC   rec
+  65                    JMP   dl
+  70            fn      DATA  0
+  71            k       DATA  0
+  72            end     DATA  0
+  73            x       DATA  0
+  74            i       DATA  0
+  75            z       DATA  0
+  76            n15     DATA  15
+  77            n11     DATA  11
+  78            n10     DATA  10
+  79            m21     DATA  -21
+  80            m20     DATA  -20

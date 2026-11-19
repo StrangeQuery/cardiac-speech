@@ -1,7 +1,7 @@
 ; Text in, one ASCII character a card, ended by -1, twice over (the host deals the text a second time); out the
 ; words, numbers and punctuation. The first time through it only looks for a small letter, and sends 1 if there is
-; one (the text is not all capitals), else 0. The second time it asks the host for each character's row of the
-; ASCII table (OUT at ask; its class and value come to INP at gc and gv): 1 a capital, 2 a small letter, 3 an
+; one (the text is not all capitals), else 0. The second time each character comes with its row of the ASCII
+; table after it (the host fetches it by the character's code): its class and value, 1 a capital, 2 a small letter, 3 an
 ; apostrophe (part of a word); 4 a digit; 5 punctuation; 0 anything else. A word goes out as its letters' codes,
 ; then -10, then 1 if it has a small letter, else 0; a number as its digits, 500 + d, then -12; punctuation as its
 ; card (-2 to -5). Then -9.
@@ -19,86 +19,85 @@
   12                    STO   lowt
   13                    JMP   p1
   14            p1e     OUT   lowt
-  15            p2      INP   c        15-27: the second time: a character, and its class
+  15            p2      INP   c        15-26: the second time: a character, and its class
   16                    CLA   c
   17                    TAC   fin
-  18            ask     OUT   c
-  19            gc      INP   cls
-  20            gv      INP   val
-  21                    CLA   cls
-  22                    SUB   00
-  23                    TAC   gap
-  24                    SUB   n3
-  25                    TAC   let
-  26                    SUB   00
-  27                    TAC   dig
-  28                    JMP   close    28-32: punctuation: the token ends, the card goes out
-  29                    OUT   val
-  30                    JMP   p2
-  31            gap     JMP   close
-  32                    JMP   p2
-  33            dig     CLA   mode     33-44: a digit: a word ends; the number goes on
-  34                    SUB   n2
-  35                    TAC   dg
-  36                    JMP   dout
-  37            dg      JMP   close
-  38                    CLA   n2
-  39                    STO   mode
-  40            dout    CLA   val
-  41                    ADD   c500
-  42                    STO   x
-  43                    OUT   x
-  44                    JMP   p2
-  45            let     CLA   mode     45-64: a letter or apostrophe: a number ends; the word goes on
-  46                    SUB   00
-  47                    TAC   ws
-  48                    SUB   00
-  49                    TAC   wout
-  50                    JMP   close
-  51            ws      CLA   00
-  52                    STO   mode
-  53                    CLA   z
-  54                    STO   lw
-  55            wout    OUT   val
-  56                    CLA   cls
-  57                    SUB   n2
-  58                    TAC   p2
-  59                    SUB   00
-  60                    TAC   slw
-  61                    JMP   p2
-  62            slw     CLA   00
-  63                    STO   lw
-  64                    JMP   p2
-  66            fin     JMP   close    66-68: the end
-  67                    OUT   m9
-  68                    HRS   00
-  69            close   CLA   99       69-98: a word or a number ends
-  70                    STO   ret
-  71                    CLA   mode
+  18            gc      INP   cls
+  19            gv      INP   val
+  20                    CLA   cls
+  21                    SUB   00
+  22                    TAC   gap
+  23                    SUB   n3
+  24                    TAC   let
+  25                    SUB   00
+  26                    TAC   dig
+  27                    JMP   close    27-31: punctuation: the token ends, the card goes out
+  28                    OUT   val
+  29                    JMP   p2
+  30            gap     JMP   close
+  31                    JMP   p2
+  32            dig     CLA   mode     32-43: a digit: a word ends; the number goes on
+  33                    SUB   n2
+  34                    TAC   dg
+  35                    JMP   dout
+  36            dg      JMP   close
+  37                    CLA   n2
+  38                    STO   mode
+  39            dout    CLA   val
+  40                    ADD   c500
+  41                    STO   x
+  42                    OUT   x
+  43                    JMP   p2
+  44            let     CLA   mode     44-63: a letter or apostrophe: a number ends; the word goes on
+  45                    SUB   00
+  46                    TAC   ws
+  47                    SUB   00
+  48                    TAC   wout
+  49                    JMP   close
+  50            ws      CLA   00
+  51                    STO   mode
+  52                    CLA   z
+  53                    STO   lw
+  54            wout    OUT   val
+  55                    CLA   cls
+  56                    SUB   n2
+  57                    TAC   p2
+  58                    SUB   00
+  59                    TAC   slw
+  60                    JMP   p2
+  61            slw     CLA   00
+  62                    STO   lw
+  63                    JMP   p2
+  64            fin     JMP   close    64-66: the end
+  65                    OUT   m9
+  66                    HRS   00
+  67            close   CLA   99       67-96: a word or a number ends
+  68                    STO   ret
+  69                    CLA   mode
+  70                    SUB   00
+  71                    TAC   ret
   72                    SUB   00
-  73                    TAC   ret
-  74                    SUB   00
-  75                    TAC   cw
-  76                    OUT   m12
-  77                    JMP   cz
-  78            cw      OUT   m10
-  79                    OUT   lw
-  80            cz      CLA   z
-  81                    STO   mode
-  82            ret     DATA  0
-  83            c       DATA  0
-  84            cls     DATA  0
-  85            val     DATA  0
-  86            mode    DATA  0
-  87            lw      DATA  0
-  88            lowt    DATA  0
-  89            x       DATA  0
-  90            z       DATA  0
-  91            n2      DATA  2
-  92            n3      DATA  3
-  93            c97     DATA  97
-  94            c26     DATA  26
-  95            c500    DATA  500
-  96            m9      DATA  -9
-  97            m10     DATA  -10
-  98            m12     DATA  -12
+  73                    TAC   cw
+  74                    OUT   m12
+  75                    JMP   cz
+  76            cw      OUT   m10
+  77                    OUT   lw
+  78            cz      CLA   z
+  79                    STO   mode
+  80            ret     DATA  0
+  81            c       DATA  0
+  82            cls     DATA  0
+  83            val     DATA  0
+  84            mode    DATA  0
+  85            lw      DATA  0
+  86            lowt    DATA  0
+  87            x       DATA  0
+  88            z       DATA  0
+  89            n2      DATA  2
+  90            n3      DATA  3
+  91            c97     DATA  97
+  92            c26     DATA  26
+  93            c500    DATA  500
+  94            m9      DATA  -9
+  95            m10     DATA  -10
+  96            m12     DATA  -12

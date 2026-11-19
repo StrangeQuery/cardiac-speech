@@ -3,6 +3,7 @@ import random
 import os
 import sys
 import cardiac
+import nets
 import voice_ref as vr
 
 random.seed(int(sys.argv[1]) if len(sys.argv) > 1 else 1)
@@ -19,17 +20,13 @@ amps = [0 if i % 4 == 2 else 1 for i in range(nsteps)]    # every fourth step a 
 want = vr.lattice(exc, Ks, amps)
 
 net = cardiac.Net()
-V = '../voice/'
-net.add('L1', V + 'lattice_top.cq', {'go': 'e', 'getb': 'b8', '*': 'c1'}, {'*': 'f9'})
-names = ['L2', 'L3', 'L4']
-for j, n in enumerate(names):
-    up_f = ['f9', 'f7', 'f5'][j]
-    down_f = ['f7', 'f5', 'f3'][j]
-    up_b = ['b8', 'b6', 'b4'][j]
-    low_b = ['b6', 'b4', 'b2'][j]
-    cp = 'c%d' % (j + 2)
-    net.add(n, V + 'lattice.cq', {'go': up_f, 'getb': low_b, '*': cp}, {'loop': up_b, '*': down_f})
-net.add('L5', V + 'lattice_bottom.cq', {'go': 'f3', '*': 'c5'}, {'loop': 'b2', '*': 'out'})
+nets.lattice(net, 'L1', 'lattice_top.cq', 'c1', 'e', 'b8')
+net.fan['L1'] = ['f9']
+for j, n in enumerate(['L2', 'L3', 'L4']):
+    nets.lattice(net, n, 'lattice.cq', 'c%d' % (j + 2), ['f9', 'f7', 'f5'][j], ['b6', 'b4', 'b2'][j])
+    net.deal[n] = (1, [['b8', 'b6', 'b4'][j], ['f7', 'f5', 'f3'][j]])
+nets.lattice(net, 'L5', 'lattice_bottom.cq', 'c5', 'f3', None)
+net.deal['L5'] = (1, ['b2', 'out'])
 for s, K in enumerate(Ks):
     ws = []
     for k in reversed(K):

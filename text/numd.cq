@@ -1,97 +1,83 @@
 ; A number's digits. Cards pass through except digits (500 + d), up to the number's end (-12). Leading zeros are
-; dropped; the digits after them go onto this machine's own pile (OUT at keep, back to INP at gb and gs) and the
-; last six are kept, d5 to d0. At the end: with seven digits or more, each digit as a word card, 700 + d; else -15,
-; the count, and the six digits, for numw.
+; dropped; the digits after them are held back, six at most, as two numbers of three digits, hi and lo, each new
+; digit shifted in at the end of lo and lo's first into hi. At the end, with six digits or fewer: -15, the count,
+; hi and lo (the last six digits, zeros in front), for unpack. With seven or more: when the seventh comes, -17, hi
+; and lo (the first six), and then each digit from the seventh on as a word card, 700 + d.
 ;
 ; Address Contents Label Opcode Operand Comment
-  03            rec     INP   x        03-11: a digit, or another card
+  03            rec     INP   x        03-15: a digit, the number's end, or another card
   04                    CLA   x
   05                    SUB   c500
   06                    TAC   nd
-  07                    STO   d
-  08                    CLA   c
-  09                    SUB   00
-  10                    TAC   lz
-  11                    JMP   keep
-  12            lz      CLA   d        12-31: a digit: a leading zero dropped; onto the pile and the six
-  13                    SUB   00
-  14                    TAC   rec
-  15            keep    OUT   d
-  16                    CLA   c
-  17                    ADD   00
-  18                    STO   c
-  19                    CLA   d4
-  20                    STO   d5
-  21                    CLA   d3
-  22                    STO   d4
-  23                    CLA   d2
-  24                    STO   d3
-  25                    CLA   d1
-  26                    STO   d2
-  27                    CLA   d0
-  28                    STO   d1
-  29                    CLA   d
-  30                    STO   d0
-  31                    JMP   rec
-  32            nd      CLA   x        32-38: the number's end, or a card to pass on
-  33                    ADD   c12
-  34                    TAC   pass
-  35                    SUB   00
-  36                    TAC   endn
-  37            pass    OUT   x
-  38                    JMP   rec
-  39            endn    CLA   c        39-52: seven or more: a word a digit
-  40                    SUB   n7
-  41                    TAC   small
-  42            gb      INP   d
-  43                    CLA   d
-  44                    ADD   c700
-  45                    STO   d
-  46                    OUT   d
-  47                    CLA   c
-  48                    SUB   00
-  49                    STO   c
-  50                    SUB   00
-  51                    TAC   rst
-  52                    JMP   gb
-  53            small   CLA   c        53-77: fewer: the pile cleared; the count and the six out; all cleared
-  54                    STO   i
-  55            sl      CLA   i
-  56                    SUB   00
-  57                    TAC   six
-  58                    STO   i
-  59            gs      INP   d
-  60                    JMP   sl
-  61            six     OUT   m15
-  62                    OUT   c
-  63                    OUT   d5
-  64                    OUT   d4
-  65                    OUT   d3
-  66                    OUT   d2
-  67                    OUT   d1
-  68                    OUT   d0
-  69            rst     CLA   z
-  70                    STO   c
-  71                    STO   d5
-  72                    STO   d4
-  73                    STO   d3
-  74                    STO   d2
-  75                    STO   d1
-  76                    STO   d0
-  77                    JMP   rec
-  80            x       DATA  0
-  81            d       DATA  0
-  82            c       DATA  0
-  83            i       DATA  0
-  84            d5      DATA  0
-  85            d4      DATA  0
-  86            d3      DATA  0
-  87            d2      DATA  0
-  88            d1      DATA  0
-  89            d0      DATA  0
-  90            z       DATA  0
-  91            n7      DATA  7
-  92            c500    DATA  500
-  93            c700    DATA  700
-  94            c12     DATA  12
-  95            m15     DATA  -15
+  07                    SUB   n10
+  08                    TAC   dig
+  09            nd      CLA   x
+  10                    ADD   n12
+  11                    TAC   po
+  12                    SUB   00
+  13                    TAC   end
+  14            po      OUT   x
+  15                    JMP   rec
+  16            dig     CLA   x        16-50: a digit: dropped (a leading zero), held back, or out
+  17                    SUB   c500
+  18                    STO   d
+  19                    ADD   cnt
+  20                    SUB   00
+  21                    TAC   rec
+  22                    CLA   cnt
+  23                    SUB   n6
+  24                    TAC   keep
+  25                    SUB   00
+  26                    TAC   flush
+  27                    JMP   long
+  28            flush   OUT   m17
+  29                    OUT   hi
+  30                    OUT   lo
+  31            long    CLA   x
+  32                    ADD   c200
+  33                    STO   x
+  34                    OUT   x
+  35                    JMP   inc
+  36            keep    CLA   lo
+  37                    SFT   02
+  38                    STO   t
+  39                    CLA   hi
+  40                    SFT   10
+  41                    ADD   t
+  42                    STO   hi
+  43                    CLA   lo
+  44                    SFT   10
+  45                    ADD   d
+  46                    STO   lo
+  47            inc     CLA   cnt
+  48                    ADD   00
+  49                    STO   cnt
+  50                    JMP   rec
+  51            end     CLA   cnt      51-64: the end: six digits or fewer: -15, the count, hi and lo
+  52                    SUB   n6
+  53                    SUB   00
+  54                    TAC   short
+  55                    JMP   rst
+  56            short   OUT   m15
+  57                    OUT   cnt
+  58                    OUT   hi
+  59                    OUT   lo
+  60            rst     CLA   z
+  61                    STO   hi
+  62                    STO   lo
+  63                    STO   cnt
+  64                    JMP   rec
+  70            x       DATA  0
+  71            d       DATA  0
+  72            cnt     DATA  0
+  73            hi      DATA  0
+  74            lo      DATA  0
+  75            t       DATA  0
+  76            z       DATA  0
+  77            c500    DATA  500
+  78            n10     DATA  10
+  79            n12     DATA  12
+  80            n6      DATA  6
+  81            c200    DATA  200
+  82            m15     DATA  -15
+  83            m17     DATA  -17

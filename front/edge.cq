@@ -4,66 +4,65 @@
 ; (pvls) and has more than one frame; else 0. The table's cards ASP VOICED NOISE ALT VBAR come from OUT at ask.
 ;
 ; Address Contents Label Opcode Operand Comment
-  03            rec     INP   pc       03-31: a segment: does it need the table
+  03            rec     INP   pc       03-36: a segment: does it need the table
   04                    INP   kind
   05                    INP   n
   06                    INP   pvls
   07                    INP   pnpk
-  08                    CLA   z
-  09                    STO   cf
-  10                    STO   af
-  11                    CLA   kind
-  12                    SUB   n3
-  13                    TAC   va
-  14                    SUB   00
-  15                    TAC   out
-  16                    SUB   00
-  17                    TAC   st
-  18                    JMP   out
-  19            va      CLA   pvls
-  20                    SUB   00
-  21                    TAC   out
-  22                    CLA   n
-  23                    SUB   n2
-  24                    TAC   out
-  25                    JMP   ask
-  26            st      CLA   pnpk
-  27                    SUB   00
-  28                    TAC   out
-  29                    SUB   n3
-  30                    TAC   ask
-  31                    JMP   out
-  32            ask     OUT   pc       32-51: the table's cards, then cf or af
-  33            g1      INP   asp
-  34            g2      INP   voiced
-  35            g3      INP   x
-  36            g4      INP   x
-  37            g5      INP   vbar
-  38                    CLA   kind
-  39                    SUB   n3
-  40                    TAC   seta
-  41                    CLA   voiced
-  42                    SUB   00
-  43                    TAC   out
-  44                    CLA   vbar
-  45                    STO   cf
-  46                    JMP   out
-  47            seta    CLA   asp
-  48                    STO   af
-  49            out     OUT   cf
-  50                    OUT   af
-  51                    JMP   rec
-  60            pc      DATA  0
-  61            kind    DATA  0
-  62            n       DATA  0
-  63            pvls    DATA  0
-  64            pnpk    DATA  0
-  65            cf      DATA  0
-  66            af      DATA  0
-  67            asp     DATA  0
-  68            voiced  DATA  0
-  69            vbar    DATA  0
-  70            x       DATA  0
-  71            z       DATA  0
-  72            n2      DATA  2
-  73            n3      DATA  3
+  08                    INP   asp
+  09                    INP   voiced
+  10                    INP   x
+  11                    INP   x
+  12                    INP   vbar
+  13                    CLA   z
+  14                    STO   cf
+  15                    STO   af
+  16                    CLA   kind
+  17                    SUB   n3
+  18                    TAC   va
+  19                    SUB   00
+  20                    TAC   out
+  21                    SUB   00
+  22                    TAC   st
+  23                    JMP   out
+  24            va      CLA   pvls
+  25                    SUB   00
+  26                    TAC   out
+  27                    CLA   n
+  28                    SUB   n2
+  29                    TAC   out
+  30                    JMP   ask
+  31            st      CLA   pnpk
+  32                    SUB   00
+  33                    TAC   out
+  34                    SUB   n3
+  35                    TAC   ask
+  36                    JMP   out
+  37            ask     CLA   kind    37-64: the table's cards, then cf or af
+  38                    SUB   n3
+  39                    TAC   seta
+  40                    CLA   voiced
+  41                    SUB   00
+  42                    TAC   out
+  43                    CLA   vbar
+  44                    STO   cf
+  45                    JMP   out
+  46            seta    CLA   asp
+  47                    STO   af
+  48            out     OUT   cf
+  49                    OUT   af
+  50                    JMP   rec
+  51            pc      DATA  0
+  52            kind    DATA  0
+  53            n       DATA  0
+  54            pvls    DATA  0
+  55            pnpk    DATA  0
+  56            cf      DATA  0
+  57            af      DATA  0
+  58            asp     DATA  0
+  59            voiced  DATA  0
+  60            vbar    DATA  0
+  61            x       DATA  0
+  62            z       DATA  0
+  63            n2      DATA  2
+  64            n3      DATA  3
