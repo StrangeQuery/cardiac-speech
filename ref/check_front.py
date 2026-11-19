@@ -2,6 +2,7 @@
 (front_ref.phonemes_to_cards, which front_machines.compose matches), card for card; then the frames through
 talk-frames against the voice box's model, value for value."""
 import os
+import bins
 import subprocess
 import sys
 import front_ref as fr
@@ -11,7 +12,7 @@ import sentences
 import test_front as T
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-BIN = os.path.join(HERE, '..', 'target', 'release')
+BIN = bins.RELEASE
 WORK = os.path.join(HERE, '..', 'work')
 os.makedirs(WORK, exist_ok=True)
 fr.load(tb.C)

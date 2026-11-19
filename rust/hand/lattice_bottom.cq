@@ -1,0 +1,99 @@
+; The bottom two stages of the LPC lattice, 2 and 1. For each sample it reads f from the machine above, sends b2
+; of the sample before up, and sends the lattice's output down to the output stage. b0 is the output of the sample
+; before, kept here. Coefficients and the multiply routines are as in lattice.cq.
+;
+; Address Contents Label Opcode Operand Comment
+  03            loop    OUT   bhi      03-07: b2 of the sample before goes up; every 20 samples, new coefficients
+  04                    CLA   cnt
+  05                    SUB   00
+  06                    STO   cnt
+  07                    TAC   coef
+  08            go      INP   f        08-17: stage 2
+  09                    CLA   blo
+  10                    JMP   mulh
+  11                    STO   p
+  12                    CLA   f
+  13                    SUB   p
+  14                    STO   f
+  15                    JMP   mulh
+  16                    ADD   blo
+  17                    STO   bhi
+  18                    CLA   bx       18-30: stage 1 on b0, then b0 = f, and f goes down
+  19                    JMP   mull
+  20                    STO   p
+  21                    CLA   f
+  22                    SUB   p
+  23                    STO   f
+  24                    JMP   mull
+  25                    ADD   bx
+  26                    STO   blo
+  27                    CLA   f
+  28                    STO   bx
+  29                    OUT   f
+  30                    JMP   loop
+  31            coef    CLA   n19      31-43: a step's ten coefficient cards
+  32                    STO   cnt
+  33                    INP   sh
+  34                    INP   t1h
+  35                    INP   t2h
+  36                    INP   finh
+  37                    INP   hh
+  38                    INP   sl
+  39                    INP   t1l
+  40                    INP   t2l
+  41                    INP   finl
+  42                    INP   hl
+  43                    JMP   go
+  44            mulh    STO   t        44-59: k x for stage i, x in the accumulator
+  45                    CLA   99
+  46                    STO   reth
+  47                    CLA   z
+  48            sh      DATA  0        (ADD t or SUB t)
+  49                    STO   c
+  50                    CLA   z
+  51            t1h     DATA  0        (JMP into the row, d2 ADDs)
+  52                    SFT   01
+  53            t2h     DATA  0        (JMP into the row, d1 ADDs)
+  54                    TAC   negh
+  55                    ADD   hh
+  56            finh    DATA  0        (SFT 0L)
+  57            reth    DATA  0
+  58            negh    SUB   hh
+  59                    JMP   finh
+  60            mull    STO   t        60-87: k x for stage i-1
+  61                    CLA   99
+  62                    STO   retl
+  63                    CLA   z
+  64            sl      DATA  0
+  65                    STO   c
+  66                    CLA   z
+  67            t1l     DATA  0
+  68                    SFT   01
+  69            t2l     DATA  0
+  70                    TAC   negl
+  71                    ADD   hl
+  72            finl    DATA  0
+  73            retl    DATA  0
+  74            negl    SUB   hl
+  75                    JMP   finl
+  76            hh      DATA  0
+  77            hl      DATA  0
+  78            z       DATA  0
+  79            p       DATA  0
+  80            f       DATA  0
+  81            blo     DATA  0
+  82            bhi     DATA  0
+  83            bx      DATA  0
+  84            cnt     DATA  0
+  85            n19     DATA  19
+  86            t       DATA  0        t and c are at the same cells in every lattice machine
+  87            c       DATA  0
+  90            row     ADD   c        90-98: the row of nine ADDs, into 99
+  91                    ADD   c
+  92                    ADD   c
+  93                    ADD   c
+  94                    ADD   c
+  95                    ADD   c
+  96                    ADD   c
+  97                    ADD   c
+  98                    ADD   c

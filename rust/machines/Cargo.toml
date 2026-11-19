@@ -1,0 +1,37 @@
+# The machines written in Rust, one binary target each, built for CARDIAC with `cargo cardiac build --release`
+# (rust-cardiac's cargo subcommand); ../build_machines.sh builds them all and copies the decks to ../decks/.
+[package]
+name = "cardiac-speech-machines"
+version = "0.1.0"
+edition = "2021"
+publish = false
+autobins = false
+
+[dependencies]
+cardiac = "0.2.5"
+
+[profile.release]
+overflow-checks = false
+debug-assertions = false
+
+[[bin]]
+name = "interp"
+path = "voice/interp.rs"
+[[bin]]
+name = "steps"
+path = "voice/steps.rs"
+[[bin]]
+name = "ksteps"
+path = "voice/ksteps.rs"
+[[bin]]
+name = "reduce"
+path = "voice/reduce.rs"
+[[bin]]
+name = "excite"
+path = "voice/excite.rs"
+[[bin]]
+name = "deemph"
+path = "voice/deemph.rs"
+[[bin]]
+name = "sample"
+path = "voice/sample.rs"

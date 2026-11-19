@@ -1,0 +1,24 @@
+[package]
+name = "cardiac-speech-rust"
+version = "0.1.0"
+edition = "2021"
+description = "Text to speech on CARDIACs, the machines written in Rust: one reader and one punch a machine"
+rust-version = "1.97"
+license = "MIT"
+publish = false
+autobins = false
+
+[lib]
+name = "cardiac_speech_rust"
+path = "src/lib.rs"
+
+[dependencies]
+# the CARDIAC engine: the machine, decks and the assembler
+heartburn = "0.1"
+
+[profile.release]
+debug = false
+
+[[bin]]
+name = "talk-frames"
+path = "src/bin/talk_frames.rs"

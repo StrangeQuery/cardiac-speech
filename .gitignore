@@ -5,3 +5,8 @@ __pycache__/
 *.s16
 work/
 prototype/out/
+# the Rust version's decks are kept, so that it builds with cargo alone; their panic maps aren't
+!rust/machines/**/*.cqb
+rust/machines/**/*.map
+rust/machines/target/
+rust/dev/

@@ -1,6 +1,7 @@
 """Step 5: talk on the three texts; the WAVs (prototype/out/*_cardiac.wav); the samples checked against the Python
 references end to end (text_ref, front_ref, voice_ref); compared with the Python pipeline's WAVs."""
 import os
+import bins
 import struct
 import subprocess
 import sys
@@ -12,7 +13,7 @@ import voice_ref as vr
 sys.path.insert(0, vr.LPC)
 import common   # noqa: E402
 
-BIN = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'target', 'release', 'talk')
+BIN = os.path.join(bins.RELEASE, 'talk')
 OUT = os.path.join(vr.LPC, 'out')
 TEXTS = [('born1968', "Hello, my name is cardiac and I was born in 1968 to D W Hagelbarger. And now I can talk."),
          ('mtv', "I want my MTV"),

@@ -1,0 +1,104 @@
+; Two stages of the LPC lattice (stages i and i-1, i = 8, 6 or 4). For each sample it reads the forward value f
+; from the machine above, and b(i-2) of the sample before from the machine below. It sends b(i) of the sample
+; before up, and the new f down. Every 20 samples (one step) it reads ten coefficient cards, five for each stage,
+; straight into the multiply routines: the sign word (ADD t or SUB t), the two jumps into the row of nine ADDs
+; (one per digit of the coefficient), the final SFT, and the rounding half.
+;
+; A stage is p = k b, f = f - p, q = k f, b(i) = b(i-1) + q. k x is Horner over the coefficient's two digits:
+; c = +x or -x, d2 ADDs of c, SFT 01, d1 ADDs of c, then half a unit away from zero and SFT 0L. The row of ADDs
+; is cells 90-98, and it runs on into cell 99, which holds the way back that the JMP into it left there.
+;
+; Address Contents Label Opcode Operand Comment
+  03            loop    OUT   bhi      03-07: b(i) of the sample before goes up; every 20 samples, new coefficients
+  04                    CLA   cnt
+  05                    SUB   00
+  06                    STO   cnt
+  07                    TAC   coef
+  08            go      INP   f        08-17: stage i
+  09                    CLA   blo
+  10                    JMP   mulh
+  11                    STO   p
+  12                    CLA   f
+  13                    SUB   p
+  14                    STO   f
+  15                    JMP   mulh
+  16                    ADD   blo
+  17                    STO   bhi
+  18            getb    INP   bx       18-29: stage i-1, then f goes down
+  19                    CLA   bx
+  20                    JMP   mull
+  21                    STO   p
+  22                    CLA   f
+  23                    SUB   p
+  24                    STO   f
+  25                    JMP   mull
+  26                    ADD   bx
+  27                    STO   blo
+  28                    OUT   f
+  29                    JMP   loop
+  30            coef    CLA   n19      30-42: a step's ten coefficient cards
+  31                    STO   cnt
+  32                    INP   sh
+  33                    INP   t1h
+  34                    INP   t2h
+  35                    INP   finh
+  36                    INP   hh
+  37                    INP   sl
+  38                    INP   t1l
+  39                    INP   t2l
+  40                    INP   finl
+  41                    INP   hl
+  42                    JMP   go
+  43            mulh    STO   t        43-58: k x for stage i, x in the accumulator
+  44                    CLA   99
+  45                    STO   reth
+  46                    CLA   z
+  47            sh      DATA  0        (ADD t or SUB t)
+  48                    STO   c
+  49                    CLA   z
+  50            t1h     DATA  0        (JMP into the row, d2 ADDs)
+  51                    SFT   01
+  52            t2h     DATA  0        (JMP into the row, d1 ADDs)
+  53                    TAC   negh
+  54                    ADD   hh
+  55            finh    DATA  0        (SFT 0L)
+  56            reth    DATA  0
+  57            negh    SUB   hh
+  58                    JMP   finh
+  59            mull    STO   t        59-84: k x for stage i-1
+  60                    CLA   99
+  61                    STO   retl
+  62                    CLA   z
+  63            sl      DATA  0
+  64                    STO   c
+  65                    CLA   z
+  66            t1l     DATA  0
+  67                    SFT   01
+  68            t2l     DATA  0
+  69                    TAC   negl
+  70                    ADD   hl
+  71            finl    DATA  0
+  72            retl    DATA  0
+  73            negl    SUB   hl
+  74                    JMP   finl
+  75            hh      DATA  0
+  76            hl      DATA  0
+  77            z       DATA  0
+  78            p       DATA  0
+  79            f       DATA  0
+  80            blo     DATA  0
+  81            bhi     DATA  0
+  82            bx      DATA  0
+  83            cnt     DATA  0
+  84            n19     DATA  19
+  86            t       DATA  0        t and c are at the same cells in every lattice machine
+  87            c       DATA  0
+  90            row     ADD   c        90-98: the row of nine ADDs, into 99
+  91                    ADD   c
+  92                    ADD   c
+  93                    ADD   c
+  94                    ADD   c
+  95                    ADD   c
+  96                    ADD   c
+  97                    ADD   c
+  98                    ADD   c

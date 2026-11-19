@@ -1,11 +1,12 @@
 """Step 2 under heartburn: talk-frames on the frame cards of each .frames file named, against voice_ref.voice,
 value for value."""
 import os
+import bins
 import subprocess
 import sys
 import voice_ref as vr
 
-BIN = os.path.join(os.path.dirname(__file__), '..', 'target', 'release', 'talk-frames')
+BIN = os.path.join(bins.RELEASE, 'talk-frames')
 WORK = os.path.join(os.path.dirname(__file__), '..', 'work')
 os.makedirs(WORK, exist_ok=True)
 ok = True
