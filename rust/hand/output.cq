@@ -1,0 +1,67 @@
+; The output stage. The lattice's output f in; the de-emphasis yd = f + 0.9 yd, then the sample 20 yd out as two
+; values, the thousands and then the units (0-999), as lubdub's decoder outputs them. yd is kept as thousands H and
+; units L with yd's sign; 0.9 L is (9 L + 5 away from zero) / 10, except that when f is 0 it is 9 L / 10 truncated,
+; so that in a pause yd dies away to 0 instead of sticking at up to 5, which rounding would hold forever. 2 yd is
+; made first, its units summed on top of 2000 so they never go negative (STO keeps them as U, SFT 03 gives the
+; carry); then 20 yd is 10 times that: its thousands are 10 T + U / 100 (SFT 10, SFT 02) and its units
+; 10 (U mod 100) (SFT 21).
+;
+; Address Contents Label Opcode Operand Comment
+  03            loop    INP   f        03-21: r = 0.9 L, rounded, or truncated when f is 0
+  04                    CLA   f
+  05                    TAC   rnd
+  06                    CLA   z
+  07                    SUB   f
+  08                    TAC   rnd
+  09                    CLA   lo
+  10                    SFT   10
+  11                    SUB   lo
+  12                    JMP   sh
+  13            rnd     CLA   lo
+  14                    SFT   10
+  15                    SUB   lo
+  16                    TAC   neg
+  17                    ADD   five
+  18                    JMP   sh
+  19            neg     SUB   five
+  20            sh      SFT   01
+  21                    STO   r
+  22                    CLA   hi       22-30: yd = 900 H + r + f, into H and L
+  23                    SFT   10
+  24                    SUB   hi
+  25                    SFT   20
+  26                    ADD   r
+  27                    ADD   f
+  28                    STO   lo
+  29                    SFT   03
+  30                    STO   hi
+  31                    CLA   two      31-51: 2 yd as T and U, then 20 yd
+  32                    SFT   30
+  33                    ADD   lo
+  34                    ADD   lo
+  35                    STO   u
+  36                    SFT   03
+  37                    ADD   hi
+  38                    ADD   hi
+  39                    SUB   two
+  40                    SFT   10
+  41                    STO   th
+  42                    CLA   u
+  43                    SFT   02
+  44                    ADD   th
+  45                    STO   th
+  46                    CLA   u
+  47                    SFT   21
+  48                    STO   u
+  49                    OUT   th
+  50                    OUT   u
+  51                    JMP   loop
+  52            f       DATA  0
+  53            lo      DATA  0
+  54            hi      DATA  0
+  55            r       DATA  0
+  56            u       DATA  0
+  57            th      DATA  0
+  58            five    DATA  5
+  59            two     DATA  2
+  60            z       DATA  0

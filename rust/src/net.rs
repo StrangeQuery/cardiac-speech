@@ -225,8 +225,9 @@ impl Net {
         self.collates.push(Collate { out, from });
     }
 
-    /// Cards go onto `out` from the piles in `pattern` in turn, so many from each, over and over; a pile named
-    /// `deck:NAME` is the deck given for NAME in `decks`, dealt again from its start each time its turn comes.
+    /// Cards go onto `out` from the piles in `pattern` in turn, so many from each, over and over (0 for every card
+    /// from then on); a pile named `deck:NAME` is the deck given for NAME in `decks`, dealt again from its start
+    /// each time its turn comes.
     pub fn merge(&mut self, out: &str, pattern: &[(&str, usize)], decks: &[(&str, &Rc<Vec<i32>>)]) {
         let out = self.pile(out);
         let mut names: Vec<&str> = vec![];
@@ -295,7 +296,7 @@ impl Net {
                 put(&mut self.piles, &mut self.kinds, m.out, card);
                 moved = true;
                 m.taken += 1;
-                if m.taken == n {
+                if m.taken == n && n > 0 {
                     m.taken = 0;
                     m.at = (m.at + 1) % m.pattern.len();
                 }
@@ -386,6 +387,9 @@ impl Net {
     pub fn tap(&self) {
         let Some(dir) = std::env::var_os("CARDIAC_SPEECH_TAP") else { return };
         std::fs::create_dir_all(&dir).expect("the tap folder");
+        let piles: String = self.names.iter().zip(&self.piles).filter(|(_, p)| !p.is_empty())
+            .map(|(n, p)| format!("{n} {}\n", p.len())).collect();
+        std::fs::write(std::path::Path::new(&dir).join("_piles"), piles).expect("a tap file");
         for n in &self.nodes {
             let text: String = n.punched.iter().flatten().map(|c| format!("{c}\n")).collect();
             std::fs::write(std::path::Path::new(&dir).join(&n.name), text).expect("a tap file");

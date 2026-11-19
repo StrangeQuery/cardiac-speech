@@ -16,7 +16,7 @@ for name in sys.argv[1:]:
     path = os.path.join(WORK, name + '.frames.cards')
     open(path, 'w').write('\n'.join(map(str, deck)) + '\n')
     want, peak = vr.voice(deck)
-    r = subprocess.run([BIN, '--values', '-v', path], capture_output=True, text=True)
+    r = subprocess.run([BIN, '--values', '-v', path] + bins.EXTRA, capture_output=True, text=True)
     got = [int(v) for v in r.stdout.split()]
     same = got == want
     ok &= same

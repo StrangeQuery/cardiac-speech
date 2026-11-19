@@ -26,3 +26,7 @@ path = "src/bin/talk_frames.rs"
 [[bin]]
 name = "talk-phonemes"
 path = "src/bin/talk_phonemes.rs"
+
+[[bin]]
+name = "talk"
+path = "src/bin/talk.rs"

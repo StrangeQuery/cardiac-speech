@@ -1,6 +1,8 @@
 //! talk-frames: frame cards in (a file, or standard input), the voice box on CARDIACs, raw 8 kHz signed 16-bit
 //! little-endian samples out on standard output. With -v, each machine's instruction count on standard error.
-//! With --values, the output values themselves, one a line, instead of samples.
+//! With --values, the output values themselves, one a line, instead of samples. With --all-rust, the six machines
+//! written by hand are replaced by Rust ones, to compare: the lattice by ten stages of kfirst, kmid and klast, and
+//! output by deemph and sample.
 use std::io::{Read, Write};
 
 use cardiac_speech_rust::net::{cards, Net};
@@ -10,6 +12,7 @@ fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let verbose = args.iter().any(|a| a == "-v");
     let values = args.iter().any(|a| a == "--values");
+    let all_rust = args.iter().any(|a| a == "--all-rust");
     let file = args.iter().find(|a| !a.starts_with('-') || *a == "-");
     let mut text = String::new();
     match file.map(|s| s.as_str()) {
@@ -21,7 +24,7 @@ fn main() {
     let deck = cards(&text);
     let started = std::time::Instant::now();
     let mut net = Net::new();
-    voice::wire(&mut net, "frames", "frames2", "out");
+    voice::wire(&mut net, "frames", "frames2", "out", all_rust);
     voice::deal_frames(&mut net, &deck, "frames", "frames2");
     let stdout = std::io::stdout();
     let mut w = std::io::BufWriter::new(stdout.lock());
@@ -46,6 +49,7 @@ fn main() {
         }
     }
     w.flush().unwrap();
+    net.tap();
     if verbose {
         let secs = started.elapsed().as_secs_f64();
         let total: u64 = net.steps().iter().map(|(_, s)| s).sum();

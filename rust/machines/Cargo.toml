@@ -34,6 +34,15 @@ path = "voice/reduce.rs"
 name = "excite"
 path = "voice/excite.rs"
 [[bin]]
+name = "kfirst"
+path = "voice/kfirst.rs"
+[[bin]]
+name = "kmid"
+path = "voice/kmid.rs"
+[[bin]]
+name = "klast"
+path = "voice/klast.rs"
+[[bin]]
 name = "deemph"
 path = "voice/deemph.rs"
 [[bin]]
@@ -174,3 +183,87 @@ path = "front/kcarry.rs"
 [[bin]]
 name = "asm"
 path = "front/asm.rs"
+[[bin]]
+name = "small"
+path = "text/small.rs"
+[[bin]]
+name = "scan"
+path = "text/scan.rs"
+[[bin]]
+name = "numd"
+path = "text/numd.rs"
+[[bin]]
+name = "unpack"
+path = "text/unpack.rs"
+[[bin]]
+name = "year"
+path = "text/year.rs"
+[[bin]]
+name = "numw"
+path = "text/numw.rs"
+[[bin]]
+name = "say3"
+path = "text/say3.rs"
+[[bin]]
+name = "ask"
+path = "text/ask.rs"
+[[bin]]
+name = "numf"
+path = "text/numf.rs"
+[[bin]]
+name = "spinfo"
+path = "text/spinfo.rs"
+[[bin]]
+name = "spcls"
+path = "text/spcls.rs"
+[[bin]]
+name = "spell"
+path = "text/spell.rs"
+[[bin]]
+name = "names"
+path = "text/names.rs"
+[[bin]]
+name = "items"
+path = "text/items.rs"
+[[bin]]
+name = "excl"
+path = "text/excl.rs"
+[[bin]]
+name = "excx"
+path = "text/excx.rs"
+[[bin]]
+name = "excp"
+path = "text/excp.rs"
+[[bin]]
+name = "letters"
+path = "text/letters.rs"
+[[bin]]
+name = "left"
+path = "text/left.rs"
+[[bin]]
+name = "right"
+path = "text/right.rs"
+[[bin]]
+name = "first"
+path = "text/first.rs"
+[[bin]]
+name = "pick"
+path = "text/pick.rs"
+[[bin]]
+name = "posta"
+path = "text/posta.rs"
+[[bin]]
+name = "postb"
+path = "text/postb.rs"
+[[bin]]
+name = "postc"
+path = "text/postc.rs"
+[[bin]]
+name = "postd"
+path = "text/postd.rs"
+[[bin]]
+name = "join"
+path = "text/join.rs"
+[[bin]]
+name = "end"
+path = "text/end.rs"

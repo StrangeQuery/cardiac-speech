@@ -3,4 +3,5 @@
 //! orders and fetches table records (`net`).
 pub mod front;
 pub mod net;
+pub mod text;
 pub mod voice;

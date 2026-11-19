@@ -27,18 +27,19 @@ macro_rules! decks {
 
 decks! {
     INTERP = "interp", STEPS = "steps", KSTEPS = "ksteps", REDUCE = "reduce", EXCITE = "excite",
-    DEEMPH = "deemph", SAMPLE = "sample",
+    DEEMPH = "deemph", SAMPLE = "sample", KFIRST = "kfirst", KMID = "kmid", KLAST = "klast",
 }
 pub const LATTICE_TOP: &str = include_str!("../hand/lattice_top.cq");
 pub const LATTICE: &str = include_str!("../hand/lattice.cq");
 pub const LATTICE_BOTTOM: &str = include_str!("../hand/lattice_bottom.cq");
+pub const OUTPUT: &str = include_str!("../hand/output.cq");
 
 /// Frame cards: V, P, A and K10 to K1 a frame.
 pub const FRAME: usize = 13;
 
 /// Wire the voice box into `net`: it reads frame cards from the piles `frames` (the deck) and `frames2` (the deck
 /// from its second frame on), and puts the output values on `out`. Its own piles are named v_...
-pub fn wire(net: &mut Net, frames: &str, frames2: &str, out: &str) {
+pub fn wire(net: &mut Net, frames: &str, frames2: &str, out: &str, all_rust: bool) {
     net.merge("v_pairs", &[(frames, 1), (frames2, 1)], &[]);
     net.add("interp", Program::Deck(INTERP), "v_pairs", "v_int");
     net.copy("v_int", &["v_int_p", "v_int_k"]);
@@ -48,31 +49,95 @@ pub fn wire(net: &mut Net, frames: &str, frames2: &str, out: &str) {
     net.add("steps", Program::Deck(STEPS), "v_steps", "v_exc");
     net.add("ksteps", Program::Deck(KSTEPS), "v_ksteps", "v_kin");
     net.add("reduce", Program::Deck(REDUCE), "v_kin", "v_coef");
-    net.deal("v_coef", 10, &["v_c1", "v_c2", "v_c3", "v_c4", "v_c5"]);
     net.add("excite", Program::Deck(EXCITE), "v_exc", "v_e");
-    let lattice = |net: &mut Net, name: &str, listing: &str, coef: &str, above: &str, below: Option<&str>, input: &str| {
-        let mut pattern = vec![(coef, 10)];
-        for _ in 0..20 {
-            pattern.push((above, 1));
-            if let Some(b) = below {
-                pattern.push((b, 1));
+    if all_rust {
+        wire_rust_lattice(net, "v_coef", "v_e", "v_f0");
+    } else {
+        net.deal("v_coef", 10, &["v_c1", "v_c2", "v_c3", "v_c4", "v_c5"]);
+        let lattice = |net: &mut Net, name: &str, listing: &str, coef: &str, above: &str, below: Option<&str>, input: &str| {
+            let mut pattern = vec![(coef, 10)];
+            for _ in 0..20 {
+                pattern.push((above, 1));
+                if let Some(b) = below {
+                    pattern.push((b, 1));
+                }
             }
+            net.merge(input, &pattern, &[]);
+            net.add(name, Program::Listing(listing), input, &format!("{input}_out"));
+        };
+        lattice(net, "L1", LATTICE_TOP, "v_c1", "v_e", Some("v_b8"), "v_l1");
+        net.copy("v_l1_out", &["v_f9"]);
+        lattice(net, "L2", LATTICE, "v_c2", "v_f9", Some("v_b6"), "v_l2");
+        net.deal("v_l2_out", 1, &["v_b8", "v_f7"]);
+        lattice(net, "L3", LATTICE, "v_c3", "v_f7", Some("v_b4"), "v_l3");
+        net.deal("v_l3_out", 1, &["v_b6", "v_f5"]);
+        lattice(net, "L4", LATTICE, "v_c4", "v_f5", Some("v_b2"), "v_l4");
+        net.deal("v_l4_out", 1, &["v_b4", "v_f3"]);
+        lattice(net, "L5", LATTICE_BOTTOM, "v_c5", "v_f3", None, "v_l5");
+        net.deal("v_l5_out", 1, &["v_b2", "v_f0"]);
+    }
+    if all_rust {
+        net.add("deemph", Program::Deck(DEEMPH), "v_f0", "v_yd");
+        net.add("sample", Program::Deck(SAMPLE), "v_yd", out);
+    } else {
+        net.add("output", Program::Listing(OUTPUT), "v_f0", out);
+    }
+}
+
+/// The lattice in Rust, for comparing with the hand-written machines: ten stages of three-machine multiplies
+/// (kfirst, kmid, klast), two multiplies a stage (f = f - k b, then b' = b + k f; the top stage's b is never used,
+/// so it has only the first). reduce's cards (`coef`, five a coefficient, K10 to K1) are dealt five at a time to the
+/// stages; the excitation comes in on `e`, and the lattice's output goes out on `f0`.
+fn wire_rust_lattice(net: &mut Net, coef: &str, e: &str, f0: &str) {
+    let stages: Vec<String> = (1..=10).rev().map(|i| format!("v_k{i}")).collect();
+    net.deal(coef, 5, &stages.iter().map(|s| s.as_str()).collect::<Vec<_>>());
+    // one multiply: y and x in (`step`, the cards of a step's 20 samples), x and then y less (or plus) k x out,
+    // onto `out`
+    let multiply = |net: &mut Net, name: &str, k: &str, add: i32, step: &[(&str, usize)], out: &str| {
+        for (part, cols) in [("f", &[0, 1][..]), ("m", &[2, 4]), ("l", &[3])] {
+            net.collate(&format!("{name}{part}k"), &[(&format!("{k}>{name}{part}"), 5, cols)]);
         }
-        net.merge(input, &pattern, &[]);
-        net.add(name, Program::Listing(listing), input, &format!("{input}_out"));
+        net.put(&format!("{name}f<"), &[add]);
+        let mut first = vec![(format!("{name}fk"), 2)];
+        first.extend(step.iter().map(|&(p, n)| (p.to_string(), n)));
+        let first: Vec<(&str, usize)> = first.iter().map(|(p, n)| (p.as_str(), *n)).collect();
+        net.merge(&format!("{name}f<"), &first, &[]);
+        net.add(&format!("{name}f"), Program::Deck(KFIRST), &format!("{name}f<"), &format!("{name}f"));
+        net.merge(&format!("{name}m<"), &[(&format!("{name}mk"), 2), (&format!("{name}f"), 80)], &[]);
+        net.add(&format!("{name}m"), Program::Deck(KMID), &format!("{name}m<"), &format!("{name}m"));
+        net.merge(&format!("{name}l<"), &[(&format!("{name}lk"), 1), (&format!("{name}m"), 80)], &[]);
+        net.add(&format!("{name}l"), Program::Deck(KLAST), &format!("{name}l<"), out);
     };
-    lattice(net, "L1", LATTICE_TOP, "v_c1", "v_e", Some("v_b8"), "v_l1");
-    net.copy("v_l1_out", &["v_f9"]);
-    lattice(net, "L2", LATTICE, "v_c2", "v_f9", Some("v_b6"), "v_l2");
-    net.deal("v_l2_out", 1, &["v_b8", "v_f7"]);
-    lattice(net, "L3", LATTICE, "v_c3", "v_f7", Some("v_b4"), "v_l3");
-    net.deal("v_l3_out", 1, &["v_b6", "v_f5"]);
-    lattice(net, "L4", LATTICE, "v_c4", "v_f5", Some("v_b2"), "v_l4");
-    net.deal("v_l4_out", 1, &["v_b4", "v_f3"]);
-    lattice(net, "L5", LATTICE_BOTTOM, "v_c5", "v_f3", None, "v_l5");
-    net.deal("v_l5_out", 1, &["v_b2", "v_f0"]);
-    net.add("deemph", Program::Deck(DEEMPH), "v_f0", "v_yd");
-    net.add("sample", Program::Deck(SAMPLE), "v_yd", out);
+    for i in (1..=10).rev() {
+        let k = format!("v_k{i}");
+        let (a, b) = (format!("v_a{i}"), format!("v_b{i}"));
+        let readers: Vec<String> = ["f", "m", "l"].iter().flat_map(|p| [format!("{a}{p}"), format!("{b}{p}")]).collect();
+        net.fan(&k, &readers.iter().map(|s| s.as_str()).collect::<Vec<_>>());
+        // f from the stage above (the excitation, at the top), and b of the sample before from the stage below (the
+        // output of the sample before, at the bottom); the first sample's b is 0
+        let above = if i == 10 { e.to_string() } else { format!("v_f{i}") };
+        let below = format!("v_up{}", i - 1);
+        net.put(&below, &[0]);
+        let pair = format!("{a}out");
+        multiply(net, &a, &k, -1, &[(above.as_str(), 1), (below.as_str(), 1)].repeat(20), &pair);
+        if i == 10 {
+            // the top stage: f goes down, its b isn't needed
+            net.collate(&format!("v_f{}", i - 1), &[(&pair, 2, &[1])]);
+            continue;
+        }
+        net.fan(&pair, &["b", "f"]);
+        // b' = b + k f, from the first multiply's b and f
+        let up = format!("{b}out");
+        multiply(net, &b, &k, 1, &[(&format!("{pair}>b"), 40)], &up);
+        net.collate(&format!("v_up{i}"), &[(&up, 2, &[1])]);
+        if i > 1 {
+            net.collate(&format!("v_f{}", i - 1), &[(&format!("{pair}>f"), 2, &[1])]);
+        } else {
+            // the bottom stage: its f is the lattice's output, and b0 of the next sample
+            net.collate("v_f0x", &[(&format!("{pair}>f"), 2, &[1])]);
+            net.copy("v_f0x", &[f0, "v_up0"]);
+        }
+    }
 }
 
 /// Deal a deck of frame cards (ending with a card below zero) to the voice box's two frame piles: the deck with
