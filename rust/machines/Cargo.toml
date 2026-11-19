@@ -11,6 +11,10 @@ autobins = false
 cardiac = "0.2.5"
 
 [profile.release]
+
+
+
+
 overflow-checks = false
 debug-assertions = false
 
@@ -35,3 +39,138 @@ path = "voice/deemph.rs"
 [[bin]]
 name = "sample"
 path = "voice/sample.rs"
+[[bin]]
+name = "seg"
+path = "front/seg.rs"
+[[bin]]
+name = "after"
+path = "front/after.rs"
+[[bin]]
+name = "ahead"
+path = "front/ahead.rs"
+[[bin]]
+name = "p1"
+path = "front/p1.rs"
+[[bin]]
+name = "next"
+path = "front/next.rs"
+[[bin]]
+name = "stress"
+path = "front/stress.rs"
+[[bin]]
+name = "base"
+path = "front/base.rs"
+[[bin]]
+name = "rules2"
+path = "front/rules2.rs"
+[[bin]]
+name = "rules5"
+path = "front/rules5.rs"
+[[bin]]
+name = "rules7"
+path = "front/rules7.rs"
+[[bin]]
+name = "rules9"
+path = "front/rules9.rs"
+[[bin]]
+name = "mul"
+path = "front/mul.rs"
+[[bin]]
+name = "dur"
+path = "front/dur.rs"
+[[bin]]
+name = "nframes"
+path = "front/nframes.rs"
+[[bin]]
+name = "back"
+path = "front/back.rs"
+[[bin]]
+name = "sum"
+path = "front/sum.rs"
+[[bin]]
+name = "fill"
+path = "front/fill.rs"
+[[bin]]
+name = "closure"
+path = "front/closure.rs"
+[[bin]]
+name = "main"
+path = "front/main.rs"
+[[bin]]
+name = "edge"
+path = "front/edge.rs"
+[[bin]]
+name = "loud"
+path = "front/loud.rs"
+[[bin]]
+name = "framer"
+path = "front/framer.rs"
+[[bin]]
+name = "weights"
+path = "front/weights.rs"
+[[bin]]
+name = "spread"
+path = "front/spread.rs"
+[[bin]]
+name = "choose"
+path = "front/choose.rs"
+[[bin]]
+name = "glides"
+path = "front/glides.rs"
+[[bin]]
+name = "glidea"
+path = "front/glidea.rs"
+[[bin]]
+name = "halfway"
+path = "front/halfway.rs"
+[[bin]]
+name = "glideb"
+path = "front/glideb.rs"
+[[bin]]
+name = "decl"
+path = "front/decl.rs"
+[[bin]]
+name = "onset"
+path = "front/onset.rs"
+[[bin]]
+name = "rise"
+path = "front/rise.rs"
+[[bin]]
+name = "taily"
+path = "front/taily.rs"
+[[bin]]
+name = "tailt"
+path = "front/tailt.rs"
+[[bin]]
+name = "tailf"
+path = "front/tailf.rs"
+[[bin]]
+name = "period"
+path = "front/period.rs"
+[[bin]]
+name = "lsel"
+path = "front/lsel.rs"
+[[bin]]
+name = "vsel"
+path = "front/vsel.rs"
+[[bin]]
+name = "psel"
+path = "front/psel.rs"
+[[bin]]
+name = "gnorm"
+path = "front/gnorm.rs"
+[[bin]]
+name = "scale"
+path = "front/scale.rs"
+[[bin]]
+name = "fall"
+path = "front/fall.rs"
+[[bin]]
+name = "boost"
+path = "front/boost.rs"
+[[bin]]
+name = "kcarry"
+path = "front/kcarry.rs"
+[[bin]]
+name = "asm"
+path = "front/asm.rs"

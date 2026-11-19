@@ -52,6 +52,8 @@ struct Node {
     done: bool,
     /// waiting at an INP for a card
     waiting: bool,
+    /// what it has punched, kept when the environment's CARDIAC_SPEECH_TAP names a folder (for finding a fault)
+    punched: Option<Vec<i32>>,
 }
 
 /// What a pile does with the cards put on it.
@@ -59,7 +61,9 @@ enum Kind {
     Keep,
     Deal { n: usize, to: Vec<Pile>, dealt: usize },
     Copy(Vec<Pile>),
-    Fetch { table: Rc<Vec<i32>>, size: usize, to: Pile },
+    Fetch { table: Rc<Vec<i32>>, size: usize, from: usize, count: usize, to: Pile },
+    /// the first `n` cards put on it are set aside, and the rest go onto `to`: a deck dealt again from a later card
+    After { n: usize, seen: usize, to: Pile },
 }
 
 /// Whole records from several piles put together onto one: (source, record size, the cards of it kept).
@@ -105,11 +109,18 @@ fn put(piles: &mut [VecDeque<i32>], kinds: &mut [Kind], pile: Pile, card: i32) {
                 put(piles, kinds, p, card);
             }
         }
-        Kind::Fetch { table, size, to } => {
-            let (table, at, size, to) = (table.clone(), card as usize * *size, *size, *to);
-            assert!(card >= 0 && at + size <= table.len(), "no record {card} in the table");
-            for &c in &table[at..at + size] {
+        Kind::Fetch { table, size, from, count, to } => {
+            let (table, at, count, to) = (table.clone(), card as usize * *size + *from, *count, *to);
+            assert!(card >= 0 && at + count <= table.len(), "no record {card} in the table");
+            for &c in &table[at..at + count] {
                 put(piles, kinds, to, c);
+            }
+        }
+        Kind::After { n, seen, to } => {
+            *seen += 1;
+            if *seen > *n {
+                let to = *to;
+                put(piles, kinds, to, card);
             }
         }
     }
@@ -118,6 +129,7 @@ fn put(piles: &mut [VecDeque<i32>], kinds: &mut [Kind], pile: Pile, card: i32) {
 /// What a machine punches, onto its one pile.
 struct Punch<'a> {
     out: Pile,
+    tap: &'a mut Option<Vec<i32>>,
     piles: &'a mut Vec<VecDeque<i32>>,
     kinds: &'a mut Vec<Kind>,
 }
@@ -125,6 +137,9 @@ struct Punch<'a> {
 impl Console for Punch<'_> {
     fn output(&mut self, card: i32) {
         VALUES_OUT.fetch_add(1, Relaxed);
+        if let Some(t) = self.tap.as_mut() {
+            t.push(card);
+        }
         put(self.piles, self.kinds, self.out, card);
     }
 }
@@ -178,11 +193,28 @@ impl Net {
         self.kinds[p] = Kind::Copy(to);
     }
 
-    /// A card put on `pile` from now on names a record of `table` (records of `size` cards), which goes onto `to`.
-    pub fn fetch(&mut self, pile: &str, table: &Rc<Vec<i32>>, size: usize, to: &str) {
+    /// A card put on `pile` from now on names a record of `table` (records of `size` cards), whose cards `from` to
+    /// `from + count` go onto `to`.
+    pub fn fetch(&mut self, pile: &str, table: &Rc<Vec<i32>>, size: usize, from: usize, count: usize, to: &str) {
         let p = self.pile(pile);
         let to = self.pile(to);
-        self.kinds[p] = Kind::Fetch { table: table.clone(), size, to };
+        self.kinds[p] = Kind::Fetch { table: table.clone(), size, from, count, to };
+    }
+
+    /// The cards put on `pile` from now on go onto `to`, but for the first `n` of them: the same deck again from
+    /// its card `n` on.
+    pub fn after(&mut self, pile: &str, n: usize, to: &str) {
+        let p = self.pile(pile);
+        let to = self.pile(to);
+        self.kinds[p] = Kind::After { n, seen: 0, to };
+    }
+
+    /// Every card put on `pile` goes onto a pile for each of `readers`, named `pile>reader`: the same cards for
+    /// several readers.
+    pub fn fan(&mut self, pile: &str, readers: &[&str]) {
+        let to: Vec<String> = readers.iter().map(|r| format!("{pile}>{r}")).collect();
+        let to: Vec<&str> = to.iter().map(|s| s.as_str()).collect();
+        self.copy(pile, &to);
     }
 
     /// Whenever each of `from` holds a whole record (its size), the records are taken off and the cards picked
@@ -282,7 +314,8 @@ impl Net {
         let mut cardiac = Machine::new();
         cardiac.push(&deck);
         DECK_CARDS.fetch_add(deck.len() as u64, Relaxed);
-        self.nodes.push(Node { name: name.into(), cardiac, input, output, done: false, waiting: false });
+        let punched = std::env::var_os("CARDIAC_SPEECH_TAP").map(|_| vec![]);
+        self.nodes.push(Node { name: name.into(), cardiac, input, output, done: false, waiting: false, punched });
     }
 
     /// Put cards on a pile.
@@ -317,7 +350,8 @@ impl Net {
                     node.waiting = false;
                 }
                 let before = node.cardiac.steps();
-                let mut punch = Punch { out: node.output, piles: &mut self.piles, kinds: &mut self.kinds };
+                let mut punch =
+                    Punch { out: node.output, tap: &mut node.punched, piles: &mut self.piles, kinds: &mut self.kinds };
                 let event = node.cardiac.run(budget.saturating_sub(spent).max(1), &mut punch);
                 spent += node.cardiac.steps() - before;
                 moved = true;
@@ -338,9 +372,24 @@ impl Net {
         moved
     }
 
-    /// Run every machine until none can go on.
+    /// Run every machine until none can go on. With CARDIAC_SPEECH_TAP set, what each machine punched is written
+    /// out afterwards, or when something goes wrong.
     pub fn run(&mut self) {
-        while self.round(u64::MAX) {}
+        let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| while self.round(u64::MAX) {}));
+        self.tap();
+        if let Err(e) = run {
+            std::panic::resume_unwind(e);
+        }
+    }
+
+    /// With CARDIAC_SPEECH_TAP set to a folder, write what each machine punched there, a file a machine.
+    pub fn tap(&self) {
+        let Some(dir) = std::env::var_os("CARDIAC_SPEECH_TAP") else { return };
+        std::fs::create_dir_all(&dir).expect("the tap folder");
+        for n in &self.nodes {
+            let text: String = n.punched.iter().flatten().map(|c| format!("{c}\n")).collect();
+            std::fs::write(std::path::Path::new(&dir).join(&n.name), text).expect("a tap file");
+        }
     }
 
     /// Each machine's name and the instructions it has run (the loader's among them).

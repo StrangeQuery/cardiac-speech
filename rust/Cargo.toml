@@ -22,3 +22,7 @@ debug = false
 [[bin]]
 name = "talk-frames"
 path = "src/bin/talk_frames.rs"
+
+[[bin]]
+name = "talk-phonemes"
+path = "src/bin/talk_phonemes.rs"
