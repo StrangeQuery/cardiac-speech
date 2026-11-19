@@ -436,3 +436,7 @@ say3 numf spcls spell names excl excp match posta postb postc join` tests each t
 - C. F. Sacia and C. J. Beck, "The Power of Fundamental Speech Sounds", Bell System Technical Journal 5(3), 393-403, 1926. https://archive.org/details/bstj5-3-393. The power of each speech sound.
 - C. L. Ostrowski and B. White, "Integrated circuit phoneme-based speech synthesizer", US patent 4,433,210, Federal Screw Works, 1984 (priority 1980). https://patents.google.com/patent/US4433210A/en. The Votrax SC-01's resonant filters, its 64 phonemes and their parameters, its inflection bits and phoneme durations.
 - R. H. Wiggins and G. L. Brantingham, "Speech synthesis integrated circuit device", US patent 4,331,836, Texas Instruments, 1982 (priority 1977). https://patents.google.com/patent/US4331836A/en. The Speak & Spell chip's coefficients, chirp excitation, sample rate, frame rate, interpolation and bit rate.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

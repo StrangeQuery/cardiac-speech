@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Text to speech on CARDIACs: every step of the computation done by CARDIAC programs, the host only moving cards"
 rust-version = "1.97"
+license = "MIT"
 publish = false
 
 [lib]
