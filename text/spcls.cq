@@ -1,0 +1,92 @@
+; Which words are spelled out. First card in: 1 if the text has a small letter. Then cards pass through; for a
+; word's letters (1-27) it counts l (letters, apostrophes not counted) and notes a vowel A E I O U (hv) and the last
+; letter. At the word's end (-10) comes lw (0 all capitals, 1 a small letter, 2 all capitals, counted as in an
+; all-capitals text); out goes -11 if the word is to be spelled: all capitals, and one letter other than A and I, or
+; two or more with no vowel or not in an all-capitals text; else -10.
+;
+; Address Contents Label Opcode Operand Comment
+  03            start   INP   lowt     03-15: the flag; a card: pass it on, a letter, or the word's end
+  04            rec     INP   x
+  05                    CLA   x
+  06                    TAC   neg
+  07                    SUB   c28
+  08                    TAC   let
+  09            pass    OUT   x
+  10                    JMP   rec
+  11            neg     ADD   c10
+  12                    TAC   pass
+  13                    SUB   00
+  14                    TAC   endw
+  15                    JMP   pass
+  16            let     ADD   c28      16-31: a letter, counted
+  17                    OUT   x
+  18                    SUB   c27
+  19                    TAC   lt
+  20                    JMP   rec
+  21            lt      CLA   l
+  22                    ADD   00
+  23                    STO   l
+  24                    CLA   x
+  25                    STO   last
+  26                    SUB   n6
+  27                    TAC   hvs
+  28                    JMP   rec
+  29            hvs     CLA   00
+  30                    STO   hv
+  31                    JMP   rec
+  32            endw    INP   lw       32-64: spelled or not
+  33                    CLA   z
+  34                    STO   sp
+  35                    CLA   lw
+  36                    SUB   00
+  37                    TAC   up
+  38                    SUB   00
+  39                    TAC   e10
+  40            up      CLA   l
+  41                    SUB   00
+  42                    TAC   e10
+  43                    SUB   00
+  44                    TAC   one
+  45                    CLA   lw
+  46                    SUB   n2
+  47                    TAC   c0
+  48                    JMP   capy
+  49            c0      CLA   lowt
+  50                    SUB   00
+  51                    TAC   capy
+  52                    JMP   spel
+  53            capy    CLA   hv
+  54                    SUB   00
+  55                    TAC   spel
+  56                    JMP   e10
+  57            one     CLA   last
+  58                    SUB   n2
+  59                    TAC   e10
+  60                    CLA   last
+  61                    SUB   n5
+  62                    TAC   spel
+  63                    SUB   00
+  64                    TAC   e10
+  65            spel    OUT   m11      65-87: the end card, and all cleared
+  66                    JMP   rst
+  67            e10     OUT   m10
+  68            rst     CLA   z
+  69                    STO   l
+  70                    STO   hv
+  71                    JMP   rec
+  72            lowt    DATA  0
+  73            x       DATA  0
+  74            l       DATA  0
+  75            hv      DATA  0
+  76            last    DATA  0
+  77            lw      DATA  0
+  78            sp      DATA  0
+  79            z       DATA  0
+  80            n2      DATA  2
+  81            n5      DATA  5
+  82            n6      DATA  6
+  83            c27     DATA  27
+  84            c28     DATA  28
+  85            c10     DATA  10
+  86            m10     DATA  -10
+  87            m11     DATA  -11

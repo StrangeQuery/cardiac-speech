@@ -1,0 +1,81 @@
+; Words to be spelled, made ready. Cards pass through except words: a word's letters (1-27) go onto this machine's
+; own pile (OUT at keep, back to INP at gp), counting n (cards) and l (letters). A word ended by -10 goes on as it
+; came, then -10. One ended by -11 goes on as its letters, apostrophes dropped, as 100 + code, the last as 200 +
+; code, then -11, for names.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   x        03-16: a card: pass it on, a letter, or a word's end
+  04                    CLA   x
+  05                    TAC   neg
+  06                    SUB   c28
+  07                    TAC   let
+  08            pass    OUT   x
+  09                    JMP   rec
+  10            neg     ADD   c11
+  11                    TAC   pass
+  12                    SUB   00
+  13                    TAC   e11
+  14                    SUB   00
+  15                    TAC   e10
+  16                    JMP   pass
+  17            let     ADD   c28      17-29: onto the pile, counted
+  18            keep    OUT   x
+  19                    CLA   n
+  20                    ADD   00
+  21                    STO   n
+  22                    CLA   x
+  23                    SUB   c27
+  24                    TAC   lt
+  25                    JMP   rec
+  26            lt      CLA   l
+  27                    ADD   00
+  28                    STO   l
+  29                    JMP   rec
+  30            e10     CLA   n        30-38: not spelled: the word as it came
+  31                    SUB   00
+  32                    TAC   o10
+  33                    STO   n
+  34            gp      INP   y
+  35                    OUT   y
+  36                    JMP   e10
+  37            o10     OUT   m10
+  38                    JMP   rst
+  39            e11     CLA   n        39-65: spelled: the letters marked, the last 200
+  40                    SUB   00
+  41                    TAC   o11
+  42                    STO   n
+  43            gp2     INP   y
+  44                    CLA   y
+  45                    SUB   c27
+  46                    TAC   lm
+  47                    JMP   e11
+  48            lm      CLA   l
+  49                    SUB   00
+  50                    STO   l
+  51                    SUB   00
+  52                    TAC   last
+  53                    CLA   y
+  54                    ADD   c100
+  55                    JMP   oy
+  56            last    CLA   y
+  57                    ADD   c200
+  58            oy      STO   y
+  59                    OUT   y
+  60                    JMP   e11
+  61            o11     OUT   m11
+  62            rst     CLA   z
+  63                    STO   n
+  64                    STO   l
+  65                    JMP   rec
+  70            x       DATA  0
+  71            y       DATA  0
+  72            n       DATA  0
+  73            l       DATA  0
+  74            z       DATA  0
+  75            c11     DATA  11
+  76            c27     DATA  27
+  77            c28     DATA  28
+  78            c100    DATA  100
+  79            c200    DATA  200
+  80            m10     DATA  -10
+  81            m11     DATA  -11

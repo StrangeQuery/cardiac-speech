@@ -1,0 +1,66 @@
+; The rules, one by one. In from filter: a section of rules, or a card to pass on. A rule is 600, its length, its
+; left elements and 0, its right elements and 0, then its phonemes up to the next 600 or 999. The left elements go
+; to the left context machine (OUT at ol), the right to the right one (OUT at or); their answers come back (INP at
+; vd, gr). Both 1: the length to loader (OUT at al), -1 to both context machines (OUT at dl, dr), the phonemes out,
+; and the rest of the section skipped. Else 0 to loader (OUT at no), and on to the next rule.
+;
+; Address Contents Label Opcode Operand Comment
+  03            top     INP   x        03-06: a rule, or a card to pass on
+  04                    CLA   x
+  05                    SUB   c600
+  06                    TAC   pass
+  07            rul     INP   len      07-25: the elements to the context machines, and their answers
+  08            fl      INP   y
+  09            ol      OUT   y
+  10                    CLA   y
+  11                    SUB   00
+  12                    TAC   fr
+  13                    JMP   fl
+  14            fr      INP   y
+  15            or      OUT   y
+  16                    CLA   y
+  17                    SUB   00
+  18                    TAC   vd
+  19                    JMP   fr
+  20            vd      INP   v
+  21            gr      INP   w
+  22                    CLA   v
+  23                    ADD   w
+  24                    SUB   n2
+  25                    TAC   no
+  26            al      OUT   len      26-40: it matched: the phonemes out, the rest skipped
+  27            dl      OUT   m1
+  28            dr      OUT   m1
+  29            ph      INP   x
+  30                    CLA   x
+  31                    SUB   c600
+  32                    TAC   phout
+  33            sk      CLA   x
+  34                    SUB   c999
+  35                    TAC   sk2
+  36                    JMP   top
+  37            sk2     INP   x
+  38                    JMP   sk
+  39            phout   OUT   x
+  40                    JMP   ph
+  41            no      OUT   z        41-51: it did not: on to the next rule
+  42            nsk     INP   x
+  43                    CLA   x
+  44                    SUB   c600
+  45                    TAC   nsk
+  46                    CLA   x
+  47                    SUB   c999
+  48                    TAC   rul
+  49                    JMP   top
+  50            pass    OUT   x
+  51                    JMP   top
+  60            x       DATA  0
+  61            len     DATA  0
+  62            y       DATA  0
+  63            v       DATA  0
+  64            w       DATA  0
+  65            z       DATA  0
+  66            n2      DATA  2
+  67            m1      DATA  -1
+  68            c600    DATA  600
+  69            c999    DATA  999

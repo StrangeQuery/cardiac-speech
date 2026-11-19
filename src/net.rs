@@ -42,6 +42,9 @@ enum Kind {
     Deal { n: usize, to: Vec<Pile>, dealt: usize },
     Copy(Vec<Pile>),
     Fetch { table: std::rc::Rc<Vec<i32>>, size: usize, from: usize, count: usize, to: Pile },
+    /// a deck dealt onto the pile again whenever a machine waits on it empty (the rule deck, read through again
+    /// and again)
+    Cycle(std::rc::Rc<Vec<i32>>),
 }
 
 /// Whole records from several piles put together onto one: (source, record size, the cards of it kept).
@@ -67,7 +70,7 @@ struct Punch<'a> {
 
 fn put(piles: &mut [VecDeque<i32>], kinds: &mut [Kind], pile: Pile, card: i32) {
     match &mut kinds[pile] {
-        Kind::Keep => piles[pile].push_back(card),
+        Kind::Keep | Kind::Cycle(_) => piles[pile].push_back(card),
         Kind::Deal { n, to, dealt } => {
             let p = to[(*dealt / *n) % to.len()];
             *dealt += 1;
@@ -151,6 +154,12 @@ impl Net {
         let p = self.pile(pile);
         let to = self.pile(to);
         self.kinds[p] = Kind::Fetch { table: table.clone(), size, from, count, to };
+    }
+
+    /// `deck` is dealt onto `pile` again whenever a machine waits on it empty.
+    pub fn cycle(&mut self, pile: &str, deck: &std::rc::Rc<Vec<i32>>) {
+        let p = self.pile(pile);
+        self.kinds[p] = Kind::Cycle(deck.clone());
     }
 
     /// Whenever each of `from` holds a whole record (its size), the records are taken off and the cards picked
@@ -241,6 +250,11 @@ impl Net {
             loop {
                 if node.waiting {
                     let p = node.wiring.inp[node.cardiac.pc()];
+                    if self.piles[p].is_empty() {
+                        if let Kind::Cycle(deck) = &self.kinds[p] {
+                            self.piles[p].extend(deck.iter().copied());
+                        }
+                    }
                     let Some(card) = self.piles[p].pop_front() else { break };
                     node.cardiac.push(&[card]);
                     node.waiting = false;

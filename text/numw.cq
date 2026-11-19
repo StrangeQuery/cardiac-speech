@@ -1,0 +1,96 @@
+; A number's words, in groups. Cards pass through except -15 and the seven after it (the count of digits and the
+; last six, d5 to d0). For those, out go words (700 + their place in the numbers deck: 28 hundred, 29 thousand,
+; 30 oh) and groups of three digits for say3 (-16, h, t, o): a year 1100-1999 in pairs (19, then hundred, or oh and
+; the last digit, or the last two); zero for 0; else the thousands' group and thousand, then the rest's group.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   x        03-10: a card: pass it on, or a number
+  04                    CLA   x
+  05                    ADD   c15
+  06                    TAC   pass
+  07                    SUB   00
+  08                    TAC   num
+  09            pass    OUT   x
+  10                    JMP   rec
+  11            num     INP   n        11-32: a year: four digits, 11-19 first
+  12                    INP   d5
+  13                    INP   d4
+  14                    INP   d3
+  15                    INP   d2
+  16                    INP   d1
+  17                    INP   d0
+  18                    CLA   n
+  19                    SUB   n4
+  20                    TAC   gen
+  21                    SUB   00
+  22                    TAC   y3
+  23                    JMP   gen
+  24            y3      CLA   d3
+  25                    SUB   00
+  26                    TAC   gen
+  27                    SUB   00
+  28                    TAC   y2
+  29                    JMP   gen
+  30            y2      CLA   d2
+  31                    SUB   00
+  32                    TAC   gen
+  33                    OUT   m16      33-56: the year's words
+  34                    OUT   z
+  35                    OUT   d3
+  36                    OUT   d2
+  37                    CLA   d1
+  38                    ADD   d0
+  39                    SUB   00
+  40                    TAC   hun
+  41                    CLA   d1
+  42                    SUB   00
+  43                    TAC   oh
+  44                    OUT   m16
+  45                    OUT   z
+  46                    OUT   d1
+  47                    OUT   d0
+  48                    JMP   rec
+  49            hun     OUT   c728
+  50                    JMP   rec
+  51            oh      OUT   c730
+  52                    CLA   d0
+  53                    ADD   c700
+  54                    STO   x
+  55                    OUT   x
+  56                    JMP   rec
+  57            gen     CLA   n        57-76: zero, or the thousands and the rest
+  58                    SUB   00
+  59                    TAC   zero
+  60                    CLA   d5
+  61                    ADD   d4
+  62                    ADD   d3
+  63                    SUB   00
+  64                    TAC   rest
+  65                    OUT   m16
+  66                    OUT   d5
+  67                    OUT   d4
+  68                    OUT   d3
+  69                    OUT   c729
+  70            rest    OUT   m16
+  71                    OUT   d2
+  72                    OUT   d1
+  73                    OUT   d0
+  74                    JMP   rec
+  75            zero    OUT   c700
+  76                    JMP   rec
+  80            x       DATA  0
+  81            n       DATA  0
+  82            d5      DATA  0
+  83            d4      DATA  0
+  84            d3      DATA  0
+  85            d2      DATA  0
+  86            d1      DATA  0
+  87            d0      DATA  0
+  88            z       DATA  0
+  89            n4      DATA  4
+  90            c15     DATA  15
+  91            m16     DATA  -16
+  92            c700    DATA  700
+  93            c728    DATA  728
+  94            c729    DATA  729
+  95            c730    DATA  730

@@ -132,7 +132,8 @@ class Net:
         self.log = None
         self.fetch = {}
         self.fan = {}          # pile -> piles that each get a copy of every card put on it
-        self.collates = []     # (out pile, [(source pile, record size, columns)]): whole records, columns picked
+        self.collates = []
+        self.cycle = {}        # pile -> a deck dealt onto it again whenever a machine waits on it empty     # (out pile, [(source pile, record size, columns)]): whole records, columns picked
 
     def add(self, name, path, inp, out):
         deck, labels = assemble(path)
@@ -189,6 +190,8 @@ class Net:
                 if state[n] == 'input':
                     p = self.inp[n].get(mc.pc, self.inp[n].get('*'))
                     q = self.piles.get(p)
+                    if not q and p in self.cycle:
+                        self.piles[p] = q = list(self.cycle[p])
                     if not q:
                         continue
                     mc.push([q.pop(0)])

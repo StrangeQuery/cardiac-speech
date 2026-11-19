@@ -3,4 +3,5 @@
 //! cards) and `text/` (text to phonemes).
 pub mod front;
 pub mod net;
+pub mod text;
 pub mod voice;

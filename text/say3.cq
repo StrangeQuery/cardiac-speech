@@ -1,0 +1,55 @@
+; A group of three digits said. Cards pass through except -16 and the three after it (h, t, o); for those, out go
+; the words, as 700 + their place in the numbers deck: h and hundred (28) if h is not 0; then the one under twenty
+; (t 0 or 1), or the ten (18 + t) and the one if it is not 0.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   x        03-10: a card: pass it on, or a group
+  04                    CLA   x
+  05                    ADD   c16
+  06                    TAC   pass
+  07                    SUB   00
+  08                    TAC   grp
+  09            pass    OUT   x
+  10                    JMP   rec
+  11            grp     INP   h        11-21: the hundreds
+  12                    INP   t
+  13                    INP   o
+  14                    CLA   h
+  15                    SUB   00
+  16                    TAC   tens
+  17                    CLA   h
+  18                    ADD   c700
+  19                    STO   x
+  20                    OUT   x
+  21                    OUT   c728
+  22            tens    CLA   t        22-43: the tens and ones
+  23                    SUB   00
+  24                    TAC   ones
+  25                    SUB   00
+  26                    TAC   teen
+  27                    CLA   t
+  28                    ADD   c718
+  29                    STO   x
+  30                    OUT   x
+  31            ones    CLA   o
+  32                    SUB   00
+  33                    TAC   rec
+  34                    CLA   o
+  35                    ADD   c700
+  36                    STO   x
+  37                    OUT   x
+  38                    JMP   rec
+  39            teen    CLA   o
+  40                    ADD   c710
+  41                    STO   x
+  42                    OUT   x
+  43                    JMP   rec
+  50            x       DATA  0
+  51            h       DATA  0
+  52            t       DATA  0
+  53            o       DATA  0
+  54            c16     DATA  16
+  55            c700    DATA  700
+  56            c710    DATA  710
+  57            c718    DATA  718
+  58            c728    DATA  728

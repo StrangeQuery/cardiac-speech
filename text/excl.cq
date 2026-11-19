@@ -1,0 +1,105 @@
+; The function words and the exceptions. Cards pass through except words: a word's letters (1-27) go onto this
+; machine's own pile (OUT at keep; the pile goes round through INP gw / OUT kw and INP gy / OUT ky), counting n. At
+; its end (-10) the word is looked for in the words deck, read through to its end (-99; dealt again for each word,
+; INP at gd): the function words, each its letters and -52, then the exceptions, each its letters and -100 - its
+; number, compared
+; letter by letter with the word as the word goes round the pile once. Then the word goes on: its letters, -99, 1 if
+; it is a function word (else 0), and -100 - its number in the exception list if it is one (else 0).
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   w        03-19: a card: pass it on, a letter onto the pile, or a word's end
+  04                    CLA   w
+  05                    TAC   neg
+  06                    SUB   c28
+  07                    TAC   keep
+  08            pass    OUT   w
+  09                    JMP   rec
+  10            neg     ADD   c10
+  11                    TAC   pass
+  12                    SUB   00
+  13                    TAC   look
+  14                    JMP   pass
+  15            keep    OUT   w
+  16                    CLA   n
+  17                    ADD   00
+  18                    STO   n
+  19                    JMP   rec
+  20            look    CLA   z        20-48: an entry, compared with the word
+  21                    STO   fn
+  22                    STO   k
+  23            ent     CLA   z
+  24                    STO   i
+  25                    CLA   00
+  26                    STO   m
+  27            gd      INP   e
+  28                    CLA   e
+  29                    TAC   mk
+  30                    CLA   n
+  31                    SUB   i
+  32                    SUB   00
+  33                    TAC   mis
+  34            cmp     CLA   i
+  35                    ADD   00
+  36                    STO   i
+  37            gw      INP   w
+  38            kw      OUT   w
+  39                    CLA   w
+  40                    SUB   e
+  41                    TAC   mis
+  42                    CLA   e
+  43                    SUB   w
+  44                    TAC   mis
+  45                    JMP   gd
+  46            mis     CLA   z
+  47                    STO   m
+  48                    JMP   gd
+  49            mk      CLA   i        49-60: the entry's end: the rest of the word round the pile
+  50                    SUB   n
+  51                    TAC   cy
+  52                    JMP   kind
+  53            cy      CLA   z
+  54                    STO   m
+  55                    CLA   i
+  56                    ADD   00
+  57                    STO   i
+  58            gy      INP   w
+  59            ky      OUT   w
+  60                    JMP   mk
+  61            kind    CLA   e        61-69: a function word (-52), an exception (-100 - its number), or the end
+  62                    ADD   c52
+  63                    TAC   nf
+  64                    CLA   fn
+  65                    ADD   m
+  66                    STO   fn
+  67                    JMP   ent
+  68            nf      ADD   c47
+  69                    TAC   ex
+  70            end     CLA   n        70-98: the word goes on
+  71                    SUB   00
+  72                    TAC   fin
+  73                    STO   n
+  74            gz      INP   w
+  75                    OUT   w
+  76                    JMP   end
+  77            fin     OUT   e
+  78                    OUT   fn
+  79                    OUT   k
+  80                    JMP   rec
+  81            ex      CLA   m
+  82                    SUB   00
+  83                    TAC   ent
+  84                    CLA   e
+  85                    STO   k
+  86                    JMP   ent
+  87            n       DATA  0
+  88            i       DATA  0
+  89            m       DATA  0
+  90            e       DATA  0
+  91            w       DATA  0
+  92            fn      DATA  0
+  93            k       DATA  0
+  94            z       DATA  0
+  95            c10     DATA  10
+  96            c28     DATA  28
+  97            c52     DATA  52
+  98            c47     DATA  47

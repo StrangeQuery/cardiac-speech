@@ -1,0 +1,91 @@
+; The phonemes for the front end. Finished words (phonemes, -20) with -1 inside spelled ones, pauses (-2 to -5),
+; the end (-9) in; out, the words with -1 between them (put off until the next word's first phoneme, and dropped
+; when a pause comes first, as text_to_phonemes.py's '#'), the pauses, a period at the end if the text did not end
+; a sentence, and -9. lc is the last card sent; st is 1 inside a word.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   x        03-28: a phoneme: a word's first after another word puts -1 before it
+  04                    CLA   x
+  05                    SUB   c30
+  06                    TAC   neg
+  07                    CLA   st
+  08                    SUB   00
+  09                    TAC   fst
+  10                    JMP   ph
+  11            fst     CLA   00
+  12                    STO   st
+  13                    CLA   z
+  14                    SUB   lc
+  15                    TAC   setp
+  16                    JMP   ph
+  17            setp    CLA   00
+  18                    STO   pend
+  19            ph      CLA   pend
+  20                    SUB   00
+  21                    TAC   o
+  22                    OUT   m1
+  23                    CLA   z
+  24                    STO   pend
+  25            o       OUT   x
+  26                    CLA   x
+  27                    STO   lc
+  28                    JMP   rec
+  29            neg     CLA   x        29-59: a word's end, -1, a pause, or the end
+  30                    ADD   n9
+  31                    TAC   w20
+  32                    SUB   00
+  33                    TAC   end
+  34                    CLA   x
+  35                    ADD   00
+  36                    TAC   pun
+  37                    OUT   x
+  38                    CLA   x
+  39                    STO   lc
+  40                    JMP   rec
+  41            pun     CLA   z
+  42                    STO   pend
+  43                    OUT   x
+  44                    CLA   x
+  45                    STO   lc
+  46                    JMP   rec
+  47            w20     CLA   st
+  48                    SUB   00
+  49                    TAC   w0
+  50                    JMP   wz
+  51            w0      CLA   z
+  52                    SUB   lc
+  53                    TAC   setp2
+  54                    JMP   wz
+  55            setp2   CLA   00
+  56                    STO   pend
+  57            wz      CLA   z
+  58                    STO   st
+  59                    JMP   rec
+  60            end     CLA   pend     60-75: the end: a -1 put off, a period if needed, -9
+  61                    SUB   00
+  62                    TAC   chk
+  63                    OUT   m1
+  64                    CLA   m1
+  65                    STO   lc
+  66            chk     CLA   lc
+  67                    ADD   n5
+  68                    TAC   per
+  69                    CLA   lc
+  70                    ADD   n3
+  71                    SUB   00
+  72                    TAC   fin
+  73            per     OUT   m3
+  74            fin     OUT   m9
+  75                    HRS   00
+  80            x       DATA  0
+  81            st      DATA  0
+  82            lc      DATA  0
+  83            pend    DATA  0
+  84            z       DATA  0
+  85            c30     DATA  30
+  86            n9      DATA  9
+  87            n5      DATA  5
+  88            n3      DATA  3
+  89            m1      DATA  -1
+  90            m3      DATA  -3
+  91            m9      DATA  -9

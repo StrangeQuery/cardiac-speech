@@ -1,0 +1,30 @@
+; One of each run of the same consonant (the rules give LITTLE as T T). Cards pass through, except that a consonant
+; (code 19 and up, 10 x code as the rules give it) the same as the card just before it is dropped. A card below 0
+; (a word's end, a pause) clears what came before. Only the rules' words have such runs; the exceptions' phonemes and
+; the letters' names have none, so they pass through unchanged.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   x        03-22: a card: a repeated consonant is dropped
+  04                    CLA   x
+  05                    TAC   clr
+  06                    SUB   prev
+  07                    TAC   keep
+  08                    SUB   00
+  09                    TAC   same
+  10                    JMP   keep
+  11            same    CLA   x
+  12                    SUB   c190
+  13                    TAC   keep
+  14                    JMP   rec
+  15            clr     CLA   z
+  16                    STO   prev
+  17                    OUT   x
+  18                    JMP   rec
+  19            keep    CLA   x
+  20                    STO   prev
+  21                    OUT   x
+  22                    JMP   rec
+  30            x       DATA  0
+  31            prev    DATA  0
+  32            z       DATA  0
+  33            c190    DATA  190

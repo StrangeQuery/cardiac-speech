@@ -1,0 +1,88 @@
+; Letters' names. Cards pass through except a spelled word's letters (100 + code, the last 200 + code) and its end
+; (-11). For a letter it asks the host for the letter's name (OUT at ask; eight cards come to INP at gn: the name's
+; phoneme codes, then 0s), and sends each phoneme as 10 x code + stress: the first vowel other than AX (codes 3-17)
+; gets 1 in the last letter's name and 2 in the others'. -1 goes between the letters; -20 in place of -11.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   x        03-21: a card: pass it on, or a letter (last or not)
+  04                    CLA   x
+  05                    SUB   c101
+  06                    TAC   pass
+  07                    SUB   c99
+  08                    TAC   nl
+  09                    STO   y
+  10                    CLA   00
+  11                    STO   lst
+  12                    JMP   ask
+  13            nl      ADD   c100
+  14                    STO   y
+  15                    CLA   z
+  16                    STO   lst
+  17            ask     OUT   y
+  18                    CLA   z
+  19                    STO   done
+  20                    CLA   n7
+  21                    STO   i
+  22            gn      INP   p        22-57: the name's phonemes, stressed
+  23                    CLA   p
+  24                    SUB   00
+  25                    TAC   nx
+  26                    CLA   p
+  27                    SFT   10
+  28                    STO   q
+  29                    CLA   p
+  30                    SUB   n3
+  31                    TAC   put
+  32                    CLA   p
+  33                    SUB   c18
+  34                    TAC   v
+  35                    JMP   put
+  36            v       CLA   done
+  37                    SUB   00
+  38                    TAC   st
+  39                    JMP   put
+  40            st      CLA   00
+  41                    STO   done
+  42                    CLA   q
+  43                    ADD   n2
+  44                    SUB   lst
+  45                    STO   q
+  46            put     OUT   q
+  47            nx      CLA   i
+  48                    SUB   00
+  49                    STO   i
+  50                    TAC   sep
+  51                    JMP   gn
+  52            sep     CLA   lst
+  53                    SUB   00
+  54                    TAC   dash
+  55                    JMP   rec
+  56            dash    OUT   m1
+  57                    JMP   rec
+  58            pass    CLA   x        58-84: -11 becomes -20; anything else as it is
+  59                    ADD   c11
+  60                    TAC   po
+  61                    SUB   00
+  62                    TAC   p20
+  63            po      OUT   x
+  64                    JMP   rec
+  65            p20     OUT   m20
+  66                    JMP   rec
+  67            x       DATA  0
+  68            y       DATA  0
+  69            p       DATA  0
+  70            q       DATA  0
+  71            i       DATA  0
+  72            done    DATA  0
+  73            lst     DATA  0
+  74            z       DATA  0
+  75            n2      DATA  2
+  76            n3      DATA  3
+  77            n7      DATA  7
+  78            c11     DATA  11
+  79            c18     DATA  18
+  80            c99     DATA  99
+  81            c100    DATA  100
+  82            c101    DATA  101
+  83            m1      DATA  -1
+  84            m20     DATA  -20

@@ -24,3 +24,7 @@ debug = false
 [[bin]]
 name = "talk-phonemes"
 path = "src/bin/talk_phonemes.rs"
+
+[[bin]]
+name = "talk"
+path = "src/bin/talk.rs"

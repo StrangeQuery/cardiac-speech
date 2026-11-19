@@ -1,0 +1,99 @@
+; The stress, second part. Cards pass through except a rules word, from its header (-30, fn 1 for a function word,
+; ah 1 for a word with no vowel but AX) to its -20; its last phoneme comes as -100 less it. Each phoneme is sent with
+; its stress: a function word none; the first vowel other than AX 1; with no such vowel, the first AX becomes AH 1;
+; the other vowels of codes 3-12 2, but not IY at the word's end; the rest 0.
+;
+; Address Contents Label Opcode Operand Comment
+  03            rec     INP   x        03-18: a card: a header, in a word, or pass it on
+  04                    CLA   mode
+  05                    SUB   00
+  06                    TAC   idle
+  07                    CLA   z
+  08                    STO   lst
+  09                    CLA   x
+  10                    STO   p
+  11                    TAC   neg
+  12                    JMP   proc
+  13            neg     ADD   c100
+  14                    TAC   lastp
+  15                    OUT   x
+  16                    CLA   z
+  17                    STO   mode
+  18                    JMP   rec
+  19            lastp   CLA   00       19-25: the word's last phoneme
+  20                    STO   lst
+  21                    CLA   z
+  22                    SUB   x
+  23                    SUB   c100
+  24                    STO   p
+  25                    JMP   proc
+  26            idle    CLA   x        26-39: a header: fn and ah; or pass the card on
+  27                    ADD   c30
+  28                    TAC   pass
+  29                    SUB   00
+  30                    TAC   hdr
+  31            pass    OUT   x
+  32                    JMP   rec
+  33            hdr     INP   fn
+  34                    INP   ah
+  35                    CLA   fn
+  36                    STO   prim
+  37                    CLA   00
+  38                    STO   mode
+  39                    JMP   rec
+  40            proc    CLA   p        40-95: the phoneme, stressed
+  41                    SUB   c190
+  42                    TAC   vow
+  43                    JMP   put
+  44            vow     CLA   prim
+  45                    SUB   00
+  46                    TAC   np
+  47                    CLA   fn
+  48                    SUB   00
+  49                    TAC   s2
+  50                    JMP   put
+  51            np      CLA   p
+  52                    SUB   c180
+  53                    TAC   one
+  54                    CLA   ah
+  55                    SUB   00
+  56                    TAC   put
+  57                    CLA   z
+  58                    STO   ah
+  59                    CLA   c151
+  60                    STO   p
+  61                    JMP   put
+  62            one     CLA   00
+  63                    STO   prim
+  64                    CLA   p
+  65                    ADD   00
+  66                    STO   p
+  67                    JMP   put
+  68            s2      CLA   p
+  69                    SUB   c130
+  70                    TAC   s3
+  71                    JMP   put
+  72            s3      CLA   p
+  73                    SUB   c30
+  74                    SUB   lst
+  75                    TAC   put
+  76                    CLA   p
+  77                    ADD   n2
+  78                    STO   p
+  79            put     OUT   p
+  80                    JMP   rec
+  81            x       DATA  0
+  82            mode    DATA  0
+  83            lst     DATA  0
+  84            p       DATA  0
+  85            fn      DATA  0
+  86            ah      DATA  0
+  87            prim    DATA  0
+  88            z       DATA  0
+  89            c100    DATA  100
+  90            c30     DATA  30
+  91            c190    DATA  190
+  92            c180    DATA  180
+  93            c151    DATA  151
+  94            c130    DATA  130
+  95            n2      DATA  2
