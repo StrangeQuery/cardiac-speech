@@ -6,6 +6,20 @@ raw 8 kHz audio. Every step of the work, from finding the words in the text to t
 host program only moves cards between the machines: it deals the text and the decks the machines read, carries each
 machine's output cards on to the machines that read them, and writes the samples out.
 
+There are two versions, side by side, which give the same speech sample for sample:
+
+- **This one**, in this folder: 65 machines written by hand in CARDIAC's assembly language ([`text/`](text/),
+  [`front/`](front/), [`voice/`](voice/)), with the host in [`src/`](src/). Its host gives a machine several card
+  readers and punches: it routes each card a machine reads by the cell of the INP waiting for it, and each card a
+  machine punches by the cell of the OUT that punched it.
+- **The Rust version**, in [`rust/`](rust/): 89 machines, 83 of them written in Rust and compiled for CARDIAC with
+  [rust-cardiac](https://github.com/StrangeQuery/rust-cardiac), and 6 written by hand (the lattice filter and the
+  output stage, where Rust is far slower). Each machine has one reader and one punch, as a real CARDIAC has, and the
+  host only deals, copies, collates, merges decks in fixed orders and fetches table records. Its
+  [README](rust/README.md) has the details.
+
+The rest of this README is about the first version.
+
 ![Speech, as a pipeline of CARDIAC machines](docs/pipeline.svg)
 
 The diagram is drawn by [`docs/diagram.py`](docs/diagram.py), which reads the list of machines from the Rust code
@@ -407,7 +421,8 @@ against it card for card. The references are in [`ref/`](ref/): `text_ref.py` fo
 `front_ref.py` for the front end and `voice_ref.py` for the voice box. The references are in turn checked against
 the prototype in [`prototype/`](prototype/): `text_to_phonemes.py` and the decimal synthesizer.
 
-These checks run the real programs under heartburn, and need a release build first:
+These checks run the real programs under heartburn, and need a release build first (with `--rust` they run the
+Rust version's, in `rust/target/release`):
 
     cargo build --release
     cd ref
