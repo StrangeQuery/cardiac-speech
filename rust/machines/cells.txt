@@ -74,10 +74,10 @@ text/year 85
 voice/deemph 84
 voice/excite 91
 voice/interp 75
-voice/kfirst 88
-voice/klast 49
-voice/kmid 78
+voice/kadd 95
 voice/ksteps 89
+voice/ksub 95
+voice/ktable 87
 voice/reduce 90
 voice/sample 44
 voice/steps 28

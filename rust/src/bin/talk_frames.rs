@@ -1,8 +1,8 @@
 //! talk-frames: frame cards in (a file, or standard input), the voice box on CARDIACs, raw 8 kHz signed 16-bit
 //! little-endian samples out on standard output. With -v, each machine's instruction count on standard error.
 //! With --values, the output values themselves, one a line, instead of samples. With --all-rust, the six machines
-//! written by hand are replaced by Rust ones, to compare: the lattice by ten stages of kfirst, kmid and klast, and
-//! output by deemph and sample.
+//! written by hand are replaced by Rust ones, to compare: the lattice by ktable and ten stages of ksub and kadd,
+//! and output by deemph and sample.
 use std::io::{Read, Write};
 
 use cardiac_speech_rust::net::{cards, Net};

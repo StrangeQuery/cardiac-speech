@@ -34,14 +34,14 @@ path = "voice/reduce.rs"
 name = "excite"
 path = "voice/excite.rs"
 [[bin]]
-name = "kfirst"
-path = "voice/kfirst.rs"
+name = "ktable"
+path = "voice/ktable.rs"
 [[bin]]
-name = "kmid"
-path = "voice/kmid.rs"
+name = "kadd"
+path = "voice/kadd.rs"
 [[bin]]
-name = "klast"
-path = "voice/klast.rs"
+name = "ksub"
+path = "voice/ksub.rs"
 [[bin]]
 name = "deemph"
 path = "voice/deemph.rs"

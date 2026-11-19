@@ -4,7 +4,7 @@ This folder is the second version of cardiac-speech. It does the same work as th
 gives the same speech sample for sample, but its machines are written in Rust and compiled for CARDIAC with
 [rust-cardiac](https://github.com/StrangeQuery/rust-cardiac), and each machine has one card reader and one punch,
 as a real CARDIAC has. 89 machines do the work: 83 of them are Rust, and 6, the lattice filter and the output stage
-of the voice box, are written by hand in CARDIAC's assembly language, because in Rust they would be far slower.
+of the voice box, are written by hand in CARDIAC's assembly language, because in Rust they are slower.
 
 ![Speech, as a pipeline of CARDIAC machines, the Rust version](docs/pipeline.svg)
 
@@ -99,15 +99,24 @@ before it was given one reader and one punch too), and write by hand only the fe
 
 **The lattice.** A lattice multiply is a coefficient of two digits times a value of up to three, and a digit times a
 value can pass what a card holds. The hand-written machines keep the product in the accumulator's fourth digit and
-multiply by jumping into a row of nine ADD instructions that reduce's cards rewrite every step. Rust can do neither:
-a value past a card is an overflow, and a program can't jump into code it reads from cards. In Rust each multiply
-splits the value into tens and units and adds them digit by digit, and a multiply takes three machines to fit in
-memory (kfirst, kmid and klast), so a ten-stage lattice is 57 machines. `talk-frames --all-rust` runs it, and it
-gives the same samples: on the 8-second test sentence (`ref/fixtures/born1968_tts.frames`) it ran 240,995,502
-instructions, 3,766 a sample, where the five hand-written machines ran 38,335,205, 599 a sample, six times fewer. So
-the lattice stays as the first version has it, [`hand/lattice_top.cq`](hand/lattice_top.cq),
-[`hand/lattice.cq`](hand/lattice.cq) and [`hand/lattice_bottom.cq`](hand/lattice_bottom.cq), unchanged: their INPs
-and OUTs already come in a fixed order, a sample at a time.
+multiply by jumping into a row of nine ADD instructions that reduce's cards rewrite every step, one instruction an
+add. Rust can't write that row. Written as a loop that adds the value d times for a digit d, each add is a counter,
+a test and a jump as well, and each multiply took three machines to fit in memory: a ten-stage lattice was 57
+machines, which on the 8-second test sentence (`ref/fixtures/born1968_tts.frames`) ran 240,995,502 instructions,
+3,766 a sample, where the five hand-written machines ran 38,335,205, 599 a sample.
+
+So the Rust lattice multiplies by table instead. Once a coefficient, [ktable](machines/voice/ktable.rs) makes a
+table of n times 0 to 9, n being its two digits as a number, and each multiply looks up the value's three digits in it and adds them a
+place apart, so that the sum that passes a card is all in one expression and stays in the accumulator. A multiply
+fits in one machine, [ksub](machines/voice/ksub.rs) for f = f - k b and [kadd](machines/voice/kadd.rs) for b' = b +
+k f (both [kmul.rs](machines/voice/kmul.rs)), so the lattice is 20 machines. `talk-frames --all-rust` runs it, and
+it gives the same samples: 64,232,597 instructions on the test sentence, 1,004 a sample, 1.7 times the hand-written
+lattice. The other ways of writing it in Rust were no better: a `match` on the digit with an arm for each number of
+adds is a chain of tests and too big to fit, and a row of adds written with labelled blocks stores the sum after
+every add, which cuts it to a card (rust-cardiac issues 33 to 36). So the lattice stays as the first version has it,
+[`hand/lattice_top.cq`](hand/lattice_top.cq), [`hand/lattice.cq`](hand/lattice.cq) and
+[`hand/lattice_bottom.cq`](hand/lattice_bottom.cq), unchanged: their INPs and OUTs already come in a fixed order, a
+sample at a time.
 
 **The output stage.** yd reaches about 1,640, past a card, which the hand-written output stage keeps as thousands
 and units in the accumulator. In Rust it takes two machines, deemph (the de-emphasis, with yd as tens and units) and
@@ -248,6 +257,18 @@ for the same work, often a third more, and a machine that doesn't fit in memory 
 One thing that ought to compile didn't: [rust-cardiac#32](https://github.com/StrangeQuery/rust-cardiac/issues/32),
 `iter().enumerate()` over a slice whose length is known only at run time is refused (RCE0018). spell and postb use
 an index loop instead.
+
+Writing the lattice multiply in Rust turned up the rest, all of them code that compiles but runs slower or takes more
+cells than it needs to. A loop that adds a value d times is a counter, a test and a jump an add
+([#33](https://github.com/StrangeQuery/rust-cardiac/issues/33)); a `match` with an arm for each value of a digit is a
+chain of tests, two instructions an arm passed, not a jump into a row of jumps
+([#34](https://github.com/StrangeQuery/rust-cardiac/issues/34)); arms that end with the same code each keep a copy
+([#35](https://github.com/StrangeQuery/rust-cardiac/issues/35)); a row of adds written with labelled blocks stores
+and loads the sum at every block ([#36](https://github.com/StrangeQuery/rust-cardiac/issues/36)); `m / 10 % 10` is
+two shifts where one does it ([#37](https://github.com/StrangeQuery/rust-cardiac/issues/37)); a `bool` const generic
+compared with a value is tested at run time ([#38](https://github.com/StrangeQuery/rust-cardiac/issues/38)); and a
+`static mut` is read through an address worked out at run time
+([#39](https://github.com/StrangeQuery/rust-cardiac/issues/39)). kmul works around the last two.
 
 ## How it was checked
 

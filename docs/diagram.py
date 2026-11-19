@@ -61,8 +61,8 @@ def rust_machines():
         files.update({m[1]: f"rust/{m[2]}" for m in re.finditer(r'const (\w+): &str = include_str!\("\.\./(hand/\w+\.cq)"\)', src)})
         for m in re.finditer(r'(?:machine\(net, |net\.add\(|rule_machine\(net, |lattice\(net, )"(\w+)", '
                              r'(?:Program::\w+\()?(\w+)', src):
-            # deemph and sample, and kfirst, kmid and klast, are only for --all-rust's comparison
-            if m[2] in files and m[1] not in ("deemph", "sample"):
+            # deemph, sample and the lattice's ktable, kadd and ksub are only for --all-rust's comparison
+            if m[2] in files and m[1] not in ("deemph", "sample", "v_ktable"):
                 out.append((phase, m[1], files[m[2]]))
     return out
 

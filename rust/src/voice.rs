@@ -27,7 +27,7 @@ macro_rules! decks {
 
 decks! {
     INTERP = "interp", STEPS = "steps", KSTEPS = "ksteps", REDUCE = "reduce", EXCITE = "excite",
-    DEEMPH = "deemph", SAMPLE = "sample", KFIRST = "kfirst", KMID = "kmid", KLAST = "klast",
+    DEEMPH = "deemph", SAMPLE = "sample", KTABLE = "ktable", KSUB = "ksub", KADD = "kadd",
 }
 pub const LATTICE_TOP: &str = include_str!("../hand/lattice_top.cq");
 pub const LATTICE: &str = include_str!("../hand/lattice.cq");
@@ -84,42 +84,38 @@ pub fn wire(net: &mut Net, frames: &str, frames2: &str, out: &str, all_rust: boo
     }
 }
 
-/// The lattice in Rust, for comparing with the hand-written machines: ten stages of three-machine multiplies
-/// (kfirst, kmid, klast), two multiplies a stage (f = f - k b, then b' = b + k f; the top stage's b is never used,
-/// so it has only the first). reduce's cards (`coef`, five a coefficient, K10 to K1) are dealt five at a time to the
-/// stages; the excitation comes in on `e`, and the lattice's output goes out on `f0`.
+/// The lattice in Rust, for comparing with the hand-written machines: ktable turns reduce's cards for each
+/// coefficient (`coef`, five a coefficient, K10 to K1) into twelve, dealt twelve at a time to the stages; each of
+/// the ten stages is two multiplies, ksub (f = f - k b) and then kadd (b' = b + k f), except the top one, whose b is
+/// never used. The excitation comes in on `e`, and the lattice's output goes out on `f0`.
 fn wire_rust_lattice(net: &mut Net, coef: &str, e: &str, f0: &str) {
+    net.add("v_ktable", Program::Deck(KTABLE), coef, "v_ktab");
     let stages: Vec<String> = (1..=10).rev().map(|i| format!("v_k{i}")).collect();
-    net.deal(coef, 5, &stages.iter().map(|s| s.as_str()).collect::<Vec<_>>());
+    net.deal("v_ktab", 12, &stages.iter().map(|s| s.as_str()).collect::<Vec<_>>());
     // one multiply: y and x in (`step`, the cards of a step's 20 samples), x and then y less (or plus) k x out,
     // onto `out`
-    let multiply = |net: &mut Net, name: &str, k: &str, add: i32, step: &[(&str, usize)], out: &str| {
-        for (part, cols) in [("f", &[0, 1][..]), ("m", &[2, 4]), ("l", &[3])] {
-            net.collate(&format!("{name}{part}k"), &[(&format!("{k}>{name}{part}"), 5, cols)]);
-        }
-        net.put(&format!("{name}f<"), &[add]);
-        let mut first = vec![(format!("{name}fk"), 2)];
-        first.extend(step.iter().map(|&(p, n)| (p.to_string(), n)));
-        let first: Vec<(&str, usize)> = first.iter().map(|(p, n)| (p.as_str(), *n)).collect();
-        net.merge(&format!("{name}f<"), &first, &[]);
-        net.add(&format!("{name}f"), Program::Deck(KFIRST), &format!("{name}f<"), &format!("{name}f"));
-        net.merge(&format!("{name}m<"), &[(&format!("{name}mk"), 2), (&format!("{name}f"), 80)], &[]);
-        net.add(&format!("{name}m"), Program::Deck(KMID), &format!("{name}m<"), &format!("{name}m"));
-        net.merge(&format!("{name}l<"), &[(&format!("{name}lk"), 1), (&format!("{name}m"), 80)], &[]);
-        net.add(&format!("{name}l"), Program::Deck(KLAST), &format!("{name}l<"), out);
+    let multiply = |net: &mut Net, name: &str, k: &str, deck: &'static str, step: &[(&str, usize)], out: &str| {
+        let mut pattern = vec![(format!("{k}>{name}"), 12)];
+        pattern.extend(step.iter().map(|&(p, n)| (p.to_string(), n)));
+        let pattern: Vec<(&str, usize)> = pattern.iter().map(|(p, n)| (p.as_str(), *n)).collect();
+        net.merge(&format!("{name}<"), &pattern, &[]);
+        net.add(name, Program::Deck(deck), &format!("{name}<"), out);
     };
     for i in (1..=10).rev() {
         let k = format!("v_k{i}");
         let (a, b) = (format!("v_a{i}"), format!("v_b{i}"));
-        let readers: Vec<String> = ["f", "m", "l"].iter().flat_map(|p| [format!("{a}{p}"), format!("{b}{p}")]).collect();
-        net.fan(&k, &readers.iter().map(|s| s.as_str()).collect::<Vec<_>>());
+        if i == 10 {
+            net.fan(&k, &[a.as_str()]);
+        } else {
+            net.fan(&k, &[a.as_str(), b.as_str()]);
+        }
         // f from the stage above (the excitation, at the top), and b of the sample before from the stage below (the
         // output of the sample before, at the bottom); the first sample's b is 0
         let above = if i == 10 { e.to_string() } else { format!("v_f{i}") };
         let below = format!("v_up{}", i - 1);
         net.put(&below, &[0]);
         let pair = format!("{a}out");
-        multiply(net, &a, &k, -1, &[(above.as_str(), 1), (below.as_str(), 1)].repeat(20), &pair);
+        multiply(net, &a, &k, KSUB, &[(above.as_str(), 1), (below.as_str(), 1)].repeat(20), &pair);
         if i == 10 {
             // the top stage: f goes down, its b isn't needed
             net.collate(&format!("v_f{}", i - 1), &[(&pair, 2, &[1])]);
@@ -128,7 +124,7 @@ fn wire_rust_lattice(net: &mut Net, coef: &str, e: &str, f0: &str) {
         net.fan(&pair, &["b", "f"]);
         // b' = b + k f, from the first multiply's b and f
         let up = format!("{b}out");
-        multiply(net, &b, &k, 1, &[(&format!("{pair}>b"), 40)], &up);
+        multiply(net, &b, &k, KADD, &[(&format!("{pair}>b"), 40)], &up);
         net.collate(&format!("v_up{i}"), &[(&up, 2, &[1])]);
         if i > 1 {
             net.collate(&format!("v_f{}", i - 1), &[(&format!("{pair}>f"), 2, &[1])]);
