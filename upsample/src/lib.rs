@@ -18,9 +18,9 @@ pub const FIR1: &str = include_str!("../tables/fir1.cards");
 pub const FIR2: &str = include_str!("../tables/fir2.cards");
 
 /// Stage 1's phases, 8 to 16 kHz: for each phase, the age of the 8 kHz sample each of its taps reads (0 the newest).
-/// The 39-tap filter's even taps are phase 0, its odd ones phase 1.
+/// The 159-tap filter's even taps are phase 0, its odd ones phase 1.
 pub fn stage1() -> Vec<Vec<usize>> {
-    vec![(0..20).collect(), (0..19).collect()]
+    vec![(0..80).collect(), (0..79).collect()]
 }
 
 /// Stage 2's phases, 16 to 48 kHz: the 19-tap filter's taps 1, 4, ... 16, then 2, 5, ... 17, and then its centre

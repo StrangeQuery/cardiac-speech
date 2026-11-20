@@ -2,14 +2,20 @@
 version (upsample/). They are worked out ahead of time, as the phoneme table is (ref/table.py): designing a filter
 needs cosines and the solution of a set of linear equations, and none of it depends on the text.
 
-Stage 1 takes 8 kHz to 16 kHz. Its filter is the one that has to be sharp: 39 taps at 16 kHz, a least-squares
-low-pass with gain 2 that passes 0 to 3,300 Hz and stops 4,000 to 8,000 Hz (the stopband weighted 100 times the
-passband). It is cut into two phases, of 20 taps (the even ones) and 19 (the odd ones, among them the centre).
+Stage 1 takes 8 kHz to 16 kHz. Its filter is the one that has to be sharp: 159 taps at 16 kHz, a least-squares
+low-pass with gain 2 that passes 0 to 3,820 Hz and stops 4,000 to 8,000 Hz (the stopband weighted 100 times the
+passband), with each of its two phases made to sum to exactly 1. It is cut into two phases, of 80 taps (the even
+ones) and 79 (the odd ones, among them the centre). The stopband starts at 4 kHz itself because the speech has much
+of its energy just below it (its fricatives), and an image of what is at f lands at 8 kHz - f.
 
 Stage 2 takes 16 kHz to 48 kHz. What it has to remove are the images of 0 to 4 kHz around 16 kHz, so it can be
 short: 19 taps at 48 kHz, a sinc with its cutoff at 8 kHz under a Kaiser window, with gain 3. A sinc cut at a third
 of the band is zero at every third tap from its centre, so of its three phases one is the centre tap alone, 1, and
 the 48 kHz sample there is the 16 kHz sample itself; the other two phases have six taps each.
+
+In thousandths, each phase of each stage sums to exactly 1000 (`thousandths`), so that a constant or slowly
+changing signal comes out of every phase the same, and leaves no image at the multiples of the rate the stage
+takes in (8 kHz for stage 1, 16 and 32 kHz for stage 2).
 
 Each table is a deck of cards: the stage (1 or 2), then two cards a tap, phase by phase and in each phase the tap
 for the newest sample first: the coefficient in thousandths, and 1 if it is the phase's last tap, else 0. The phase
@@ -23,7 +29,7 @@ import os
 HERE = os.path.dirname(os.path.abspath(__file__))
 TABLES = os.path.join(HERE, '..', 'upsample', 'tables')
 
-N1, FP1, FS1, W1 = 39, 3300.0, 4000.0, 100.0     # stage 1, at 16 kHz
+N1, FP1, FS1, W1 = 159, 3820.0, 4000.0, 100.0    # stage 1, at 16 kHz
 N2, FC2, A2 = 19, 8000.0, 55.0                     # stage 2, at 48 kHz
 
 
@@ -42,12 +48,13 @@ def solve(A, b):
     return [M[i][n] / M[i][i] for i in range(n)]
 
 
-def least_squares(N, fp, fs, rate, gain, w, grid=4000):
+def least_squares(N, fp, fs, rate, gain, w, R, grid=4000):
     """An odd-length symmetric low-pass, least squares on a grid: `gain` from 0 to fp, 0 from fs to rate / 2 with
-    weight w, the band between left free."""
+    weight w, the band between left free; and each of its R polyphase phases summing to gain / R (by Lagrange
+    multipliers, R more equations)."""
     K = (N - 1) // 2
-    A = [[0.0] * (K + 1) for _ in range(K + 1)]
-    b = [0.0] * (K + 1)
+    A = [[0.0] * (K + 1 + R) for _ in range(K + 1 + R)]
+    b = [0.0] * (K + 1 + R)
     for g in range(grid + 1):
         f = g / grid * rate / 2
         if f <= fp:
@@ -58,9 +65,16 @@ def least_squares(N, fp, fs, rate, gain, w, grid=4000):
             continue
         basis = [1.0] + [2 * math.cos(2 * math.pi * f / rate * k) for k in range(1, K + 1)]
         for i in range(K + 1):
-            b[i] += wt * d * basis[i]
+            wb = wt * basis[i]
+            b[i] += wb * d
+            row = A[i]
             for j in range(K + 1):
-                A[i][j] += wt * basis[i] * basis[j]
+                row[j] += wb * basis[j]
+    for p in range(R):                  # phase p's sum, in the half-filter a[0..K]
+        for i in range(p, N, R):
+            A[K + 1 + p][abs(i - K)] += 1.0
+            A[abs(i - K)][K + 1 + p] += 1.0
+        b[K + 1 + p] = gain / R
     a = solve(A, b)
     return [a[abs(i - K)] for i in range(N)]
 
@@ -87,23 +101,52 @@ def kaiser_sinc(N, fc, rate, A, gain):
     return h
 
 
-def thousandths(h):
-    return [int(math.copysign(math.floor(abs(v) * 1000 + 0.5), v)) for v in h]
+def thousandths(h, R, fixed=()):
+    """h in thousandths, rounded half away from zero, and then each of its R phases made to sum to exactly 1000.
+    While a phase's sum is off, the move that adds least to the rounding error is made: the centre tap by 1, or a
+    symmetric pair of taps by 1 each, so that the filter stays symmetric. (In stage 1 a pair lies in one phase; in
+    stage 2 its two taps lie in the two mirrored phases, which so stay equal.) Taps in `fixed` aren't moved."""
+    N = len(h)
+    q = [int(math.copysign(math.floor(abs(v) * 1000 + 0.5), v)) for v in h]
+    for p in range(R):
+        while True:
+            diff = 1000 - sum(q[p::R])
+            if diff == 0:
+                break
+            step = 1 if diff > 0 else -1
+            best = None
+            for i in range(p, N, R):
+                j = N - 1 - i
+                moves = 1 + (j != i and j % R == p)        # what the move adds to this phase's sum
+                if i in fixed or moves > abs(diff):
+                    continue
+                cost = (abs(q[i] + step - h[i] * 1000) - abs(q[i] - h[i] * 1000)) * (1 + (j != i))
+                if best is None or cost < best[0]:
+                    best = (cost, i, j)
+            assert best, 'phase %d cannot be made to sum to 1000' % p
+            _, i, j = best
+            q[i] += step
+            if j != i:
+                q[j] += step
+    for p in range(R):
+        assert sum(q[p::R]) == 1000
+    assert q == q[::-1]
+    return q
 
 
 def stage1():
-    """Stage 1's taps in thousandths, the whole filter, h[0] to h[46]."""
-    return thousandths(least_squares(N1, FP1, FS1, 16000, 2, W1))
+    """Stage 1's taps in thousandths, the whole filter, h[0] to h[158]."""
+    return thousandths(least_squares(N1, FP1, FS1, 16000, 2, W1, 2), 2)
 
 
 def stage2():
     """Stage 2's taps in thousandths, h[0] to h[18]; the centre is 1 (1000) and every third tap from it 0."""
-    h = thousandths(kaiser_sinc(N2, FC2, 48000, A2, 3))
+    h = kaiser_sinc(N2, FC2, 48000, A2, 3)
     c = (N2 - 1) // 2
-    for i in range(N2):
-        if (i - c) % 3 == 0:
-            h[i] = 1000 if i == c else 0
-    return h
+    centre = [i for i in range(N2) if (i - c) % 3 == 0]
+    for i in centre:
+        h[i] = 1 if i == c else 0
+    return thousandths(h, 3, centre)
 
 
 def phases(h, R):
@@ -143,7 +186,8 @@ if __name__ == '__main__':
             f.write('\n'.join(map(str, cards)) + '\n')
         print('%s: %d cards' % (name, len(cards)))
     print('stage 1 phases', [len(p) for p in phases(h1, 2)], 'largest tap %.3f' % (max(map(abs, h1)) / 1000))
-    for f in (1000, 3000, 3300, 3500, 3600, 3700, 3800, 4000, 4200, 4500, 5000, 6000, 8000):
+    print('phase sums', [sum(p) for p in phases(h1, 2)], [sum(p) for p in phases(h2, 3)])
+    for f in (1000, 3000, 3300, 3500, 3700, 3800, 3900, 4000, 4200, 4500, 5000, 6000, 8000):
         print('  stage 1 at %5d Hz: %6.1f dB' % (f, 20 * math.log10(response(h1, f, 16000) / 2 + 1e-12)))
     for f in (1000, 4000, 8000, 12000, 16000, 20000):
         print('  stage 2 at %5d Hz: %6.1f dB' % (f, 20 * math.log10(response(h2, f, 48000) / 3 + 1e-12)))

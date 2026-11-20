@@ -16,7 +16,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TABLES = os.path.join(HERE, '..', 'upsample', 'tables')
 
 # the phases as the host wires them (upsample/src/lib.rs): for each phase, the age of the sample each tap reads
-STAGE1 = [list(range(20)), list(range(19))]
+STAGE1 = [list(range(80)), list(range(79))]
 STAGE2 = [list(range(6)), list(range(6)), [2]]
 
 
