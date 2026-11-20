@@ -147,9 +147,9 @@ segment's duration by it once Klatt's formula has given it:
 
     DUR = ((INHDUR - MINDUR) x PRCNT / 100 + MINDUR) x RATE / 100
 
-The card says 100, which leaves Klatt's durations exactly as they were, since multiplying by 100 changes nothing.
-`talk --rate=N` deals `mul` a card of N instead, so 110 makes the speech 10 percent slower and 115 makes it 15
-percent slower. The arithmetic is still all on the CARDIAC; the host only chooses which card to deal.
+The card says 115, so the speech is 15 percent slower than Klatt's durations: at Klatt's own rate the short syllables
+of long words ("Illustrative Aid to Computation") were hard to follow, and of 100, 110 and 115, 115 was clearest by
+ear. `talk --rate=N` deals `mul` a card of N instead; 100 gives Klatt's durations exactly. The arithmetic is still all on the CARDIAC; the host only chooses which card to deal.
 
 The rate scales the whole duration rather than going into PRCNT as one more rule. In PRCNT it would stretch only
 the part above the minimum, and the sounds that are hard to follow are the ones Klatt's rules have already pushed
@@ -499,7 +499,7 @@ names, the function words and exceptions and their phonemes, and the NRL rules, 
 prototype's tables by [`ref/text_tables.py`](ref/text_tables.py), which also lays the rules out again as three
 tables of one record a letter and splits the exceptions deck in two, the same cards in the same order.
 [`front/rate.cards`](front/rate.cards) is one card, the speaking rate in hundredths, which is a setting rather
-than anything worked out; it says 100.
+than anything worked out; it says 115.
 
 The 48 kHz version adds the upsampler's two low-pass filters, designed once in floating point by
 [`ref/up_table.py`](ref/up_table.py) and kept as coefficients in thousandths in [`upsample/tables/`](upsample/tables/),
