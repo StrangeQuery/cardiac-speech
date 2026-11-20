@@ -1,0 +1,88 @@
+; One stage of the upsampler: a phase of a polyphase FIR filter, a tap at a time, its sum put out at the phase's end.
+; Each tap reads a sample x, then five cards from words that are its coefficient as instructions, straight into the
+; routine, as a lattice machine reads reduce's: the sign word (ADD t or SUB t), the word for the coefficient's third
+; digit, the jumps into the row of nine ADDs for its second and first digits (or SFT 00 for a 0), and the jump to
+; the next tap or to the routine that puts the sum out.
+;
+; A tap's product is c x times 10, in tenths of a unit, for c = 0.d1 d2 d3: Horner from the last digit, d3 v, SFT 01,
+; + d2 v, SFT 01, + d1 v, with v = +x or -x in the row's cell c (each SFT truncating towards zero). The accumulator
+; holds v after the sign word, so the third digit's word is CLA z for 0, nothing for 1, and d3 - 1 ADDs otherwise.
+; The sum S can pass a card, so it is kept as thousands and units, hi and lo, with the sign each happens to have;
+; STO keeps the units of P + lo and SFT 03 gives the carry. The row is cells 90-98, and it runs on into cell 99,
+; which holds the way back that the JMP into it left there.
+;
+; Stage 1 (16 kHz) puts S / 10 out as one card, rounded half away from zero; stage 2 (48 kHz) puts the sample 2 S
+; out (S is in tenths of yd, and the sample is 20 yd) as its thousands and then its units from 0 to 999, as the
+; output stage does: 2 S's units summed on top of 2000, so they never go negative. The 16 kHz sample that is a 48 kHz
+; sample itself comes as a tap whose words are ADD t and three SFT 10, ten times the sample.
+;
+; Address Contents Label Opcode Operand Comment
+  03            tap     INP   t        03-22: one tap, S = S + 10 c x
+  04                    INP   sw
+  05                    INP   j3
+  06                    INP   j2
+  07                    INP   j1
+  08                    INP   nx
+  09                    CLA   z
+  10            sw      DATA  0        (ADD t or SUB t)
+  11                    STO   c
+  12            j3      DATA  0        (CLA z, SFT 00, or JMP into the row for d3 - 1 ADDs)
+  13                    SFT   01
+  14            j2      DATA  0        (SFT 00, or JMP into the row for d2 ADDs)
+  15                    SFT   01
+  16            j1      DATA  0        (SFT 00, or JMP into the row for d1 ADDs)
+  17                    ADD   lo
+  18                    STO   lo
+  19                    SFT   03
+  20                    ADD   hi
+  21                    STO   hi
+  22            nx      DATA  0        (JMP tap, or JMP one or pair)
+  23            one     CLA   hi       23-37: stage 1, S / 10 rounded out
+  24                    SFT   30
+  25                    ADD   lo
+  26                    TAC   neg
+  27                    ADD   five
+  28                    SFT   01
+  29                    JMP   put
+  30            neg     SUB   five
+  31                    SFT   01
+  32            put     STO   y
+  33                    OUT   y
+  34                    CLA   z
+  35                    STO   lo
+  36                    STO   hi
+  37                    JMP   tap
+  38            pair    CLA   two      38-53: stage 2, 2 S out as thousands and units
+  39                    SFT   30
+  40                    ADD   lo
+  41                    ADD   lo
+  42                    STO   u
+  43                    SFT   03
+  44                    ADD   hi
+  45                    ADD   hi
+  46                    SUB   two
+  47                    STO   y
+  48                    OUT   y
+  49                    OUT   u
+  50                    CLA   z
+  51                    STO   lo
+  52                    STO   hi
+  53                    JMP   tap
+  54            t       DATA  0        t and z are where words expects them
+  55            lo      DATA  0
+  56            hi      DATA  0
+  57            y       DATA  0
+  58            u       DATA  0
+  59            z       DATA  0
+  60            five    DATA  5
+  61            two     DATA  2
+  89            c       DATA  0
+  90            row     ADD   c        90-98: the row of nine ADDs, into 99
+  91                    ADD   c
+  92                    ADD   c
+  93                    ADD   c
+  94                    ADD   c
+  95                    ADD   c
+  96                    ADD   c
+  97                    ADD   c
+  98                    ADD   c

@@ -1,0 +1,28 @@
+[package]
+name = "cardiac-speech-upsample"
+version = "0.1.0"
+edition = "2021"
+description = "Text to speech on CARDIACs at 48 kHz: the first version's machines, then an upsampler on CARDIACs"
+rust-version = "1.97"
+license = "MIT"
+publish = false
+autobins = false
+
+[lib]
+name = "cardiac_speech_upsample"
+path = "src/lib.rs"
+
+[dependencies]
+# the first version: its machines, its decks and the host's piles
+cardiac-speech = { path = ".." }
+
+[profile.release]
+debug = false
+
+[[bin]]
+name = "talk"
+path = "src/bin/talk.rs"
+
+[[bin]]
+name = "talk-frames"
+path = "src/bin/talk_frames.rs"

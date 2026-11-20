@@ -7,15 +7,19 @@ machine has one card reader and one punch, as a real CARDIAC has. The host progr
 machines: it deals the text and the decks the machines read, carries each machine's output cards on to the machines
 that read them, and writes the samples out.
 
-There are two versions, side by side, which give the same speech sample for sample:
+There are two versions, side by side, which give the same speech sample for sample, and a third that speaks at
+48 kHz:
 
 - **This one**, in this folder: 79 machines written by hand in CARDIAC's assembly language ([`text/`](text/),
   [`front/`](front/), [`voice/`](voice/)), with the host in [`src/`](src/).
 - **The Rust version**, in [`rust/`](rust/): 89 machines, 83 of them written in Rust and compiled for CARDIAC with
   [rust-cardiac](https://github.com/StrangeQuery/rust-cardiac), and 6 written by hand (the lattice filter and the
   output stage, where Rust is far slower). Its [README](rust/README.md) has the details.
+- **The 48 kHz version**, in [`upsample/`](upsample/): this version's 79 machines, and 7 more that upsample their
+  speech six times, to 48 kHz, with a two-stage interpolating filter on CARDIACs, the 8 kHz samples underneath the
+  same. Its [README](upsample/README.md) has the details.
 
-In both, each machine reads one deck and punches one stream of cards, and the host only deals, copies, collates,
+In all three, each machine reads one deck and punches one stream of cards, and the host only deals, copies, collates,
 merges decks in fixed orders and fetches table records ([What the host does](#what-the-host-does-and-doesnt-do)).
 The two hosts feed their machines the same way, and the two versions read the same decks.
 
@@ -460,6 +464,10 @@ The other decks are not computations. [`text/`](text/) holds the ASCII table, th
 names, the function words and exceptions and their phonemes, and the NRL rules, all as cards transcribed from the
 prototype's tables by [`ref/text_tables.py`](ref/text_tables.py), which also lays the rules out again as three
 tables of one record a letter and splits the exceptions deck in two, the same cards in the same order.
+
+The 48 kHz version adds the upsampler's two low-pass filters, designed once in floating point by
+[`ref/up_table.py`](ref/up_table.py) and kept as coefficients in thousandths in [`upsample/tables/`](upsample/tables/)
+([its README](upsample/README.md#whats-precomputed)).
 
 ## How it was checked
 

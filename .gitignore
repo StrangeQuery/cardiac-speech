@@ -12,3 +12,8 @@ rust/machines/target/
 rust/dev/
 rust/machines/**/*.asm
 rust/machines/**/*.cq
+# the third version's decks are kept too; their panic maps and listings aren't
+!upsample/machines/*.cqb
+upsample/machines/*.map
+upsample/machines/*.asm
+upsample/machines/*.cq

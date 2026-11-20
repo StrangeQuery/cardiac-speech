@@ -1,0 +1,25 @@
+# The upsampler's machines written in Rust, one binary target each, built for CARDIAC with `cargo cardiac build
+# --release` (rust-cardiac's cargo subcommand); ../build_machines.sh builds them all.
+[package]
+name = "cardiac-speech-upsample-machines"
+version = "0.1.0"
+edition = "2021"
+publish = false
+autobins = false
+
+[dependencies]
+cardiac = "0.2.5"
+
+[profile.release]
+overflow-checks = false
+debug-assertions = false
+
+[[bin]]
+name = "digits"
+path = "digits.rs"
+[[bin]]
+name = "words"
+path = "words.rs"
+[[bin]]
+name = "yd"
+path = "yd.rs"
