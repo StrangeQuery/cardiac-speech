@@ -374,6 +374,7 @@ def frames(recs, sums, info=None):
     y = yrem = 0               # floor(100 (f - tail) / M)
     newsent = True
     pitch = []
+    noise = []                 # each frame's noise filter (a fricative's, a burst's), else 0: for the high band
     for r in recs:
         pc, kind, s, n, send, pte, nts, ts, te, nxtpc, adjv, prevv, nextv, pvls, pnpk = r
         for j in range(n):
@@ -403,6 +404,7 @@ def frames(recs, sums, info=None):
             pitch.append(base)
             # ---- filter and level
             sounding, V, K, G = 1, 1, None, 0
+            nz = 0
             ft = feat(pc) if pc else None
             son_ref = None
             vowel_factors = False
@@ -432,6 +434,7 @@ def frames(recs, sums, info=None):
                 glides = True
             elif kind == K_FRIC:
                 K, G, V = kvec(ft[tb.F_NOISE]), gain(ft[tb.F_NOISE]), ft[tb.F_VOICED]
+                nz = ft[tb.F_NOISE]
             elif kind == K_STOP:
                 if j < n - 1:
                     if ft[tb.F_VOICED] and pnpk in (K_VOWEL, K_SON, K_NASAL):
@@ -443,6 +446,7 @@ def frames(recs, sums, info=None):
                     if ft[tb.F_ALT] and nxtpc and feat(nxtpc)[tb.F_BACK]:
                         idx = ft[tb.F_ALT]
                     K, G, V = kvec(idx), gain(idx), 0
+                    nz = idx
             elif kind == K_AFFR:
                 c = (n * ft[tb.F_CINH] + ft[tb.F_CTOT] // 2) // ft[tb.F_CTOT]
                 c = min(max(1, c), n - 1)
@@ -450,6 +454,7 @@ def frames(recs, sums, info=None):
                     sounding = 0
                 else:
                     K, G, V = kvec(ft[tb.F_NOISE]), gain(ft[tb.F_NOISE]), ft[tb.F_VOICED]
+                    nz = ft[tb.F_NOISE]
             gl = None
             if glides:
                 w = glide_weight(j, n, 'left')
@@ -475,6 +480,7 @@ def frames(recs, sums, info=None):
                     A = min(999, mulf(A, glide_factor(*gl)))
                 assert A <= 999, A
             out.append([sounding, V, P, A] + (K if K else [0] * 10))
+            noise.append(nz)
             f += 1
             # move the declination and the tail on a frame (INTEGER: Bresenham, no division)
             if q < 30:
@@ -509,6 +515,7 @@ def frames(recs, sums, info=None):
     if info is not None:
         info['pitch'] = pitch
         info['frames'] = out
+        info['noise'] = noise
     return cards + [-1]
 
 

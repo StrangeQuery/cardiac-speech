@@ -107,3 +107,83 @@ def upsample(values):
 def samples(values):
     """Pairs of values joined into samples."""
     return [th * 1000 + u for th, u in zip(values[0::2], values[1::2])]
+
+
+# ---------------------------------------------------------------------------------------------------- the high band
+# The 48 kHz version's high band (upsample/hand/hnoise.cq, hfilt.cq, hmix.cq): frication from 4 kHz up, which the
+# 8 kHz speech can't carry. Each frame's level is the record of upsample/tables/hiband.cards (made by hb_table.py)
+# that choose's filter for the frame names. hnoise ramps the level across each frame as interp does A (a step of
+# (next - this) / 10 every 120 samples, none across a change of V), and puts out 120 samples a step of +L or -L by a
+# decimal LCG, x = 21 x + 7 mod 1000, whose place is moved on by a second one, x = x + w, w = 21 w + 7 mod 1000, at
+# the start of every step, so that the noise doesn't repeat every 1,000 samples; a step whose level is 0 puts out 0s.
+# hfilt shapes it: the zeros (1 - z^-1)^3 (1 + z^-1)^2, e = s - s1 - 2 s2 + 2 s3 + s4 - s5, and a two-pole resonance
+# at 5.0 kHz, 0.8 kHz wide, y = e + 1.5 y1 - 0.9 y2, each tenth truncated towards zero; a 0 in clears its state and
+# puts out 0. hmix adds 4 y to each 48 kHz sample, 245 samples later, the 48 kHz speech's delay behind the 8 kHz
+# speech.
+HB_STEP = 120          # 48 kHz samples a step (20 at 8 kHz)
+HB_DELAY = 245         # the 48 kHz speech's delay, in 48 kHz samples
+HB_UNIT = 4            # a sample of the high band is 4 y
+
+
+def hb_table():
+    return [int(v) for v in open(os.path.join(TABLES, 'hiband.cards')).read().split()]
+
+
+def hb_records(frame_cards, filters, table=None):
+    """(V, level) for each frame, and (-1, 0) for the end, as the host collates them for hnoise."""
+    table = hb_table() if table is None else table
+    vs = frame_cards[0::13]
+    assert vs[len(filters)] == -1 and len(vs) == len(filters) + 1
+    return [(v, table[a]) for v, a in zip(vs, filters)] + [(-1, 0)]
+
+
+def hnoise(recs):
+    x, w = 123, 0
+    out = []
+    for (v, h), (nv, nh) in zip(recs, recs[1:]):
+        d = trunc10(nh - h) if nv == v else 0
+        for _ in range(10):
+            x = (x + w) % 1000
+            w = (21 * w + 7) % 1000
+            if h == 0:
+                out += [0] * HB_STEP
+            else:
+                for _ in range(HB_STEP):
+                    x = (21 * x + 7) % 1000
+                    out.append(h if x >= 500 else -h)
+            h += d
+            assert 0 <= h <= 999
+    return out
+
+
+def hfilt(ss):
+    s1 = s2 = s3 = s4 = s5 = y1 = y2 = 0
+    out = []
+    for s in ss:
+        if s == 0:
+            s1 = s2 = s3 = s4 = s5 = y1 = y2 = 0
+            out.append(0)
+            continue
+        e = s - s1 - 2 * s2 + 2 * s3 + s4 - s5
+        s5, s4, s3, s2, s1 = s4, s3, s2, s1, s
+        y = trunc10(5 * y1) + y1 + e - trunc10(9 * y2)
+        assert abs(y) <= 999, 'the high band %d does not fit in a cell' % y
+        y2, y1 = y1, y
+        out.append(y)
+    return out
+
+
+def hiband(frame_cards, filters, table=None):
+    """The high band's samples, y, as hfilt puts them out (before the delay)."""
+    return hfilt(hnoise(hb_records(frame_cards, filters, table)))
+
+
+def hmix(values48, ys):
+    """The 48 kHz samples' values with the high band added, 4 y each, the y delayed by HB_DELAY samples."""
+    ys = [0] * HB_DELAY + ys
+    out = []
+    for i, (th, u) in enumerate(zip(values48[0::2], values48[1::2])):
+        a = 4000 + HB_UNIT * ys[i] + u
+        assert 0 <= a <= 9999
+        out += [th + a // 1000 - 4, a % 1000]
+    return out

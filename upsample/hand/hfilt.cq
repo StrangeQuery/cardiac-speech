@@ -1,0 +1,80 @@
+; The high band's filter. Per sample in: s, hnoise's +L or -L. Out y, the noise shaped into the band above 4 kHz:
+; the zeros (1 - z^-1)^3 (1 + z^-1)^2, three at 0 Hz and two at 24 kHz, as e = s - s1 - 2 s2 + 2 s3 + s4 - s5, then
+; the two poles y = e + 1.5 y1 - 0.9 y2, a resonance at 5.0 kHz about 0.8 kHz wide (Klatt's F6 is 4,900 Hz and
+; 1,000 Hz wide). 1.5 y1 is y1 + (5 y1) / 10 and 0.9 y2 is (9 y2) / 10, rows of ADDs and an SFT 01 that truncates
+; towards zero. An s of 0 comes only in a step whose level is 0: it clears the filter and puts out 0.
+;
+; Address Contents Label Opcode Operand Comment
+  03            smp     INP   s        03-07: a sample: 0 or not
+  04                    CLA   s
+  05                    TAC   snd
+  06                    SUB   00
+  07                    TAC   rest
+  08            snd     CLA   s        08-26: e = s - s1 - 2 s2 + 2 s3 + s4 - s5, and the s move on
+  09                    SUB   s1
+  10                    SUB   s2
+  11                    SUB   s2
+  12                    ADD   s3
+  13                    ADD   s3
+  14                    ADD   s4
+  15                    SUB   s5
+  16                    STO   e
+  17                    CLA   s4
+  18                    STO   s5
+  19                    CLA   s3
+  20                    STO   s4
+  21                    CLA   s2
+  22                    STO   s3
+  23                    CLA   s1
+  24                    STO   s2
+  25                    CLA   s
+  26                    STO   s1
+  27                    CLA   y2       27-53: y = (5 y1) / 10 + y1 + e - (9 y2) / 10, out
+  28                    ADD   y2
+  29                    ADD   y2
+  30                    ADD   y2
+  31                    ADD   y2
+  32                    ADD   y2
+  33                    ADD   y2
+  34                    ADD   y2
+  35                    ADD   y2
+  36                    SFT   01
+  37                    STO   t
+  38                    CLA   y1
+  39                    ADD   y1
+  40                    ADD   y1
+  41                    ADD   y1
+  42                    ADD   y1
+  43                    SFT   01
+  44                    ADD   y1
+  45                    ADD   e
+  46                    SUB   t
+  47                    STO   y
+  48                    CLA   y1
+  49                    STO   y2
+  50                    CLA   y
+  51                    STO   y1
+  52                    OUT   y
+  53                    JMP   smp
+  54            rest    CLA   z        54-75: a 0: the filter cleared, 0 out
+  55                    STO   s1
+  56                    STO   s2
+  57                    STO   s3
+  58                    STO   s4
+  59                    STO   s5
+  60                    STO   y1
+  61                    STO   y2
+  62                    OUT   z
+  63                    JMP   smp
+  64            s       DATA  0
+  65            s1      DATA  0
+  66            s2      DATA  0
+  67            s3      DATA  0
+  68            s4      DATA  0
+  69            s5      DATA  0
+  70            e       DATA  0
+  71            t       DATA  0
+  72            y       DATA  0
+  73            y1      DATA  0
+  74            y2      DATA  0
+  75            z       DATA  0

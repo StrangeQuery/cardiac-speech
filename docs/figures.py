@@ -9,7 +9,8 @@ Every figure that shows data takes it from what the CARDIAC programs produced or
     ref/nets.py wires them (the voice box runs by rounds and isn't tapped; the instruction counts and excite's
     values are checked here against heartburn's counts and voice_ref);
   - upsample/target/release/talk (48 kHz) on the README sentence and the paper's three sample texts, with -v for
-    the instruction counts and --8k for the 8 kHz samples underneath;
+    the instruction counts and --8k for the 8 kHz samples underneath, and always with --no-hiband: the figures show
+    the resampler alone, without the high band that the 48 kHz version now adds to its fricatives (upsample/README.md);
   - the decks front/features.cards, front/filters.cards, text/rules.cards and upsample/tables/fir1.cards and
     fir2.cards, and the listing voice/lattice.cq.
 
@@ -118,11 +119,11 @@ def run_all():
     tap = WORK / 'tap8'
     shutil.rmtree(tap, ignore_errors=True)
     talk([t8, '-v'], SENTENCE, WORK / 'hello8k.s16', {'CARDIAC_SPEECH_TAP': str(tap)}, WORK / 'hello8k.v.txt')
-    talk([t48, '-v'], SENTENCE, WORK / 'hello48k.s16', err=WORK / 'hello48k.v.txt')
+    talk([t48, '-v', '--no-hiband'], SENTENCE, WORK / 'hello48k.s16', err=WORK / 'hello48k.v.txt')
     talk([t8, '--frames'], SENTENCE, WORK / 'hello.frames')
     talk([t8, '--phonemes'], SENTENCE, WORK / 'hello.phonemes')
     for i, (_, text) in enumerate(SAMPLES):
-        talk([t48], text, WORK / ('sample%d.48k.s16' % i))
+        talk([t48, '--no-hiband'], text, WORK / ('sample%d.48k.s16' % i))
         talk([t48, '--8k'], text, WORK / ('sample%d.8k.s16' % i))
     assert cards(tap / 'asm') == cards(WORK / 'hello.frames')
 
@@ -1087,7 +1088,7 @@ def fig_spec48():
                 'reference level. For this sentence the energy from 4 to 24 kHz (above the red line) is %.1f dB '
                 'relative to 0 to 4 kHz, against %.1f dB for the previous spectrogram (measured as in Figure 16), and '
                 'most of what remains is the noise of the arithmetic’s rounding and truncation rather than images. '
-                'Data from upsample/target/release/talk and talk --8k (heartburn).' % (up, rep))
+                'Data from upsample/target/release/talk --no-hiband and talk --8k (heartburn).' % (up, rep))
 
 
 def fir_from_table(path):
@@ -1326,7 +1327,7 @@ def fig_images():
            'samples each repeated six times; shading marks 4 to 24 kHz, where the 8 kHz speech has nothing. (b) The '
            'energy from 4 to 24 kHz relative to 0 to 4 kHz for the paper\u2019s three sample texts, as in the table of '
            'Section 7.2, which is %s for the resampler (green) against %s for repetition (grey). Measured by '
-           'ref/up_measure.py on the output of upsample/target/release/talk and talk --8k (heartburn).'
+           'ref/up_measure.py on the output of upsample/target/release/talk --no-hiband and talk --8k (heartburn).'
            % (SAMPLES[0][0], ', '.join('%.1f' % r[1] for r in rows) + ' dB',
               ', '.join('%.1f' % r[2] for r in rows) + ' dB'))
     save(fig, 'images', cap)
@@ -1364,7 +1365,7 @@ def fig_cost():
            '{:,} instructions in all, loading included). The darker part of each bar is the programs that multiply '
            'by jumping into a row of ADDs. In the voice box they are the five lattice programs, %.0f percent of its '
            'instructions and %.0f percent of the whole 8 kHz pipeline\u2019s, and in the resampler the two filter '
-           'programs. Counts from talk -v of the 48 kHz version under heartburn.'
+           'programs. Counts from talk -v --no-hiband of the 48 kHz version under heartburn.'
            .format(sum(tot)) % (secs, lat, lat8))
     save(fig, 'cost', cap)
 

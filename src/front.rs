@@ -217,6 +217,9 @@ pub fn fill(net: &mut Net, sm: &[i32], out: &str) {
     net.copy("fill", &[out]);
 }
 
+/// The machines (and the host's deck for asm, `next`) that read choose's cards in phase 5.
+pub const CHOOSE_READERS: [&str; 7] = ["glides", "lsel", "vsel", "psel", "mulx1", "kcarry", "next"];
+
 /// Phase 5: per segment, the records and decks of phases 1 to 4 (in order), in; the frame cards out onto `frames`.
 #[allow(clippy::too_many_arguments)]
 pub fn frames(net: &mut Net, t: &Tables, r1: &[i32], c: &[i32], n: &[i32], st: &[i32], bk: &[i32], cl: &[i32], mn: &[i32],
@@ -265,7 +268,7 @@ pub fn frames(net: &mut Net, t: &Tables, r1: &[i32], c: &[i32], n: &[i32], st: &
     const CH: usize = 6;
     machine(net, "choose", CHOOSE);
     net.collate("choose<", &[("framer>choose", FR, &[0, 1, 4]), ("spreada", 8, &all(8))]);
-    net.fan("choose", &["glides", "lsel", "vsel", "psel", "mulx1", "kcarry", "next"]);
+    net.fan("choose", &CHOOSE_READERS);
     machine(net, "glides", GLIDES);
     net.collate("glides<", &[("choose>glides", CH, &all(4)), ("framer>glides", FR, &[2, 3]), ("spreadb>glides", 4, &[0, 1])]);
     net.fan("glides", &["glidea", "glideb", "gnorm"]);
@@ -355,6 +358,14 @@ pub fn phonemes_to_frames(tokens: &[i32]) -> (Vec<i32>, Vec<(String, u64)>) {
 
 /// Phases 2 to 5: the segment records to frame cards. Returns the frame cards and each machine's instruction count.
 pub fn segments_to_frames(t: &Tables, r1: &[i32]) -> (Vec<i32>, Vec<(String, u64)>) {
+    let (frames, _, steps) = segments_to_frames_and_filters(t, r1, false);
+    (frames, steps)
+}
+
+/// As `segments_to_frames`, and with `filters` also each frame's first filter as choose punches it (its card a,
+/// the filter the frame speaks through, or 0 for a silent closure), a card a frame: the third version's high band
+/// fetches its level by it. The frame cards are the same either way.
+pub fn segments_to_frames_and_filters(t: &Tables, r1: &[i32], filters: bool) -> (Vec<i32>, Vec<i32>, Vec<(String, u64)>) {
     let mut steps = vec![];
     let mut net = Net::new();
     ahead(&mut net, t, r1);
@@ -374,7 +385,14 @@ pub fn segments_to_frames(t: &Tables, r1: &[i32]) -> (Vec<i32>, Vec<(String, u64
     steps.extend(net.steps());
     let mut net = Net::new();
     frames(&mut net, t, r1, &c, &d[0], &d[1], &d[2], &d[4], &d[5], &d[6], &d[7], &fl, "frames");
+    if filters {
+        let mut readers = CHOOSE_READERS.to_vec();
+        readers.push("filter");
+        net.fan("choose", &readers);
+        net.collate("filters", &[("choose>filter", 6, &[0])]);
+    }
     net.run();
     steps.extend(net.steps());
-    (net.take("frames"), steps)
+    let filters = if filters { net.take("filters") } else { vec![] };
+    (net.take("frames"), filters, steps)
 }

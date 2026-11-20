@@ -4,8 +4,10 @@
 //!   output -> yd -> fir1 (8 to 16 kHz) -> fir2 (16 to 48 kHz) -> the samples
 //!   the tables -> digits -> words -> a deck of cards for fir1, and another for fir2
 //!
-//! yd and the two table machines are written in Rust (machines/), fir by hand (hand/fir.cq); fir1 and fir2 run the
-//! same listing, with different decks. What the host does is in `wire`.
+//!   each frame's filter (choose's) -> its high-band level -> hnoise -> hfilt -> hmix, with fir2's samples
+//!
+//! yd and the two table machines are written in Rust (machines/), fir and the high band's three by hand (hand/);
+//! fir1 and fir2 run the same listing, with different decks. What the host does is in `wire` and `wire_hiband`.
 use std::rc::Rc;
 
 use cardiac_speech::net::{cards, Net, Program};
@@ -16,6 +18,14 @@ pub const WORDS: &str = include_str!("../machines/words.cqb");
 pub const FIR: &str = include_str!("../hand/fir.cq");
 pub const FIR1: &str = include_str!("../tables/fir1.cards");
 pub const FIR2: &str = include_str!("../tables/fir2.cards");
+pub const HNOISE: &str = include_str!("../hand/hnoise.cq");
+pub const HFILT: &str = include_str!("../hand/hfilt.cq");
+pub const HMIX: &str = include_str!("../hand/hmix.cq");
+/// The high band's levels: a card for each filter of the phoneme table, record for record (ref/hb_table.py).
+pub const HIBAND: &str = include_str!("../tables/hiband.cards");
+/// The 48 kHz speech comes this many 48 kHz samples after the 8 kHz speech it is made from (fir1's and fir2's
+/// delays), so the high band starts with as many blank cards.
+pub const DELAY: usize = 245;
 
 /// Stage 1's phases, 8 to 16 kHz: for each phase, the age of the 8 kHz sample each of its taps reads (0 the newest).
 /// The 159-tap filter's even taps are phase 0, its odd ones phase 1.
@@ -84,6 +94,34 @@ pub fn wire(net: &mut Net, pairs: &str, out: &str, r1: &Rc<Vec<i32>>, r2: &Rc<Ve
     net.add("fir2", Program::Listing(FIR), "u_fir2<", out);
 }
 
+/// Wire the high band into `net`: it reads the frame cards (`deck`, ending with a card below zero) and choose's
+/// filter for each frame (`filters`), and fir2's 48 kHz pairs from the pile `speech`, and puts each 48 kHz sample
+/// with the high band added on `out`, as thousands and units. Its own piles are named h_...
+///
+/// What the host does: each filter card fetches its record of the high-band table, the frame's level, and a blank
+/// card follows the last, for the end record; each frame's V (the first card of its record of 13) is collated beside
+/// its level, and hnoise's deck is merged from those records and the same again from the second on, two cards from
+/// each in turn, as interp's is. hfilt reads hnoise's cards. hmix's deck is merged from fir2's pairs and hfilt's
+/// cards, two and one in turn, hfilt's after 245 blank cards.
+pub fn wire_hiband(net: &mut Net, deck: &[i32], filters: &[i32], speech: &str, out: &str) {
+    let table = Rc::new(cards(HIBAND));
+    net.fetch("h_ask", &table, 1, 0, 1, "h_level");
+    net.collate("h_rec", &[("h_v", 13, &[0]), ("h_level", 1, &[0])]);
+    net.copy("h_rec", &["h_this", "h_rec2"]);
+    net.after("h_rec2", 2, "h_next");
+    net.merge("hnoise<", &[("h_this", 2), ("h_next", 2)], &[]);
+    net.add("hnoise", Program::Listing(HNOISE), "hnoise<", "h_s");
+    net.add("hfilt", Program::Listing(HFILT), "h_s", "h_y");
+    net.put("h_y", &[0; DELAY]);
+    net.merge("hmix<", &[(speech, 2), ("h_y", 1)], &[]);
+    net.add("hmix", Program::Listing(HMIX), "hmix<", out);
+    let mut whole = deck.to_vec();
+    whole.extend([0; cardiac_speech::voice::FRAME - 1]);
+    net.put("h_v", &whole);
+    net.put("h_ask", filters);
+    net.put("h_level", &[0]);
+}
+
 /// Which samples to write.
 #[derive(Clone, Copy, PartialEq)]
 pub enum Rate {
@@ -94,9 +132,11 @@ pub enum Rate {
 }
 
 /// The whole voice box and upsampler on `deck`, a deck of frame cards: run until nothing moves, the samples written
-/// to `w` as they come (as raw s16le, or with `values` the pairs one value a line). Returns the number of samples
-/// written and the instruction counts of every machine, the table machines' first.
-pub fn speak(deck: &[i32], rate: Rate, values: bool, w: &mut impl std::io::Write) -> (usize, Vec<(String, u64)>) {
+/// to `w` as they come (as raw s16le, or with `values` the pairs one value a line). With `filters`, choose's filter
+/// for each frame, the 48 kHz samples have the high band added. Returns the number of samples written and the
+/// instruction counts of every machine, the table machines' first.
+pub fn speak(deck: &[i32], filters: Option<&[i32]>, rate: Rate, values: bool, w: &mut impl std::io::Write)
+    -> (usize, Vec<(String, u64)>) {
     use cardiac_speech::voice;
     let (r1, mut steps) = routine("1", FIR1);
     let (r2, s2) = routine("2", FIR2);
@@ -105,7 +145,13 @@ pub fn speak(deck: &[i32], rate: Rate, values: bool, w: &mut impl std::io::Write
     let mut net = Net::new();
     voice::wire(&mut net, "frames", "frames2", "v_out");
     net.copy("v_out", &["out8", "u_pairs"]);
-    wire(&mut net, "u_pairs", "out", &r1, &r2);
+    match filters {
+        Some(f) => {
+            wire(&mut net, "u_pairs", "u_out", &r1, &r2);
+            wire_hiband(&mut net, deck, f, "u_out", "out");
+        }
+        None => wire(&mut net, "u_pairs", "out", &r1, &r2),
+    }
     voice::deal_frames(&mut net, deck, "frames", "frames2");
     let (keep, drop) = if rate == Rate::Up { ("out", "out8") } else { ("out8", "out") };
     let mut pending: Vec<i32> = vec![];

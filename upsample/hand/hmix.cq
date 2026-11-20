@@ -1,0 +1,28 @@
+; The high band added to the 48 kHz speech. Per sample in: the sample's thousands and units, as fir2 puts them
+; out, and y from hfilt (the host deals 245 blank cards first, the 48 kHz speech's delay behind the 8 kHz speech).
+; Out the sample plus 4 y, as its thousands and its units from 0 to 999: 4 y and the units summed on top of 4000, so
+; that they never go negative, STO keeping the new units and SFT 03 giving the carry, as fir2 does.
+;
+; Address Contents Label Opcode Operand Comment
+  03            smp     INP   th       03-24: a sample, + 4 y
+  04                    INP   u
+  05                    INP   y
+  06                    CLA   four
+  07                    SFT   30
+  08                    ADD   y
+  09                    ADD   y
+  10                    ADD   y
+  11                    ADD   y
+  12                    ADD   u
+  13                    STO   u
+  14                    SFT   03
+  15                    ADD   th
+  16                    SUB   four
+  17                    STO   th
+  18                    OUT   th
+  19                    OUT   u
+  20                    JMP   smp
+  21            th      DATA  0
+  22            u       DATA  0
+  23            y       DATA  0
+  24            four    DATA  4

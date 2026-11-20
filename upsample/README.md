@@ -2,7 +2,8 @@
 
 This folder is the third version of cardiac-speech. It speaks at 48 kHz. The first version, in the folder above,
 works the speech out at 8 kHz on its 79 machines, and here seven more CARDIACs upsample it six times, to 48 kHz,
-with an interpolating low-pass filter. The 79 machines are the first version's own, run from its listings and decks
+with an interpolating low-pass filter, and three more add the high band of the fricatives, the hiss from 4 kHz up
+that speech at 8 kHz can't carry. The 79 machines are the first version's own, run from its listings and decks
 where they are, and under the 48 kHz speech their 8 kHz samples are the same sample for sample. Each machine has one
 card reader and one punch, and the host still only deals, copies, collates, merges in fixed orders and fetches table
 records. All the arithmetic on the sound is done on CARDIACs.
@@ -25,18 +26,22 @@ The samples come out raw, as the first version's do, but 48,000 of them a second
 
     echo "Hello world." | target/release/talk | ffmpeg -f s16le -ar 48000 -ac 1 -i - hello.wav
 
-`talk` takes the first version's options, `--phonemes`, `--frames` and `-v`, and one more, `--8k`, which writes the
-8 kHz samples underneath instead, the output stage's cards as the upsampler reads them. `talk-frames` reads frame
-cards and writes the 48 kHz samples, and takes `--8k`, `--values` (the samples' pairs of values, one a line) and
-`-v`. It is there for testing.
+`talk` takes the first version's options, `--phonemes`, `--frames` and `-v`, and three more. `--8k` writes the
+8 kHz samples underneath instead, the output stage's cards as the upsampler reads them. `--no-hiband` writes the
+48 kHz samples without the high band, the upsampler's output alone. `--filters` prints the filter each frame speaks
+through, one a line, as the front end's `choose` punches it, which is what the high band's levels are looked up by.
+`talk-frames` reads frame cards and writes the 48 kHz samples, and takes `--8k`, `--values` (the samples' pairs of
+values, one a line) and `-v`. Frame cards alone don't say which sound a frame is, so `talk-frames` adds no high band
+unless it is given the frames' filters as well, with `--filters FILE`. It is there for testing.
 
 To change a Rust machine, you need [cargo-cardiac](https://crates.io/crates/cargo-cardiac) as well.
 [`build_machines.sh`](build_machines.sh) compiles the three in [`machines/`](machines/) to their decks, next to
 their sources, and writes their sizes to [`machines/cells.txt`](machines/cells.txt). The filter tables are made by
 [`../ref/up_table.py`](../ref/up_table.py).
 
-On this Mac (an Apple M5 Ultra) the sentence above, 7.83 seconds of speech, takes 1.38 seconds to work out, a
-real-time factor of about 0.18, where the first version takes 0.084 seconds, about 0.011.
+On this Mac (an Apple M5 Ultra) the sentence above, 7.83 seconds of speech, takes 1.41 seconds to work out, a
+real-time factor of about 0.18 (1.36 seconds without the high band), where the first version takes 0.084 seconds,
+about 0.011.
 
 ## How it works
 
@@ -127,9 +132,109 @@ start a round it couldn't finish, and the machine would put one sample too many 
 and the 48 kHz speech comes 245 samples, 5.1 ms, after the 8 kHz speech it is made from. The filters' last 245
 samples are not put out, and they are silence, since the speech ends with a pause.
 
+## The high band
+
+The speech is worked out at 8 kHz, so none of it lies above 4 kHz, and much of a fricative's energy does. The voice
+box's noise filters are fitted to Klatt's spectra below 4 kHz, so the hiss of an S is pushed up against 4 kHz, and
+stage 1, which has to stop at 4 kHz to take out the images, takes the top of that hiss out with them. A word-final S
+or Z is left with little, and "for millions of years" can be heard as "for millions of year".
+
+Klatt's synthesizer gives its fricatives their high frequencies through its parallel branch [[Klatt
+1980]](../README.md#references). A frication source, AF, drives formant resonators F2 to F6 set side by side, each at its own
+amplitude, A2 to A6, and a bypass, AB, that passes the source on flat. His Table III gives the amplitudes of each
+fricative, affricate and burst. S and Z excite only F6 (A6 52 dB), a resonance at 4,900 Hz, 1,000 Hz wide. F, V, P
+and B excite only the bypass. TH and DH excite F6 and the bypass. SH and ZH excite F3 to F6, most strongly F3, CH
+and JH F3 to F6 with most at F4, T F3 to F6 with most at F6, D with most at F5, and K and G F3 to F6 with most at
+F3. A voiced fricative has the same
+amplitudes as its voiceless cognate, and its frication source is 10 dB weaker, AF 50 dB against 60 dB. His
+synthesizer ran at 10 kHz and so stopped at 5 kHz, but read as resonances, as the prototype reads them, his
+formants and his bypass go on above it with the same shapes.
+
+So the 48 kHz version works out a band of frication on CARDIACs, from the text, and adds it to the 48 kHz speech.
+Three machines do it:
+
+- **The level of each frame.** `choose`, in the front end, already says for every frame which filter it speaks
+  through: a fricative's or an affricate's noise filter, a stop's burst filter in the burst's frame, the filter of a
+  vowel, a sonorant or a voice bar, or 0 in a silent closure. The table
+  [`tables/hiband.cards`](tables/hiband.cards) has a card for each filter of the phoneme table, record for record,
+  which is 0 but for the noise filters, and the host fetches each frame's card by the filter's number, as it fetches
+  the filters themselves. So vowels, sonorants, nasals, pauses, closures and aspiration (HH, and the breath after P,
+  T and K) have no high band at all, and there the 48 kHz samples are the upsampler's own.
+- **`hnoise`** ramps the level across each frame as `interp` and `steps` ramp A, in ten steps of 120 samples, each
+  moving it on by (next - this) / 10, and not at all when the next frame's V differs. For each sample it puts out +L
+  or -L by the sign of x - 500, where x runs through x = 21 x + 7 mod 1000, the decimal generator `excite` uses. At
+  8 kHz that sequence repeats every eighth of a second, but at 48 kHz it would repeat every 21 ms, which is a 48 Hz
+  buzz in the hiss. So at the start of each step x is moved on by w, which runs through the same generator once a
+  step, and the noise no longer repeats. A step whose level is 0 puts out 0s.
+- **`hfilt`** shapes the noise into the band. Three zeros at 0 Hz and two at 24 kHz, (1 - z^-1)^3 (1 + z^-1)^2, are
+  e = s - s1 - 2 s2 + 2 s3 + s4 - s5, eight ADDs and SUBs, and two poles, y = e + 1.5 y1 - 0.9 y2, are a resonance at
+  5.0 kHz, 0.8 kHz wide, close to Klatt's F6. 1.5 y1 is y1 + (5 y1) / 10 and 0.9 y2 is (9 y2) / 10, rows of ADDs and
+  an SFT 01 that truncates towards zero. Measured on its output at a steady level, 73.5 percent of its power lies from
+  4 to 8 kHz, its peak is at 4.96 kHz, and against the power from 4 to 8 kHz there is -18.1 dB below 4 kHz (-29.9 dB
+  below 3 kHz), -15.7 dB from 4 to 4.5 kHz, -6.4 dB from 8 to 12 kHz and -9.4 dB from 12 to 24 kHz. A 0 in clears
+  the filter and puts out 0, so nothing rings on into the next sound.
+- **`hmix`** adds 4 y to each 48 kHz sample, the thousands and units as `fir2` puts them out, summed on top of 4000
+  as `fir2` sums its units on top of 2000. The 48 kHz speech comes 245 samples after the 8 kHz speech, so the host
+  deals 245 blank cards ahead of `hfilt`'s, and the band lines up with the frames it was made for.
+
+The host's part is the same kind of bookkeeping as before. It fetches each frame's level by `choose`'s card, collates
+each frame's V (the first card of its record) beside it, with one blank card after the last level for the frames'
+end record, merges `hnoise`'s deck from those records and the same records from the second one on, two cards from
+each in turn, as it merges `interp`'s, and merges `hmix`'s from `fir2`'s pairs and `hfilt`'s cards, two and one in
+turn. `choose`'s cards are copied to one more pile for this, and the frame cards, and so the 8 kHz speech, are what
+they were.
+
+### The levels
+
+The levels are worked out once, ahead of time, by [`../ref/hb_table.py`](../ref/hb_table.py), and kept in
+`tables/hiband.cards`. For each voiceless sound and each burst it takes Klatt's frication spectrum, his parallel
+resonances at their Table III amplitudes and his bypass, as the prototype reads them, and from it R, the energy from
+4 to 8 kHz against the energy below 4 kHz. Below 4 kHz the 48 kHz speech already speaks the sound, so the level is
+set so that the high band's energy from 4 to 8 kHz is R times the speech's below 4 kHz, measured over the sound's
+frames in twelve texts (the four passages below and eight sentences for the sounds they have few of), with the
+upsampler's arithmetic in Python. A first level comes from the high band's power at a steady level, and then the
+level is corrected twice by measuring the band `hnoise` and `hfilt` really make in those texts, ramps and all, since
+a burst ramps down towards the aspiration after it and gets less than a steady level would give.
+
+A voiced fricative's speech band is mostly its voicing, which can't say how loud its frication is, so it takes
+Klatt's rule instead: its level is its voiceless cognate's 10 dB down. The voiced stops' bursts are unvoiced in the
+8 kHz speech, as the voiceless ones' are, and are set from Klatt's figures in the same way.
+
+| Sound | Level | Klatt, 4-8 kHz against 0-4 kHz | Measured, 4-8 kHz against 0-4 kHz | High band below 4 kHz against the speech |
+|---|---:|---:|---:|---:|
+| S | 39 | 5.5 dB | 5.4 dB | -12.8 dB |
+| T (burst) | 35 | 4.6 dB | 4.7 dB | -13.6 dB |
+| D (burst) | 11 | 0.3 dB | 0.7 dB | -17.5 dB |
+| F | 6 | 0.0 dB | -0.8 dB | -18.1 dB |
+| TH | 3 | 0.0 dB | -1.5 dB | -18.0 dB |
+| P (burst) | 17 | 0.0 dB | 0.0 dB | -18.3 dB |
+| B (burst) | 10 | 0.0 dB | -0.5 dB | -17.4 dB |
+| CH | 18 | -3.0 dB | -3.1 dB | -21.3 dB |
+| G (burst) | 14 | -4.4 dB | -4.4 dB | -22.2 dB |
+| K (burst) | 13 | -4.9 dB | -5.1 dB | -23.1 dB |
+| SH | 13 | -7.2 dB | -7.2 dB | -24.8 dB |
+| K before a back vowel | 7 | -9.6 dB | -9.0 dB | -26.4 dB |
+| G before a back vowel | 8 | -9.3 dB | -9.9 dB | -26.8 dB |
+| Z | 12 | S's level, 10 dB down | -7.6 dB | -25.3 dB |
+| JH | 6 | CH's, 10 dB down | -15.8 dB | -32.8 dB |
+| ZH | 4 | SH's, 10 dB down | -17.8 dB | -34.1 dB |
+| V | 2 | F's, 10 dB down | -19.5 dB | -33.9 dB |
+| DH | 1 | TH's, 10 dB down | -29.8 dB | -40.3 dB |
+
+The measured columns are from [`../ref/hb_measure.py`](../ref/hb_measure.py), which runs `talk` with and without the
+high band on the twelve texts and takes each sound's frames, 1,200 samples at 48 kHz each, 245 samples late, under a
+Hann window. The voiceless sounds and bursts come within 1 dB of Klatt's figures, but for TH, at 1.5 dB, whose level
+is 3 and can't be set finer. A voiced fricative's figure is low against its own speech band because that band is its
+voicing. The last column is what the high band adds below 4 kHz, where its filter's skirt reaches: S's speech band
+gains 0.2 dB, and the others' less. Over the twelve texts the high band's power is 14.3 dB below the speech's. For
+the three texts of the table below, the energy from 4 to 24 kHz against 0 to 4 kHz over the whole utterance is now
+-14.6, -14.4 and -15.9 dB, where the upsampler alone leaves -45.5, -43.6 and -43.5 dB.
+
+The high band peaks at 2,440 (y at 610) over the four passages, where a card holds 999, and the samples at 10,680.
+
 ## What each machine does
 
-These are the seven machines the third version adds, after the first version's 79 (whose table is in the
+These are the ten machines the third version adds, after the first version's 79 (whose table is in the
 [README](../README.md#what-each-machine-does) above). Cells are what `cargo cardiac build` reports for a Rust
 machine and the cells a listing fills for a hand-written one. Instructions are counted by `talk -v` for "Hello, my
 name is cardiac and I was born in 1968 to D W Hagelbarger. And now I can talk.", 62,600 samples at 8 kHz and 375,600
@@ -143,21 +248,29 @@ sample.
 | yd | [machines/yd.rs](machines/yd.rs) | each 8 kHz sample's thousands and units back into yd | 21 | 1,189,463 | 19.0 |
 | fir1 | [hand/fir.cq](hand/fir.cq) | 8 kHz to 16 kHz, two phases of 80 and 79 taps | 69 | 251,609,842 | 4,019.3 |
 | fir2 | [hand/fir.cq](hand/fir.cq) | 16 kHz to 48 kHz, two phases of six taps and the sample itself, each 48 kHz sample out as thousands and units | 69 | 56,089,813 | 896.0 |
-| | | **7 machines** | | **308,902,916** | **4,934.6** |
+| hnoise | [hand/hnoise.cq](hand/hnoise.cq) | each frame's high-band level ramped over its ten steps, and +L or -L for each 48 kHz sample | 85 | 2,826,514 | 45.2 |
+| hfilt | [hand/hfilt.cq](hand/hfilt.cq) | the noise shaped into the band above 4 kHz: three zeros at 0 Hz, two at 24 kHz, and a resonance at 5.0 kHz | 73 | 6,970,021 | 111.3 |
+| hmix | [hand/hmix.cq](hand/hmix.cq) | 4 y added to each 48 kHz sample, as thousands and units | 22 | 6,760,872 | 108.0 |
+| | | **10 machines** | | **325,460,323** | **5,199.0** |
 
-All together the 86 machines ran 352,382,024 instructions for 7.83 seconds of speech, about 45.0 million a second of
-speech. The first version's 79 run 43,479,108 of them, 5.56 million a second, so the upsampler takes 88 percent of
-the work, 39.5 million instructions a second of speech. That is 938 instructions for each 48 kHz sample, against
-695 for each 8 kHz sample of the first version. A tap costs 17 instructions of reading, signing, shifting and
+All together the 89 machines ran 368,939,431 instructions for 7.83 seconds of speech, about 47.1 million a second of
+speech. The first version's 79 run 43,479,108 of them, 5.56 million a second, the upsampler's seven 308,902,916,
+39.5 million a second, and the high band's three 16,557,407, 2.1 million a second, 4.5 percent of the whole. That is
+982 instructions for each 48 kHz sample, against 695 for each 8 kHz sample of the first version. `hnoise` and
+`hfilt` are cheap in the vowels and pauses, where `hnoise` puts out 0s for 6 instructions a sample and `hfilt`
+passes them on for 15. In a fricative `hnoise` runs about 19 a sample and `hfilt` about 50, and `hmix` runs its 18
+for every sample. Without the high band
+(`--no-hiband`) the 86 machines run 352,382,024. A tap costs 17 instructions of reading, signing, shifting and
 carrying, and as many ADDs as its digits add up to (one fewer for the third digit), so `fir1`, most of whose taps
 are small, runs about 25 instructions a tap and `fir2`, whose coefficients are larger, about 32. `fir1` is 81
 percent of the upsampler's work. With 39 taps, passing only to 3.3 kHz, it ran 69,068,968 instructions for this
 sentence, and the whole sentence took 0.57 seconds, a real-time factor of 0.073.
 
-The cards add up as well. The 86 programs load 11,624 program cards, and running the sentence the machines read
-70,727,800 cards with INP, where the first version's read 1,115,392. Each 8 kHz sample is read once by each of
+The cards add up as well. The 89 programs load 11,996 program cards, and running the sentence the machines read
+72,231,454 cards with INP, where the first version's read 1,115,392. Each 8 kHz sample is read once by each of
 `fir1`'s 159 taps, and each of `fir1`'s by each of `fir2`'s 13, with five cards of the routine for each tap. They
-put out 1,980,267 values with OUT.
+put out 3,482,667 values with OUT, of which the high band's three put out 1,502,400. Without it the 86 read
+70,727,800 and put out 1,980,267.
 
 ## Written in Rust, or by hand
 
@@ -185,12 +298,21 @@ thousandths. Each table is the stage's number, then two cards a tap, phase by ph
 then 1 for a phase's last tap or else 0, with 0 and 2 for the phase that is the sample itself. Everything from there
 on, the cards of the routine, the products, the sums, the rounding and the samples, is worked out by CARDIACs.
 
+The high band's levels, [`tables/hiband.cards`](tables/hiband.cards), are worked out ahead of time too, by
+[`../ref/hb_table.py`](../ref/hb_table.py) ([The levels](#the-levels)). Klatt's spectra need exponentials and a sum
+over frequency, and the correction needs the speech measured over many texts, and none of it depends on the text
+being spoken. The table is one card for each filter of the phoneme table, record for record, the level of a frame
+that speaks through that filter. Which filter each frame speaks through, the ramps, the noise, the filter, the
+delay and the sums are worked out by CARDIACs.
+
 ## What it gives
 
 [`../ref/up_measure.py`](../ref/up_measure.py) measures how much of the 48 kHz speech lies above 4 kHz, where the
 8 kHz speech has nothing, as energy against the energy below 4 kHz, from a spectrum averaged over the whole
 utterance. It sets the upsampler's output beside the same 8 kHz samples each repeated six times, the naive way to
-make 48 kHz of them. For the three texts below, in dB:
+make 48 kHz of them. These figures are for the upsampler alone (`talk --no-hiband`), since the high band puts
+energy above 4 kHz on purpose ([The high band](#the-high-band) gives the figures with it). For the three texts
+below, in dB:
 
 | Text | Upsampler, 4-24 kHz | 4-4.5 kHz | 4.5-8 kHz | 8-24 kHz | Each sample six times, 4-24 kHz |
 |---|---:|---:|---:|---:|---:|
@@ -215,15 +337,21 @@ row for every tap.
 ## How it was checked
 
 [`../ref/up_ref.py`](../ref/up_ref.py) is the upsampler's integer arithmetic in Python, the same products, sums,
-truncations and rounding as the machines, and [`../ref/check_up.py`](../ref/check_up.py) checks every 48 kHz sample
-against it, and every 8 kHz sample underneath (`--8k`) against [`voice_ref`](../ref/voice_ref.py):
+truncations and rounding as the machines, and the high band's too (`hnoise`, `hfilt` and `hmix`, the levels taken
+from `front_ref`'s own record of each frame's noise filter). [`../ref/check_up.py`](../ref/check_up.py) checks every
+48 kHz sample against it, and every 8 kHz sample underneath (`--8k`) against [`voice_ref`](../ref/voice_ref.py):
 
     cd upsample && cargo build --release && cd ../ref
-    python3 check_up.py
+    python3 check_up.py            # the fixtures and the three texts
+    python3 check_up.py --long     # and the four passages of the previews, a minute and a half more
 
-It runs `talk-frames` on the four frame files in [`../ref/fixtures/`](../ref/fixtures/), and `talk` on the three
-texts of `make_wavs.py`, with the references end to end from the text (`text_ref`, `front_ref`, `voice_ref`, then
-`up_ref`). On the day this README was written it found all seven exact, at 48 kHz and at 8 kHz.
+It runs `talk-frames` on the four frame files in [`../ref/fixtures/`](../ref/fixtures/), which have no high band, and
+`talk` on the three texts of `make_wavs.py`, with the references end to end from the text (`text_ref`, `front_ref`,
+`voice_ref`, then `up_ref`), checking each text's 48 kHz samples with the high band and without it
+(`--no-hiband`). On the day this README was written it found all seven exact, at 48 kHz with and without the high
+band and at 8 kHz, and with `--long` the four passages of the manual, "for millions of years", "It doesn't have to
+be like this" and "All your base" as well, 2,755,200 samples at 48 kHz. The first version's checks (`check_text`,
+`check_front`, `check_voice` and `make_wavs`) still find everything exact, since the frame cards are the same.
 
 ## Compiler findings
 
@@ -242,3 +370,11 @@ in a cell, so the 48 kHz samples are right while |yd| stays within 999, a sample
 yd up to 1,638, but over the first version's test sentences and passages yd peaks at 621. And the speech is a little
 duller than the 8 kHz speech played perfectly would be, since the filter is 6 dB down at 3.88 kHz, and the speech
 has 5 to 6 percent of its energy from 3.85 to 4 kHz.
+
+The high band has limits of its own. It has one shape for every sound, Klatt's F6 near 5 kHz, where his SH and K put
+most of their frication lower, at F3 and F4, and his F and TH spread theirs flat; only its level follows the sound.
+Its level is fixed for each sound. An unvoiced fricative's A in the 8 kHz speech is fixed too, but a voiced
+fricative's moves with its pitch period, and its high band doesn't follow that. The weakest sounds' levels are small whole numbers (DH 1, V 2, TH 3), so
+they are only as fine as a step of 1 can make them. Between 3.9 and 4.5 kHz both the speech and the high band are
+weak, the speech because stage 1 cuts it off there and the high band because its filter rises from 4 kHz. And y has
+to fit in a cell, which it does with 4.3 dB to spare at the loudest S of the four passages.

@@ -15,9 +15,10 @@ There are two versions, side by side, which give the same speech sample for samp
 - **The Rust version**, in [`rust/`](rust/): 89 machines, 83 of them written in Rust and compiled for CARDIAC with
   [rust-cardiac](https://github.com/StrangeQuery/rust-cardiac), and 6 written by hand (the lattice filter and the
   output stage, where Rust is far slower). Its [README](rust/README.md) has the details.
-- **The 48 kHz version**, in [`upsample/`](upsample/): this version's 79 machines, and 7 more that upsample their
-  speech six times, to 48 kHz, with a two-stage interpolating filter on CARDIACs, the 8 kHz samples underneath the
-  same. Its [README](upsample/README.md) has the details.
+- **The 48 kHz version**, in [`upsample/`](upsample/): this version's 79 machines, 7 more that upsample their
+  speech six times, to 48 kHz, with a two-stage interpolating filter on CARDIACs, and 3 more that add the
+  fricatives' hiss above 4 kHz, which 8 kHz speech can't carry, the 8 kHz samples underneath the same. Its
+  [README](upsample/README.md) has the details.
 
 In all three, each machine reads one deck and punches one stream of cards, and the host only deals, copies, collates,
 merges decks in fixed orders and fetches table records ([What the host does](#what-the-host-does-and-doesnt-do)).
@@ -476,7 +477,9 @@ prototype's tables by [`ref/text_tables.py`](ref/text_tables.py), which also lay
 tables of one record a letter and splits the exceptions deck in two, the same cards in the same order.
 
 The 48 kHz version adds the upsampler's two low-pass filters, designed once in floating point by
-[`ref/up_table.py`](ref/up_table.py) and kept as coefficients in thousandths in [`upsample/tables/`](upsample/tables/)
+[`ref/up_table.py`](ref/up_table.py) and kept as coefficients in thousandths in [`upsample/tables/`](upsample/tables/),
+and the levels of its high band, a card for each filter, worked out by [`ref/hb_table.py`](ref/hb_table.py) from
+Klatt's frication spectra and the speech measured over twelve texts
 ([its README](upsample/README.md#whats-precomputed)).
 
 ## How it was checked

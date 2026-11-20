@@ -1,0 +1,94 @@
+; The high band's noise. Per frame in: V and the frame's level (the record of the high-band table that choose's
+; filter names), then the next frame's V and level (the host deals the records again from the second frame on). Out,
+; for each of the frame's ten steps, 120 samples at 48 kHz of +L or -L, by the sign of x - 500, where x runs through
+; the decimal LCG x = 21 x + 7 mod 1000 (21 x as 10 x + 10 x + x, mod 1000 by STO), as excite's does. At the start of
+; each step x is moved on by w, which runs through the same LCG a step at a time, so that the noise doesn't repeat
+; every 1,000 samples. L starts at the frame's level and moves on by (next - this) / 10 a step (SFT 01), as interp
+; and steps move A, and not at all when the next frame's V differs. A step whose L is 0 puts out 120 0s.
+;
+; Address Contents Label Opcode Operand Comment
+  03            frm     INP   v        03-20: a frame, and its step: (next - this) / 10, or 0
+  04                    INP   h
+  05                    INP   nv
+  06                    INP   nh
+  07                    CLA   z
+  08                    STO   d
+  09                    CLA   nv
+  10                    SUB   v
+  11                    TAC   go
+  12                    SUB   00
+  13                    TAC   same
+  14                    JMP   go
+  15            same    CLA   nh
+  16                    SUB   h
+  17                    SFT   01
+  18                    STO   d
+  19            go      CLA   n9
+  20                    STO   k
+  21            step    CLA   x        21-36: a step: x = x + w, w = 21 w + 7, and L 0 or not
+  22                    ADD   w
+  23                    STO   x
+  24                    CLA   w
+  25                    SFT   10
+  26                    STO   t
+  27                    CLA   t
+  28                    ADD   t
+  29                    ADD   w
+  30                    ADD   seven
+  31                    STO   w
+  32                    CLA   n119
+  33                    STO   c
+  34                    CLA   h
+  35                    SUB   00
+  36                    TAC   quiet
+  37            smp     CLA   x        37-58: a sample, +L or -L
+  38                    SFT   10
+  39                    STO   t
+  40                    CLA   t
+  41                    ADD   t
+  42                    ADD   x
+  43                    ADD   seven
+  44                    STO   x
+  45                    CLA   x
+  46                    SUB   c500
+  47                    TAC   neg
+  48                    OUT   h
+  49                    JMP   nxs
+  50            neg     CLA   z
+  51                    SUB   h
+  52                    STO   t
+  53                    OUT   t
+  54            nxs     CLA   c
+  55                    SUB   00
+  56                    STO   c
+  57                    TAC   endst
+  58                    JMP   smp
+  59            quiet   OUT   z        59-64: a step of 0s
+  60                    CLA   c
+  61                    SUB   00
+  62                    STO   c
+  63                    TAC   endst
+  64                    JMP   quiet
+  65            endst   CLA   h        65-87: L moves on; ten steps a frame
+  66                    ADD   d
+  67                    STO   h
+  68                    CLA   k
+  69                    SUB   00
+  70                    STO   k
+  71                    TAC   frm
+  72                    JMP   step
+  73            v       DATA  0
+  74            h       DATA  0
+  75            nv      DATA  0
+  76            nh      DATA  0
+  77            d       DATA  0
+  78            k       DATA  0
+  79            c       DATA  0
+  80            x       DATA  123
+  81            w       DATA  0
+  82            t       DATA  0
+  83            z       DATA  0
+  84            seven   DATA  7
+  85            c500    DATA  500
+  86            n9      DATA  9
+  87            n119    DATA  119
