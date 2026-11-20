@@ -26,7 +26,7 @@ The samples come out raw, as the first version's do, but 48,000 of them a second
 
     echo "Hello world." | target/release/talk | ffmpeg -f s16le -ar 48000 -ac 1 -i - hello.wav
 
-`talk` takes the first version's options, `--phonemes`, `--frames` and `-v`, and three more. `--8k` writes the
+`talk` takes the first version's options, `--phonemes`, `--frames`, `--rate=N` and `-v`, and three more. `--8k` writes the
 8 kHz samples underneath instead, the output stage's cards as the upsampler reads them. `--no-hiband` writes the
 48 kHz samples without the high band, the upsampler's output alone. `--filters` prints the filter each frame speaks
 through, one a line, as the front end's `choose` punches it, which is what the high band's levels are looked up by.
@@ -253,21 +253,21 @@ sample.
 | hmix | [hand/hmix.cq](hand/hmix.cq) | 4 y added to each 48 kHz sample, as thousands and units | 22 | 6,760,872 | 108.0 |
 | | | **10 machines** | | **325,460,323** | **5,199.0** |
 
-All together the 89 machines ran 368,939,431 instructions for 7.83 seconds of speech, about 47.1 million a second of
-speech. The first version's 79 run 43,479,108 of them, 5.56 million a second, the upsampler's seven 308,902,916,
+All together the 89 machines ran 368,942,687 instructions for 7.83 seconds of speech, about 47.1 million a second of
+speech. The first version's 79 run 43,482,364 of them, 5.56 million a second, the upsampler's seven 308,902,916,
 39.5 million a second, and the high band's three 16,557,407, 2.1 million a second, 4.5 percent of the whole. That is
 982 instructions for each 48 kHz sample, against 695 for each 8 kHz sample of the first version. `hnoise` and
 `hfilt` are cheap in the vowels and pauses, where `hnoise` puts out 0s for 6 instructions a sample and `hfilt`
 passes them on for 15. In a fricative `hnoise` runs about 19 a sample and `hfilt` about 50, and `hmix` runs its 18
 for every sample. Without the high band
-(`--no-hiband`) the 86 machines run 352,382,024. A tap costs 17 instructions of reading, signing, shifting and
+(`--no-hiband`) the 86 machines run 352,385,280. A tap costs 17 instructions of reading, signing, shifting and
 carrying, and as many ADDs as its digits add up to (one fewer for the third digit), so `fir1`, most of whose taps
 are small, runs about 25 instructions a tap and `fir2`, whose coefficients are larger, about 32. `fir1` is 81
 percent of the upsampler's work. With 39 taps, passing only to 3.3 kHz, it ran 69,068,968 instructions for this
 sentence, and the whole sentence took 0.57 seconds, a real-time factor of 0.073.
 
-The cards add up as well. The 89 programs load 11,996 program cards, and running the sentence the machines read
-72,231,454 cards with INP, where the first version's read 1,115,392. Each 8 kHz sample is read once by each of
+The cards add up as well. The 89 programs load 12,008 program cards, and running the sentence the machines read
+72,231,455 cards with INP, where the first version's read 1,115,393. Each 8 kHz sample is read once by each of
 `fir1`'s 159 taps, and each of `fir1`'s by each of `fir2`'s 13, with five cards of the routine for each tap. They
 put out 3,482,667 values with OUT, of which the high band's three put out 1,502,400. Without it the 86 read
 70,727,800 and put out 1,980,267.

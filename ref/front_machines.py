@@ -213,7 +213,8 @@ def f3_rules9(recs):
 
 
 def f3_mul(xb, fa, fb):
-    """mul.cq: (x, base) and two lists of factors -> dur = x pr / 100 + base, pr = 100 times the factors."""
+    """mul.cq: the rate card, then (x, base) and two lists of factors -> dur = (x pr / 100 + base) rate / 100, pr =
+    100 times the factors."""
     out = []
     ia = ib = 0
     for x, base in xb:
@@ -225,7 +226,7 @@ def f3_mul(xb, fa, fb):
             pr = fr.mulf(pr, fb[ib]); ib += 1
         ib += 1
         assert 0 <= pr <= 999
-        out.append([fr.mulf(x, pr) + base])
+        out.append([fr.mulf(fr.mulf(x, pr) + base, fr.RATE)])
     return out
 
 

@@ -157,6 +157,7 @@ def front(tokens, steps=None, taps=None):
     machine(net, 'rules9', 'rules9.cq')
     net.collate('rules9<', [('r1>rules9', R1, [K]), ('B>rules9', 3, [0, 2]), ('stress>rules9', 4, [2])])
     machine(net, 'mul', 'mul.cq')
+    net.put('mul<', [fm.fr.RATE])
     net.collate('mul<', [('base', 2, [0, 1]), ('rules2', 4, list(range(4))), ('rules5', 4, list(range(4))),
                          ('rules9', 4, list(range(4)))])
     machine(net, 'nframes', 'nframes.cq')

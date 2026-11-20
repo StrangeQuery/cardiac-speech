@@ -43,6 +43,10 @@ listings! {
 pub const FEATURES: &str = include_str!("../front/features.cards");
 pub const FILTERS: &str = include_str!("../front/filters.cards");
 pub const GLIDE_TABLE: &str = include_str!("../front/glides.cards");
+/// The speaking rate, in hundredths: one card, which mul reads first and multiplies every segment's duration by,
+/// pauses too (100 leaves Klatt's durations as they are, 115 makes the speech 15 percent slower). `talk --rate N`
+/// deals a card of N instead.
+pub const RATE: &str = include_str!("../front/rate.cards");
 pub const FEAT_SIZE: usize = 17;
 const FILTER: usize = 11;
 // the phoneme table's columns (ref/table.py)
@@ -59,12 +63,13 @@ pub struct Tables {
     pub features: Rc<Vec<i32>>,
     pub filters: Rc<Vec<i32>>,
     pub glides: Rc<Vec<i32>>,
+    pub rate: i32,
 }
 
 impl Tables {
     pub fn load() -> Tables {
         let read = |t: &str| Rc::new(crate::net::cards(t));
-        Tables { features: read(FEATURES), filters: read(FILTERS), glides: read(GLIDE_TABLE) }
+        Tables { features: read(FEATURES), filters: read(FILTERS), glides: read(GLIDE_TABLE), rate: read(RATE)[0] }
     }
 
     /// Cards `from` to `from + count` of the phoneme table's row for `code`.
@@ -176,6 +181,7 @@ pub fn durations(net: &mut Net, t: &Tables, r1: &[i32], a: &[i32], b: &[i32], c:
     machine(net, "rules9", RULES9);
     net.collate("rules9<", &[("r1>rules9", R1, &[KIND]), ("B>rules9", 3, &[0, 2]), ("stress>rules9", 4, &[2])]);
     machine(net, "mul", MUL);
+    net.put("mul<", &[t.rate]);
     net.collate("mul<", &[("base", 2, &all(2)), ("rules2", 4, &all(4)), ("rules5", 4, &all(4)), ("rules9", 4, &all(4))]);
     machine(net, "nframes", NFRAMES);
     net.collate("nframes<", &[("r1>nframes", R1, &[KIND]), ("mul", 1, &[0])]);

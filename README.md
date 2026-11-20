@@ -49,12 +49,13 @@ the speech as a WAV file instead:
 
     echo "Hello world." | target/release/talk | ffmpeg -f s16le -ar 8000 -ac 1 -i - hello.wav
 
-`talk` has three options:
+`talk` has four options:
 
 | | |
 |---|---|
 | `--phonemes` | print the phoneme cards the text machines make, one a line, instead of speaking |
 | `--frames` | print the frame cards the front end makes, one a line, instead of speaking |
+| `--rate=N` | speak at the rate N, in hundredths of Klatt's durations, in place of the one in `front/rate.cards` (115 is 15 percent slower; see the durations below) |
 | `-v` | after speaking, print each machine's instruction count, the totals and the real-time factor on standard error |
 
 The other two programs run parts of the pipeline on their own. `talk-phonemes` reads phoneme cards and prints frame
@@ -139,6 +140,28 @@ several syllables, and so on. Then the duration is
 
 The rules are factors in hundredths, one a rule and 100 where a rule doesn't apply, so `mul` can multiply them in
 with a few digits of decimal arithmetic.
+
+One more factor sets the speaking rate. It is a single card in hundredths, kept in
+[`front/rate.cards`](front/rate.cards), and `mul` reads it first, before any segment, and multiplies every
+segment's duration by it once Klatt's formula has given it:
+
+    DUR = ((INHDUR - MINDUR) x PRCNT / 100 + MINDUR) x RATE / 100
+
+The card says 100, which leaves Klatt's durations exactly as they were, since multiplying by 100 changes nothing.
+`talk --rate=N` deals `mul` a card of N instead, so 110 makes the speech 10 percent slower and 115 makes it 15
+percent slower. The arithmetic is still all on the CARDIAC; the host only chooses which card to deal.
+
+The rate scales the whole duration rather than going into PRCNT as one more rule. In PRCNT it would stretch only
+the part above the minimum, and the sounds that are hard to follow are the ones Klatt's rules have already pushed
+down near their minimum, the unstressed syllables in the middle of a long word. In "illustrative" at 115, R stays
+at 18 ms and AX goes from 38 to 40 when the rate goes into PRCNT, but they become 20 and 43 ms when it scales the
+whole duration. Over "Cardiac is an acronym for CARDboard Illustrative Aid to Computation. The key word here is
+'illustrative'" the sounds come out 7 percent longer the first way and 14 percent longer the second. Pauses go
+through `mul` too, with nothing above their minimum, so the rate lengthens them by the same share: at 115 a full
+stop's 600 ms becomes 690 and a comma's 300 becomes 345, as a speaker who slows down also pauses longer. The frames
+are still 25 ms, and `nframes` carries each segment's remainder on to the next, so a slower rate adds frames across
+the speech as the time adds up rather than a frame to every segment. The rate costs `mul` one more multiply a
+segment, about 40 instructions, 3,256 on the sentence at the top of this README.
 
 The formant frequencies and bandwidths come from Klatt's 1980 paper on his cascade/parallel formant synthesizer
 [[Klatt 1980]](#references): its Table II for the vowels, with their off-glides, and its Table III for the
@@ -297,7 +320,7 @@ column also gives the count per sample.
 | rules2 | [front/rules2.cq](front/rules2.cq) | Klatt's duration rules 2 to 4, as factors in hundredths | 58 | 2,197 |
 | rules5 | [front/rules5.cq](front/rules5.cq) | Klatt's duration rules 5 to 7 | 80 | 2,922 |
 | rules9 | [front/rules9.cq](front/rules9.cq) | Klatt's duration rules 9 and 10 | 89 | 3,034 |
-| mul | [front/mul.cq](front/mul.cq) | multiplies the factors into PRCNT and works out the duration in milliseconds | 81 | 43,393 |
+| mul | [front/mul.cq](front/mul.cq) | multiplies the factors into PRCNT, works out the duration in milliseconds and multiplies it by the speaking rate | 87 | 46,649 |
 | nframes | [front/nframes.cq](front/nframes.cq) | turns durations into whole 25 ms frames, carrying the remainder on | 64 | 5,527 |
 | back | [front/back.cq](front/back.cq) | the sound before each one: its end filter, whether it is a vowel, whether it is P, T or K | 41 | 2,224 |
 | sum | [front/sum.cq](front/sum.cq) | for each sentence, its length in frames and where the final fall starts | 96 | 2,974 |
@@ -331,7 +354,7 @@ column also gives the count per sample.
 | mulx5 | [front/mulx.cq](front/mulx.cq) | multiplies by gnorm's factor, at most 999 | 89 | 11,025 |
 | kcarry | [front/kcarry.cq](front/kcarry.cq) | gives a silent frame the filter of the frame before it | 46 | 65,116 |
 | asm | [front/asm.cq](front/asm.cq) | puts each frame together as the voice box reads it, V, P, A, K10 to K1, and ends with -1 | 72 | 46,820 |
-| | | **43 machines** | | **2,209,801** |
+| | | **43 machines** | | **2,213,057** |
 
 ### Voice box (11 machines)
 
@@ -350,14 +373,14 @@ column also gives the count per sample.
 | output | [voice/output.cq](voice/output.cq) | the de-emphasis, and each sample as thousands and units | 58 | 2,631,841 | 42.0 |
 | | | **11 machines** | | **40,408,815** | **645.5** |
 
-All together the 79 machines ran 43,479,108 instructions for 7.83 seconds of speech, which is about 5.6 million
+All together the 79 machines ran 43,482,364 instructions for 7.83 seconds of speech, which is about 5.6 million
 instructions a second of speech, or 695 a sample. The voice box does 93 percent of that work, and the five lattice
 machines alone do 79 percent. The text machines and the front end run 3.1 million instructions between them, and
 most of those go to reading through decks and table records (`gnorm`, `right`, `left`, `excx`) and to the division
 and square root done by subtraction (`period`, `psel`).
 
-The cards add up the same way. The 79 programs load 10,782 program cards between them. Running the sentence, the
-machines read 1,115,392 cards with INP and put out 1,039,545 values with OUT, almost all of them in the voice box,
+The cards add up the same way. The 79 programs load 10,794 program cards between them. Running the sentence, the
+machines read 1,115,393 cards with INP and put out 1,039,545 values with OUT, almost all of them in the voice box,
 where every sample passes up and down the lattice. `talk -v` prints these counts after the instruction counts.
 
 ## Comparison with other speech generators
@@ -475,6 +498,8 @@ The other decks are not computations. [`text/`](text/) holds the ASCII table, th
 names, the function words and exceptions and their phonemes, and the NRL rules, all as cards transcribed from the
 prototype's tables by [`ref/text_tables.py`](ref/text_tables.py), which also lays the rules out again as three
 tables of one record a letter and splits the exceptions deck in two, the same cards in the same order.
+[`front/rate.cards`](front/rate.cards) is one card, the speaking rate in hundredths, which is a setting rather
+than anything worked out; it says 100.
 
 The 48 kHz version adds the upsampler's two low-pass filters, designed once in floating point by
 [`ref/up_table.py`](ref/up_table.py) and kept as coefficients in thousandths in [`upsample/tables/`](upsample/tables/),

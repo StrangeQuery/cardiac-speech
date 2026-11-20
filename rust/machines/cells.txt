@@ -7,7 +7,7 @@ front/boost 87
 front/choose 78
 front/closure 82
 front/decl 41
-front/dur 77
+front/dur 83
 front/edge 61
 front/fall 80
 front/fill 39

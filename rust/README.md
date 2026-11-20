@@ -22,7 +22,8 @@ nothing else:
         | ffplay -nodisp -autoexit -f s16le -ar 8000 -ch_layout mono -
 
 `talk`, `talk-phonemes` and `talk-frames` take the same options as the first version's, `--phonemes`, `--frames`
-and `-v`. `talk` and `talk-frames` also take `--all-rust`, which runs the voice box with Rust machines in place of
+and `-v`, and `talk` takes `--rate=N`, the speaking rate (see the first version's README), which here `dur` reads
+first. `talk` and `talk-frames` also take `--all-rust`, which runs the voice box with Rust machines in place of
 the six hand-written ones, to compare (see below).
 
 To change a machine, you need [cargo-cardiac](https://crates.io/crates/cargo-cardiac) as well (`cargo install
@@ -125,7 +126,7 @@ against 2,631,841, 42.0 a sample, for the hand-written [`hand/output.cq`](hand/o
 whole, so the output stage is written by hand too. `--all-rust` runs deemph and sample.
 
 Every other Rust machine is within a small factor of the hand-written one it replaces. The text machines ran
-935,136 instructions against 875,205 then (860,492 now), the front end 2,260,389 against 1,427,517 then (2,209,801
+935,136 instructions against 875,205 then (860,492 now), the front end 2,266,215 against 1,427,517 then (2,213,057
 now), and the voice box's five Rust machines (interp, steps, ksteps, reduce, excite) 4,598,314 against 3,527,705
 then for the first version's four (3,414,657 now for its five).
 
@@ -187,7 +188,7 @@ Hagelbarger. And now I can talk.", 62,600 samples (7.83 seconds), and include ea
 | rules7 | [machines/front/rules7.rs](machines/front/rules7.rs) | Klatt's duration rule 7, for an unstressed sound | 55 | 1,863 |
 | rules9 | [machines/front/rules9.rs](machines/front/rules9.rs) | Klatt's duration rules 9 and 10 | 86 | 3,183 |
 | mul | [machines/front/mul.rs](machines/front/mul.rs) | multiplies the ten factors into PRCNT | 88 | 40,352 |
-| dur | [machines/front/dur.rs](machines/front/dur.rs) | works out the duration in milliseconds | 77 | 12,342 |
+| dur | [machines/front/dur.rs](machines/front/dur.rs) | works out the duration in milliseconds and multiplies it by the speaking rate | 83 | 18,168 |
 | nframes | [machines/front/nframes.rs](machines/front/nframes.rs) | turns durations into whole 25 ms frames, carrying the remainder on | 66 | 5,553 |
 | back | [machines/front/back.rs](machines/front/back.rs) | the sound before each one: its end filter, whether it is a vowel, whether it is P, T or K | 46 | 2,373 |
 | sum | [machines/front/sum.rs](machines/front/sum.rs) | for each sentence, its length in frames and where the final fall starts | 73 | 2,688 |
@@ -224,7 +225,7 @@ Hagelbarger. And now I can talk.", 62,600 samples (7.83 seconds), and include ea
 | boost | [machines/front/boost.rs](machines/front/boost.rs) | multiplies by gnorm's factor, at most 999 | 87 | 23,800 |
 | kcarry | [machines/front/kcarry.rs](machines/front/kcarry.rs) | gives a silent frame the filter of the frame before it | 49 | 74,593 |
 | asm | [machines/front/asm.rs](machines/front/asm.rs) | puts each frame together as the voice box reads it, V, P, A, K10 to K1, and ends with -1 | 93 | 65,691 |
-| | | **49 machines** | | **2,260,389** |
+| | | **49 machines** | | **2,266,215** |
 
 ### Voice box (11 machines)
 
@@ -244,10 +245,10 @@ Hagelbarger. And now I can talk.", 62,600 samples (7.83 seconds), and include ea
 | | | **11 machines** | | **41,592,472** | **664.4** |
 
 
-All together the 89 machines ran 44,787,997 instructions for 7.83 seconds of speech, about 5.7 million a second of
-speech, or 715 a sample, against 43,479,108 for the first version's 79 (45,783,161 for its 65 before it was given one reader). The voice box does 93 percent of it, and the
-five hand-written lattice machines 77 percent. The 89 programs load 11,086 program cards between them, and running
-the sentence the machines read 1,118,105 cards with INP and put out 1,040,323 values with OUT.
+All together the 89 machines ran 44,793,823 instructions for 7.83 seconds of speech, about 5.7 million a second of
+speech, or 716 a sample, against 43,482,364 for the first version's 79 (45,783,161 for its 65 before it was given one reader). The voice box does 93 percent of it, and the
+five hand-written lattice machines 77 percent. The 89 programs load 11,096 program cards between them, and running
+the sentence the machines read 1,118,106 cards with INP and put out 1,040,323 values with OUT.
 
 There are more machines than in the first version because a Rust machine needs more cells than a hand-written one
 for the same work, often a third more, and a machine that doesn't fit in memory is split in two.

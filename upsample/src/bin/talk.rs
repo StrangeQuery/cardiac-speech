@@ -6,6 +6,8 @@
 //!   --8k         write the 8 kHz samples underneath instead (the output stage's, as the upsampler reads them)
 //!   --filters    print each frame's filter as choose punches it instead, one a line (the high band's levels' keys)
 //!   --no-hiband  write the 48 kHz samples without the high band
+//!   --rate=N     the speaking rate in hundredths: deal mul a card of N in place of front/rate.cards (115 is 15
+//!                percent slower)
 //!   -v           each machine's instruction count, the totals and the real-time factor on standard error
 use std::io::Read;
 use std::time::Instant;
@@ -28,7 +30,10 @@ fn main() {
     }
     let started = Instant::now();
     let decks = text::Decks::load();
-    let tables = front::Tables::load();
+    let mut tables = front::Tables::load();
+    if let Some(n) = args.iter().find_map(|a| a.strip_prefix("--rate=")) {
+        tables.rate = n.parse().expect("--rate=N, N in hundredths");
+    }
     let mut steps: Vec<(String, u64)> = vec![];
 
     // text to phonemes, and phonemes to segment records, as the first version's talk does

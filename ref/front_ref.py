@@ -18,6 +18,11 @@ import table as tb
 FRAME_MS = 25
 PAUSE_MS = {-2: 300, -3: 600, -4: 600, -5: 600}
 START_PAD, END_PAD = 50, 150
+# The speaking rate, in hundredths: every segment's duration, pauses too, is multiplied by it after Klatt's
+# formula (100 leaves the speech as it was, 115 is 15 percent slower). One card, front/rate.cards, which mul reads
+# first.
+RATE = int(open(tb.os.path.join(tb.os.path.dirname(tb.os.path.abspath(__file__)), '..', 'front',
+                                'rate.cards')).read().split()[0])
 K_VOWEL, K_SON, K_NASAL, K_STOP, K_FRIC, K_AFFR, K_ASP, K_PAUSE = 1, 2, 3, 4, 5, 6, 7, 8
 
 
@@ -249,6 +254,8 @@ def p3(recs):
             dur = mulf(inh - mn, pr) + mn
             if s >= 1 and kind in (K_VOWEL, K_SON) and pvls:          # rule 11
                 dur += 25
+        dur = mulf(dur, RATE)                                         # the speaking rate
+        assert dur <= 999, dur
         # frames: the running time rounded to frames, less those handed out (at least one for a sound, two for a
         # stop or an affricate)
         rem += dur

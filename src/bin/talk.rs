@@ -5,6 +5,8 @@
 //!
 //!   --phonemes   print the phoneme cards (the text machines' output) instead, one a line
 //!   --frames     print the frame cards (the front end's output) instead, one a line
+//!   --rate=N     the speaking rate in hundredths: deal mul a card of N in place of front/rate.cards (115 is 15
+//!                percent slower)
 //!   -v           each machine's instruction count, the totals and the real-time factor on standard error
 use std::io::{Read, Write};
 use std::time::Instant;
@@ -24,7 +26,10 @@ fn main() {
     }
     let started = Instant::now();
     let decks = text::Decks::load();
-    let tables = front::Tables::load();
+    let mut tables = front::Tables::load();
+    if let Some(n) = args.iter().find_map(|a| a.strip_prefix("--rate=")) {
+        tables.rate = n.parse().expect("--rate=N, N in hundredths");
+    }
     let mut steps: Vec<(String, u64)> = vec![];
 
     // text to phonemes, and phonemes to segment records
