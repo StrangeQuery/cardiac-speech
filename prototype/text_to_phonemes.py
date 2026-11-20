@@ -514,6 +514,8 @@ EXCEPTIONS = {
     'MILLION': 'M IH1 L Y AX0 N',
     'DOESN\'T': 'D AH1 Z AX0 N T',  # rules: D AH Z N T
     'IMAGINATION': 'IH0 M AE2 JH IH0 N EY1 SH AX0 N',   # rules put the stress on the first syllable
+    'BELONG': 'B IH0 L AO1 NX',      # rules: stressed on the first syllable
+    'SURVIVE': 'S ER0 V AY1 V',      # rules: S ER V IH V, stressed on the first syllable
     'ACRONYM': 'AE1 K R AX0 N IH0 M',
     'ILLUSTRATIVE': 'IH0 L AH1 S T R AX0 T IH0 V',
     'COMPUTATION': 'K AA2 M P Y UW0 T EY1 SH AX0 N',
