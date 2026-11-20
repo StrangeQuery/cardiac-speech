@@ -1339,7 +1339,7 @@ def fig_cost():
     mult = {'L1', 'L2', 'L3', 'L4', 'L5', 'fir1', 'fir2'}
     tot = [sum(c for _, c in s) for s in st]
     rows_ = [sum(c for n, c in s if n in mult) for s in st]
-    assert tot == [860492, 2209801, 43625236, 126353767], tot
+    assert tot == [860492, 2209801, 40408815, 126353878], tot
     fig, ax = plt.subplots(figsize=(W_IN, 3.9))
     fig.subplots_adjust(left=0.05, right=0.95, top=0.82, bottom=0.17)
     y = np.arange(4)

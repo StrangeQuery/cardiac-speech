@@ -54,7 +54,7 @@ Made by docs/figures.py from the programs’ own output and the tables they read
 
 `fig13-resampler-filters.svg`
 
-**Figure 14.** Spectrogram of the README sentence as the 48 kHz version produces it, resampled by the seven CARDIAC programs, for comparison with the previous spectrogram, with the same analysis and the same reference level. For this sentence the energy from 4 to 24 kHz (above the red line) is -46.0 dB relative to 0 to 4 kHz, against -7.2 dB for the previous spectrogram (measured as in Figure 16), and most of what remains is rounding noise rather than images. Data from upsample/target/release/talk and talk --8k (heartburn).
+**Figure 14.** Spectrogram of the README sentence as the 48 kHz version produces it, resampled by the seven CARDIAC programs, for comparison with the previous spectrogram, with the same analysis and the same reference level. For this sentence the energy from 4 to 24 kHz (above the red line) is -46.1 dB relative to 0 to 4 kHz, against -7.2 dB for the previous spectrogram (measured as in Figure 16), and most of what remains is rounding noise rather than images. Data from upsample/target/release/talk and talk --8k (heartburn).
 
 `fig14-spectrogram-48k.svg`
 
@@ -66,6 +66,6 @@ Made by docs/figures.py from the programs’ own output and the tables they read
 
 `fig16-images.svg`
 
-**Figure 17.** CARDIAC instructions per second of speech for each stage, for the README sentence (7.83 s of speech; 173,049,296 instructions in all, loading included). The darker part of each bar is the programs that multiply by jumping into a row of ADDs. In the voice box they are the five lattice programs, 86 percent of its instructions and 80 percent of the whole 8 kHz pipeline’s, and in the resampler the two filter programs. Counts from talk -v of the 48 kHz version under heartburn.
+**Figure 17.** CARDIAC instructions per second of speech for each stage, for the README sentence (7.83 s of speech; 169,832,986 instructions in all, loading included). The darker part of each bar is the programs that multiply by jumping into a row of ADDs. In the voice box they are the five lattice programs, 85 percent of its instructions and 79 percent of the whole 8 kHz pipeline’s, and in the resampler the two filter programs. Counts from talk -v of the 48 kHz version under heartburn.
 
 `fig17-cost.svg`
