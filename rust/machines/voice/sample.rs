@@ -18,6 +18,7 @@ fn main() {
         let mut units = 100 * rem + 20 * u;
         if units < 0 {
             thousands -= 1;
+            // 1000 is past a card (RCE0009), so it goes on as two 500s
             units += 500;
             units += 500;
         }

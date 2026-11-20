@@ -32,6 +32,7 @@ fn main() {
                 }
                 x = x - 993 + 20 * s;
                 if x < 0 {
+                    // 1000 is past a card (RCE0009), so it goes on as two 500s
                     x += 500;
                     x += 500;
                 }

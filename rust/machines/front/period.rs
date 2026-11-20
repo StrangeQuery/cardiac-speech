@@ -14,6 +14,7 @@ fn main() {
         while thousands > 0 || units >= f0 {
             units -= f0;
             if units < 0 {
+                // 1000 is past a card (RCE0009), so it goes on as two 500s
                 units += 500;
                 units += 500;
                 thousands -= 1;
