@@ -232,6 +232,12 @@ the three texts of the table below, the energy from 4 to 24 kHz against 0 to 4 k
 
 The high band peaks at 2,440 (y at 610) over the four passages, where a card holds 999, and the samples at 10,680.
 
+The levels Klatt's figures give were then set by ear. At those levels the high band sounded like static, so in a
+blind test Jason compared the fricatives' band at full, half and a quarter level, with no high band on the stops'
+bursts, and a quarter level was clearest. `ref/hb_table.py` works the levels out as above and then keeps a quarter
+of each fricative's (`by_ear`), and gives the bursts none, so `hiband.cards` holds S 10, CH 4, SH 3, Z 3, F 2,
+JH 2, TH 1, V 1, ZH 1 and DH 0. The measurements below are of the levels before that step.
+
 ## What each machine does
 
 These are the ten machines the third version adds, after the first version's 79 (whose table is in the

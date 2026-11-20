@@ -516,6 +516,12 @@ EXCEPTIONS = {
     'IMAGINATION': 'IH0 M AE2 JH IH0 N EY1 SH AX0 N',   # rules put the stress on the first syllable
     'BELONG': 'B IH0 L AO1 NX',      # rules: stressed on the first syllable
     'SURVIVE': 'S ER0 V AY1 V',      # rules: S ER V IH V, stressed on the first syllable
+    'COOPERATE': 'K OW0 AA1 P ER0 EY2 T',     # rules read COOP as one syllable (K UW P)
+    'COOPERATES': 'K OW0 AA1 P ER0 EY2 T S',
+    'COOPERATED': 'K OW0 AA1 P ER0 EY2 T IH0 D',
+    'COOPERATING': 'K OW0 AA1 P ER0 EY2 T IH0 NX',
+    'COOPERATION': 'K OW0 AA2 P ER0 EY1 SH AX0 N',
+    'COOPERATIVE': 'K OW0 AA1 P ER0 AX0 T IH0 V',
     'ACRONYM': 'AE1 K R AX0 N IH0 M',
     'ILLUSTRATIVE': 'IH0 L AH1 S T R AX0 T IH0 V',
     'COMPUTATION': 'K AA2 M P Y UW0 T EY1 SH AX0 N',

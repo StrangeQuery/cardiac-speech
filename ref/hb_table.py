@@ -174,8 +174,25 @@ def tabulate(level, names, nf):
     return table
 
 
+# By ear (Jason, 2026-11-19): at Klatt's levels the high band sounded like static. In a blind test of the
+# fricatives' band at full, half and a quarter level, with no high band on the stops' bursts, a quarter level
+# was clearest. So the table keeps a quarter of each fricative's level (a level that would round to 0 stays 0)
+# and gives the bursts none.
+SCALE = 0.25
+STOPS = ('P', 'T', 'K', 'B', 'D', 'G')
+
+
+def by_ear(table, rows):
+    out = list(table)
+    for name, i, *_ in rows:
+        v = table[i] * SCALE
+        out[i] = 0 if name.split()[0] in STOPS or v < 0.5 else max(1, round(v))
+    return out
+
+
 if __name__ == '__main__':
     table, rows, g2, phi = build()
+    table = by_ear(table, rows)
     open(os.path.join(ur.TABLES, 'hiband.cards'), 'w').write('\n'.join(map(str, table)) + '\n')
     print('the high band at a level of 1: mean square %.3f, %.1f percent of it from 4 to 8 kHz' % (g2, 100 * phi))
     print('%-10s %6s %6s %18s %18s %5s' % ('sound', 'filter', 'frames', 'Klatt 4-8/0-4 dB', 'speech rms 0-4k', 'level'))
