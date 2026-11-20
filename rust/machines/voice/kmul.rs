@@ -19,6 +19,8 @@ fn main() {
             // inside one expression: it stays in the accumulator.
             let m = x.abs();
             let (h, t, u) = (m / 100, m / 10 % 10, m % 10);
+            // SAFETY: x is a card, -999 to 999, so m is 0 to 999 and each of its digits is 0 to 9, as assume says
+            // and as the three table reads below need
             unsafe { assume(h >= 0 && h < 10 && t >= 0 && t < 10 && u >= 0 && u < 10) };
             let (a, b, c) = unsafe { (*tab.get_unchecked(h as usize), *tab.get_unchecked(t as usize), *tab.get_unchecked(u as usize)) };
             let mut r = a + (b + c / 10 + half) / 10;

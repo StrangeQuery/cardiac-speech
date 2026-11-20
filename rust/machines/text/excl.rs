@@ -19,7 +19,8 @@ fn main() {
         loop {
             let d = inp();
             if d >= 0 {
-                // SAFETY: at is 13 at most (an item holds 13 letters) while it is under 99
+                // SAFETY: the && reads word[at] only when at <= n, at starts at 1 and goes up by one, and n is 13
+                // at most (items cuts a word to 13 letters), so at is 1 to 13 in a word of 15 cards
                 at = if at <= n && unsafe { *word.get_unchecked(at as usize) } == d { at + 1 } else { 99 };
             } else if d < -98 {
                 // -99, the end of the deck
