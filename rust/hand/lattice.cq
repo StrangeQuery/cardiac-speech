@@ -2,7 +2,8 @@
 ; from the machine above, and b(i-2) of the sample before from the machine below. It sends b(i) of the sample
 ; before up, and the new f down. Every 20 samples (one step) it reads ten coefficient cards, five for each stage,
 ; straight into the multiply routines: the sign word (ADD t or SUB t), the two jumps into the row of nine ADDs
-; (one per digit of the coefficient), the final SFT, and the rounding half.
+; (one per digit of the coefficient), the final SFT, and the rounding half. In a step whose A is 0 the cards
+; are four SFT 00 and a half of 0, the cards of k = 0, so every product is 0.
 ;
 ; A stage is p = k b, f = f - p, q = k f, b(i) = b(i-1) + q. k x is Horner over the coefficient's two digits:
 ; c = +x or -x, d2 ADDs of c, SFT 01, d1 ADDs of c, then half a unit away from zero and SFT 0L. The row of ADDs

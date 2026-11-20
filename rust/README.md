@@ -103,14 +103,14 @@ multiply by jumping into a row of nine ADD instructions that reduce's cards rewr
 add. Rust can't write that row. Written as a loop that adds the value d times for a digit d, each add is a counter,
 a test and a jump as well, and each multiply took three machines to fit in memory: a ten-stage lattice was 57
 machines, which on the 8-second test sentence (`ref/fixtures/born1968_tts.frames`) ran 240,995,502 instructions,
-3,766 a sample, where the five hand-written machines ran 38,335,205, 599 a sample.
+3,766 a sample, where the five hand-written machines ran 35,287,701, 551 a sample.
 
 So the Rust lattice multiplies by table instead. Once a coefficient, [ktable](machines/voice/ktable.rs) makes a
 table of n times 0 to 9, n being its two digits as a number, and each multiply looks up the value's three digits in it and adds them a
 place apart, so that the sum that passes a card is all in one expression and stays in the accumulator. A multiply
 fits in one machine, [ksub](machines/voice/ksub.rs) for f = f - k b and [kadd](machines/voice/kadd.rs) for b' = b +
 k f (both [kmul.rs](machines/voice/kmul.rs)), so the lattice is 20 machines. `talk-frames --all-rust` runs it, and
-it gives the same samples: 64,232,597 instructions on the test sentence, 1,004 a sample, 1.7 times the hand-written
+it gives the same samples: 64,233,593 instructions on the test sentence, 1,004 a sample, 1.8 times the hand-written
 lattice. The other ways of writing it in Rust were no better: a `match` on the digit with an arm for each number of
 adds is a chain of tests and too big to fit, and a row of adds written with labelled blocks stores the sum after
 every add, which cuts it to a card (rust-cardiac issues 33 to 36). So the lattice stays as the first version has it,
@@ -120,14 +120,14 @@ sample at a time.
 
 **The output stage.** yd reaches about 1,640, past a card, which the hand-written output stage keeps as thousands
 and units in the accumulator. In Rust it takes two machines, deemph (the de-emphasis, with yd as tens and units) and
-sample (20 yd as thousands and units), which on the README's sentence ran 5,356,134 instructions, 85.6 a sample,
-against 2,631,875, 42.0 a sample, for the hand-written [`hand/output.cq`](hand/output.cq). That is 5 percent of the
+sample (20 yd as thousands and units), which on the README's sentence ran 5,355,363 instructions, 85.5 a sample,
+against 2,631,841, 42.0 a sample, for the hand-written [`hand/output.cq`](hand/output.cq). That is 6 percent of the
 whole, so the output stage is written by hand too. `--all-rust` runs deemph and sample.
 
 Every other Rust machine is within a small factor of the hand-written one it replaces. The text machines ran
-930,875 instructions against 875,205 then (856,598 now), the front end 2,260,389 against 1,427,517 then (2,209,801
-now), and the voice box's five Rust machines (interp, steps, ksteps, reduce, excite) 4,915,485 against 3,527,705
-then for the first version's four (3,672,502 now for its five).
+935,136 instructions against 875,205 then (860,492 now), the front end 2,260,389 against 1,427,517 then (2,209,801
+now), and the voice box's five Rust machines (interp, steps, ksteps, reduce, excite) 4,598,314 against 3,527,705
+then for the first version's four (3,414,657 now for its five).
 
 ## What each machine does
 
@@ -156,7 +156,7 @@ Hagelbarger. And now I can talk.", 62,600 samples (7.83 seconds), and include ea
 | names | [machines/text/names.rs](machines/text/names.rs) | says each spelled letter by name, stressing the last | 86 | 12,663 |
 | items | [machines/text/items.rs](machines/text/items.rs) | packs each word or run of phonemes into a record of 17 cards | 82 | 6,803 |
 | excl | [machines/text/excl.rs](machines/text/excl.rs) | looks each word up among the function words, dealt again after each word | 93 | 78,376 |
-| excx | [machines/text/excx.rs](machines/text/excx.rs) | looks each word up among the exceptions, dealt again after each word | 95 | 123,281 |
+| excx | [machines/text/excx.rs](machines/text/excx.rs) | looks each word up among the exceptions, dealt again after each word | 95 | 127,542 |
 | excp | [machines/text/excp.rs](machines/text/excp.rs) | replaces an exception with its phonemes and marks the other words for the rules | 83 | 5,002 |
 | letters | [machines/text/letters.rs](machines/text/letters.rs) | makes a record for each letter of a word, asking for the letter's rules | 93 | 13,177 |
 | left | [machines/text/left.rs](machines/text/left.rs) | tests every rule's left context at the letter, reading leftwards through the word | 95 | 139,496 |
@@ -169,7 +169,7 @@ Hagelbarger. And now I can talk.", 62,600 samples (7.83 seconds), and include ea
 | postd | [machines/text/postd.rs](machines/text/postd.rs) | gives a rules word's other long vowels secondary stress | 84 | 1,745 |
 | join | [machines/text/join.rs](machines/text/join.rs) | puts the boundaries between words and the pauses in place for the front end | 71 | 1,860 |
 | end | [machines/text/end.rs](machines/text/end.rs) | puts a period before the end if the text didn't end a sentence | 27 | 1,188 |
-| | | **29 machines** | | **930,875** |
+| | | **29 machines** | | **935,136** |
 
 ### Front end (49 machines)
 
@@ -233,21 +233,21 @@ Hagelbarger. And now I can talk.", 62,600 samples (7.83 seconds), and include ea
 | interp | [machines/voice/interp.rs](machines/voice/interp.rs) | each value's step to the next frame, none across a change of voicing | 75 | 136,902 | 2.2 |
 | steps | [machines/voice/steps.rs](machines/voice/steps.rs) | ten steps of 20 samples a frame: V, P and A for the excitation | 28 | 43,266 | 0.7 |
 | ksteps | [machines/voice/ksteps.rs](machines/voice/ksteps.rs) | the ten Ks of each step, each after the step's A, for reduce | 89 | 885,028 | 14.1 |
-| reduce | [machines/voice/reduce.rs](machines/voice/reduce.rs) | each K as the five cards of a multiply routine, rounding or (in a pause) truncating | 90 | 1,460,490 | 23.3 |
+| reduce | [machines/voice/reduce.rs](machines/voice/reduce.rs) | each K as the five cards of a multiply routine, or in a pause the cards of k = 0 | 92 | 1,143,319 | 18.3 |
 | excite | [machines/voice/excite.rs](machines/voice/excite.rs) | pulses every P samples through a one-pole low-pass, or random plus and minus A | 91 | 2,389,799 | 38.2 |
-| L1 | [hand/lattice_top.cq](hand/lattice_top.cq) | lattice stages 10 and 9 | 89 | 6,271,363 | 100.2 |
-| L2 | [hand/lattice.cq](hand/lattice.cq) | lattice stages 8 and 7 | 93 | 7,500,044 | 119.8 |
-| L3 | [hand/lattice.cq](hand/lattice.cq) | lattice stages 6 and 5 | 93 | 7,568,175 | 120.9 |
-| L4 | [hand/lattice.cq](hand/lattice.cq) | lattice stages 4 and 3 | 93 | 7,716,503 | 123.3 |
-| L5 | [hand/lattice_bottom.cq](hand/lattice_bottom.cq) | lattice stages 2 and 1 | 94 | 8,264,774 | 132.0 |
-| output | [hand/output.cq](hand/output.cq) | the de-emphasis, and each sample as thousands and units | 58 | 2,631,875 | 42.0 |
-| | | **11 machines** | | **44,868,219** | **716.7** |
+| L1 | [hand/lattice_top.cq](hand/lattice_top.cq) | lattice stages 10 and 9 | 89 | 5,667,206 | 90.5 |
+| L2 | [hand/lattice.cq](hand/lattice.cq) | lattice stages 8 and 7 | 93 | 7,017,628 | 112.1 |
+| L3 | [hand/lattice.cq](hand/lattice.cq) | lattice stages 6 and 5 | 93 | 7,040,163 | 112.5 |
+| L4 | [hand/lattice.cq](hand/lattice.cq) | lattice stages 4 and 3 | 93 | 7,096,118 | 113.4 |
+| L5 | [hand/lattice_bottom.cq](hand/lattice_bottom.cq) | lattice stages 2 and 1 | 94 | 7,541,202 | 120.5 |
+| output | [hand/output.cq](hand/output.cq) | the de-emphasis, and each sample as thousands and units | 58 | 2,631,841 | 42.0 |
+| | | **11 machines** | | **41,592,472** | **664.4** |
 
 
-All together the 89 machines ran 48,059,483 instructions for 7.83 seconds of speech, about 6.1 million a second of
-speech, or 768 a sample, against 46,691,635 for the first version's 79 (45,783,161 for its 65 before it was given one reader). The voice box does 93 percent of it, and the
-five hand-written lattice machines 78 percent. The 89 programs load 11,080 program cards between them, and running
-the sentence the machines read 1,117,715 cards with INP and put out 1,040,323 values with OUT.
+All together the 89 machines ran 44,787,997 instructions for 7.83 seconds of speech, about 5.7 million a second of
+speech, or 715 a sample, against 43,479,108 for the first version's 79 (45,783,161 for its 65 before it was given one reader). The voice box does 93 percent of it, and the
+five hand-written lattice machines 77 percent. The 89 programs load 11,086 program cards between them, and running
+the sentence the machines read 1,118,105 cards with INP and put out 1,040,323 values with OUT.
 
 There are more machines than in the first version because a Rust machine needs more cells than a hand-written one
 for the same work, often a third more, and a machine that doesn't fit in memory is split in two.
@@ -278,7 +278,8 @@ and divide routines that work digit by digit, with a row of nine ADDs, instead o
 built with cargo-cardiac 0.2.5, and every number in this README is 0.2.5's.
 
 Built with main, all 83 machines still fit and every check is still exact, and the speech comes out the same sample
-for sample. But the pipeline is barely faster:
+for sample. But the pipeline is barely faster (these counts were taken before the change to pauses described in the
+first version's README, so the 0.2.5 column is not the same as the tables above):
 
 | | 0.2.5 | main |
 |---|---:|---:|
@@ -442,7 +443,7 @@ index memory, by building a CLA instruction and running it:
 
 Still, three lookups, a sign test and the stores between them come to about 49 instructions a multiply on main against
 the hand's 31, and the table costs a machine of its own. The all-Rust lattice runs 966 instructions a sample on main,
-against 599 for the hand-written one, so the lattice stays hand-written.
+against 551 for the hand-written one, so the lattice stays hand-written.
 
 ## How it was checked
 

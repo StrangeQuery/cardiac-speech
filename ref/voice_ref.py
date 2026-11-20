@@ -3,9 +3,10 @@ closedloop.sto, synth_cardiac.reduce_k, closedloop.interp_steps, synth_float.exc
 programs in voice/ can be checked against the model they were written from, sample for sample.
 
 It differs from the prototype's run_block in three places. A voiced pulse goes through the one-pole low-pass
-e = pulse + 0.5 e (truncated), to soften the buzz. In a step whose A is 0 the lattice's products are truncated toward
-zero instead of rounded, so that in a pause the lattice dies away instead of holding a small limit cycle. And in the
-output stage 0.9 L is truncated instead of rounded whenever f is 0, so that yd dies away to 0 as well."""
+e = pulse + 0.5 e (truncated), to soften the buzz. In a step whose A is 0 every k is taken as 0, so that every
+product is 0 and in a pause the lattice's state drains away instead of holding a small limit cycle (rounding, and
+truncating toward zero too, both let one go on). And in the output stage 0.9 L is truncated instead of rounded
+whenever f is 0, so that yd dies away to 0 as well."""
 import os
 import sys
 LPC = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'prototype')
@@ -21,7 +22,9 @@ T_CELL = 86                      # the cell t in every lattice machine (voice/la
 def words(K, A=1):
     """The five coefficient cards for one K (k = K/1000) in a step whose amplitude is A, as REDUCE punches them: the
     sign word (ADD t or SUB t), the jumps into the row for the second and first digits, SFT 0L and the rounding half
-    5 x 10^(L-1), or 0 when A is 0."""
+    5 x 10^(L-1). When A is 0 they are the cards of k = 0 whatever K is: four SFT 00 and a half of 0."""
+    if not A:
+        return [400, 400, 400, 400, 0]
     sign, digits = sc.reduce_k(K, 2, 'float')
     if not digits:
         lead, d1, d2 = 3, 0, 0
@@ -36,20 +39,20 @@ def words(K, A=1):
 
 def lattice(exc, ks_per_step, amps=None):
     """The lattice alone: excitation values and a K vector (K1..K10) per 20-sample step in, f out (the prototype's
-    run_block lattice, two digit terms), the products rounded, or truncated in a step whose amplitude in `amps` is 0."""
+    run_block lattice, two digit terms), the products rounded, or 0 in a step whose amplitude in `amps` is 0 (k = 0)."""
     b = [0] * (ORDER + 1)
     out = []
     n = 0
     for s, K in enumerate(ks_per_step):
         ks = [sc.reduce_k(k, 2, 'float') for k in K]
-        rnd = amps is None or amps[s] != 0
+        sounds = amps is None or amps[s] != 0
         for _ in range(STEP_LEN):
             f = exc[n]; n += 1
             for i in range(ORDER, 0, -1):
                 sg, dg = ks[i - 1]
-                p = cl.sto(cl.rmul(sg, dg, b[i - 1], rnd))
+                p = cl.sto(cl.rmul(sg, dg, b[i - 1], True)) if sounds else 0
                 f = cl.sto(f - p)
-                q = cl.sto(cl.rmul(sg, dg, f, rnd))
+                q = cl.sto(cl.rmul(sg, dg, f, True)) if sounds else 0
                 b[i] = cl.sto(b[i - 1] + q)
             b[0] = f
             out.append(f)
@@ -82,15 +85,15 @@ def run(steps):
     out = []
     for (v, P, A, K) in steps:
         ks = [sc.reduce_k(k, 2, 'float') for k in K]
-        rnd = A != 0
+        sounds = A != 0
         for _ in range(STEP_LEN):
             f = exc[n]; n += 1
             for i in range(ORDER, 0, -1):
                 sg, dg = ks[i - 1]
-                p = cl.sto(cl.rmul(sg, dg, b[i - 1], rnd))
+                p = cl.sto(cl.rmul(sg, dg, b[i - 1], True)) if sounds else 0
                 wraps += abs(f - p) > 999
                 f = cl.sto(f - p)
-                q = cl.sto(cl.rmul(sg, dg, f, rnd))
+                q = cl.sto(cl.rmul(sg, dg, f, True)) if sounds else 0
                 wraps += abs(b[i - 1] + q) > 999 and i < ORDER
                 b[i] = cl.sto(b[i - 1] + q)
                 peak = max(peak, abs(f), abs(b[i]) if i < ORDER else 0)

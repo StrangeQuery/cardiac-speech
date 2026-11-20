@@ -77,7 +77,7 @@ voice/interp 75
 voice/kadd 95
 voice/ksteps 89
 voice/ksub 95
-voice/ktable 87
-voice/reduce 90
+voice/ktable 94
+voice/reduce 92
 voice/sample 44
 voice/steps 28

@@ -176,9 +176,9 @@ instruction. So each coefficient is cut down to two decimal digits and a sign, a
 a row of nine ADD instructions:
 
 - `reduce` turns each K into five cards: a sign word (ADD t or SUB t), two jumps into the row of ADDs, one for each
-  digit, an SFT, and a rounding half. In a step whose A is 0 (a pause or a stop's closure; `steps` sends each K
-  after the step's A) the rounding half is 0, so the multiplies truncate toward zero. K keeps two digits from its
-  first nonzero one, so 0.734 is 0.73 and 0.052 is 0.052, and a K that needs rounding is rounded.
+  digit, an SFT, and a rounding half. K keeps two digits from its first nonzero one, so 0.734 is 0.73 and 0.052 is
+  0.052, and a K that needs rounding is rounded. In a step whose A is 0 (a pause or a stop's closure; `ksteps` sends
+  each K after the step's A) it sends the cards of k = 0 instead, whatever K is: four SFT 00 and a rounding half of 0.
 - A lattice machine reads those cards straight into its multiply routine, so the routine is rewritten every step.
 - To multiply x by k, it jumps into the row so that the first digit's number of ADDs run, shifts one place left,
   jumps in again for the second digit, adds half a unit away from zero, and shifts right to the result. The row
@@ -189,11 +189,21 @@ each. f passes down from `L1` to `L5`, and each machine sends its b back up to t
 
 Rounding keeps the lattice close to the float synthesizer while it speaks, but with no input it doesn't die away:
 values of 1 to 3 go round and round the stages as a steady tone, a limit cycle, which the output stage makes louder.
-Before this was fixed, 207 of the 210 silent frames in a long passage held a tone (around 400 Hz at an RMS of 66, or
-3 kHz at 31). Truncating toward zero in silent steps lets every value fall to 0 within a few samples, and those frames
-are now exactly 0. Truncating everywhere would do the same, but it costs 2 to 4 dB of signal-to-noise ratio against
-the float synthesizer while speaking; truncating only in silence gains 1.2 to 2.3 dB instead, because the tones are
-gone.
+A pause keeps the filter of the sound before it, so the lattice can ring on through the whole pause. At first 207 of
+the 210 silent frames in a long passage held a tone (around 400 Hz at an RMS of 66, or 3 kHz at 31). Truncating the
+products toward zero in silent steps stopped most of them, but not all. In the CARDIAC manual's passage about the
+word "illustrative", 53 of the 301 silent frames still held one, the output going -20, 80, 40 over and over (a tone
+of 2,667 Hz) in one pause and 60, 20, 0, 20 (2,000 Hz) in another.
+
+So in a silent step reduce now sends the lattice the cards of k = 0 for every coefficient. The four instruction
+cards are SFT 00, which does nothing, and the rounding half is 0, so every multiply gives exactly 0. The lattice
+then passes its input straight through, and its output is the excitation's tail, which the low-pass halves to 0
+within a few samples; once that is 0, the values the lattice keeps are pushed out of it within ten samples. The
+de-emphasis then falls to 0 as well (below). Every silent frame of that passage is now exactly 0 within 31 samples
+of the start of its pause, and so is every silent frame of the texts and frame files the checks below run. Nothing
+else in the speech changes, except the first sound after a pause that used to hold a tone, which now starts from a
+lattice at rest. SFT 00 is one instruction where JMP 99, the card for a digit of 0, is two, and reduce skips its own
+work in a pause, so the change also takes 3.2 million instructions off the sentence below.
 
 The output stage applies the de-emphasis, yd = f + 0.9 yd, and outputs 20 yd. A 16-bit sample doesn't fit in a
 cell, so `output` keeps yd as thousands and units, works out 0.9 of the units as (9 L + 5) / 10, and outputs each
@@ -259,7 +269,7 @@ column also gives the count per sample.
 | names | [text/names.cq](text/names.cq) | says each spelled letter by name, stressing the last | 89 | 6,809 |
 | items | [text/items.cq](text/items.cq) | packs each word or run of phonemes into a record of 17 cards | 55 | 6,989 |
 | excl | [text/excl.cq](text/excl.cq) | looks each word up among the function words, dealt again after each word | 70 | 66,537 |
-| excx | [text/excx.cq](text/excx.cq) | looks each word up among the exceptions, dealt again after each word | 74 | 111,687 |
+| excx | [text/excx.cq](text/excx.cq) | looks each word up among the exceptions, dealt again after each word | 74 | 115,581 |
 | excp | [text/excp.cq](text/excp.cq) | replaces an exception with its phonemes and marks the other words for the rules | 74 | 5,552 |
 | letters | [text/letters.cq](text/letters.cq) | makes a record for each letter of a word, asking for the letter's rules | 61 | 9,180 |
 | left | [text/left.cq](text/left.cq) | tests every rule's left context at the letter, reading leftwards through the word | 74 | 136,517 |
@@ -271,7 +281,7 @@ column also gives the count per sample.
 | posth | [text/posth.cq](text/posth.cq) | puts the header postc reads before a rules word: whether it is a function word, and whether it has a full vowel | 24 | 1,086 |
 | postc | [text/postc.cq](text/postc.cq) | gives each phoneme of a rules word its stress | 93 | 2,225 |
 | join | [text/join.cq](text/join.cq) | puts the boundaries between words, the pauses and the end card in place for the front end | 85 | 2,000 |
-| | | **25 machines** | | **856,598** |
+| | | **25 machines** | | **860,492** |
 
 ### Front end (43 machines)
 
@@ -329,24 +339,24 @@ column also gives the count per sample.
 | interp | [voice/interp.cq](voice/interp.cq) | each value's step to the next frame, none across a change of voicing | 37 | 52,886 | 0.8 |
 | steps | [voice/steps.cq](voice/steps.cq) | ten steps of 20 samples a frame: V, P and A for the excitation | 28 | 45,788 | 0.7 |
 | ksteps | [voice/ksteps.cq](voice/ksteps.cq) | the ten Ks of each step, each after the step's A, for reduce | 65 | 678,472 | 10.8 |
-| reduce | [voice/reduce.cq](voice/reduce.cq) | each K as the five cards of a multiply routine, rounding or (in a pause) truncating | 89 | 1,339,924 | 21.4 |
+| reduce | [voice/reduce.cq](voice/reduce.cq) | each K as the five cards of a multiply routine, or in a pause the cards of k = 0 | 94 | 1,082,079 | 17.3 |
 | excite | [voice/excite.cq](voice/excite.cq) | pulses every P samples through a one-pole low-pass, or random plus and minus A | 63 | 1,555,432 | 24.8 |
-| L1 | [voice/lattice_top.cq](voice/lattice_top.cq) | lattice stages 10 and 9 | 89 | 6,271,363 | 100.2 |
-| L2 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 8 and 7 | 93 | 7,500,044 | 119.8 |
-| L3 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 6 and 5 | 93 | 7,568,175 | 120.9 |
-| L4 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 4 and 3 | 93 | 7,716,503 | 123.3 |
-| L5 | [voice/lattice_bottom.cq](voice/lattice_bottom.cq) | lattice stages 2 and 1 | 94 | 8,264,774 | 132.0 |
-| output | [voice/output.cq](voice/output.cq) | the de-emphasis, and each sample as thousands and units | 58 | 2,631,875 | 42.0 |
-| | | **11 machines** | | **43,625,236** | **696.9** |
+| L1 | [voice/lattice_top.cq](voice/lattice_top.cq) | lattice stages 10 and 9 | 89 | 5,667,206 | 90.5 |
+| L2 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 8 and 7 | 93 | 7,017,628 | 112.1 |
+| L3 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 6 and 5 | 93 | 7,040,163 | 112.5 |
+| L4 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 4 and 3 | 93 | 7,096,118 | 113.4 |
+| L5 | [voice/lattice_bottom.cq](voice/lattice_bottom.cq) | lattice stages 2 and 1 | 94 | 7,541,202 | 120.5 |
+| output | [voice/output.cq](voice/output.cq) | the de-emphasis, and each sample as thousands and units | 58 | 2,631,841 | 42.0 |
+| | | **11 machines** | | **40,408,815** | **645.5** |
 
-All together the 79 machines ran 46,691,635 instructions for 7.83 seconds of speech, which is about 6.0 million
-instructions a second of speech, or 746 a sample. The voice box does 93 percent of that work, and the five lattice
-machines alone do 80 percent. The text machines and the front end run 3.1 million instructions between them, and
+All together the 79 machines ran 43,479,108 instructions for 7.83 seconds of speech, which is about 5.6 million
+instructions a second of speech, or 695 a sample. The voice box does 93 percent of that work, and the five lattice
+machines alone do 79 percent. The text machines and the front end run 3.1 million instructions between them, and
 most of those go to reading through decks and table records (`gnorm`, `right`, `left`, `excx`) and to the division
 and square root done by subtraction (`period`, `psel`).
 
-The cards add up the same way. The 79 programs load 10,772 program cards between them. Running the sentence, the
-machines read 1,115,002 cards with INP and put out 1,039,545 values with OUT, almost all of them in the voice box,
+The cards add up the same way. The 79 programs load 10,782 program cards between them. Running the sentence, the
+machines read 1,115,392 cards with INP and put out 1,039,545 values with OUT, almost all of them in the voice box,
 where every sample passes up and down the lattice. `talk -v` prints these counts after the instruction counts.
 
 ## Comparison with other speech generators
@@ -366,8 +376,8 @@ synthesizer is not Klatt's formant synthesizer, though. Klatt's formants are tur
 once, ahead of time, and the CARDIACs only blend those. The Votrax and the SP0256 string stored sounds together, and
 cardiac-speech instead works out every frame of every sound from its neighbours.
 
-The cost on a CARDIAC is large. One second of speech takes about 6.0 million CARDIAC instructions over 79 machines,
-and at 8,000 samples a second that is 746 instructions a sample. Under heartburn on this Mac, the 79 machines take
+The cost on a CARDIAC is large. One second of speech takes about 5.6 million CARDIAC instructions over 79 machines,
+and at 8,000 samples a second that is 695 instructions a sample. Under heartburn on this Mac, the 79 machines take
 turns on one thread, and the sentence takes about 0.078 seconds, a real-time factor of about 0.010.
 
 ## Reliance on lubdub

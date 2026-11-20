@@ -130,18 +130,18 @@ sample.
 | digits1, digits2 | [machines/digits.rs](machines/digits.rs) | each coefficient of a table as its sign word and its three digits, counted down | 49 | 2,141 and 935 | |
 | words1, words2 | [machines/words.rs](machines/words.rs) | the digits as the five cards of fir's routine | 86 | 1,803 and 755 | |
 | yd | [machines/yd.rs](machines/yd.rs) | each 8 kHz sample's thousands and units back into yd | 21 | 1,189,463 | 19.0 |
-| fir1 | [hand/fir.cq](hand/fir.cq) | 8 kHz to 16 kHz, two phases of 20 and 19 taps | 69 | 69,068,857 | 1,103.3 |
+| fir1 | [hand/fir.cq](hand/fir.cq) | 8 kHz to 16 kHz, two phases of 20 and 19 taps | 69 | 69,068,968 | 1,103.3 |
 | fir2 | [hand/fir.cq](hand/fir.cq) | 16 kHz to 48 kHz, two phases of six taps and the sample itself, each 48 kHz sample out as thousands and units | 69 | 56,089,813 | 896.0 |
-| | | **7 machines** | | **126,353,767** | **2,018.4** |
+| | | **7 machines** | | **126,353,878** | **2,018.4** |
 
-All together the 86 machines ran 173,049,296 instructions for 7.83 seconds of speech, about 22.1 million a second of
-speech. The first version's 79 run 46,695,529 of them, 5.97 million a second, so the upsampler takes 73 percent of
-the work, 16.1 million instructions a second of speech. That is 461 instructions for each 48 kHz sample, against
-746 for each 8 kHz sample of the first version. A tap costs 17 instructions of reading, signing, shifting and
+All together the 86 machines ran 169,832,986 instructions for 7.83 seconds of speech, about 21.7 million a second of
+speech. The first version's 79 run 43,479,108 of them, 5.56 million a second, so the upsampler takes 74 percent of
+the work, 16.1 million instructions a second of speech. That is 452 instructions for each 48 kHz sample, against
+695 for each 8 kHz sample of the first version. A tap costs 17 instructions of reading, signing, shifting and
 carrying, and as many ADDs as its digits add up to (one fewer for the third digit), so `fir1` runs about 28
 instructions a tap and `fir2`, whose coefficients are larger, about 32.
 
-The cards add up as well. The 86 programs load 11,614 program cards, and running the sentence the machines read
+The cards add up as well. The 86 programs load 11,624 program cards, and running the sentence the machines read
 25,654,960 cards with INP, where the first version's read 1,115,392. Each 8 kHz sample is read once by each of
 `fir1`'s 39 taps, and each of `fir1`'s by each of `fir2`'s 13, with five cards of the routine for each tap. They put
 out 1,979,067 values with OUT.
@@ -161,7 +161,7 @@ product, `v * d1 + (v * d2 + v * d3 / 10) / 10`, calls rust-cardiac's multiply r
 same digits. The routine also keeps the product it builds in a cell, so a digit times a sample past 999 comes out
 wrong (below). A whole stage written that way was 114 cells, too big to fit. A tap in Rust would have to look its
 products up in a table made for each coefficient, as the Rust lattice's [kmul](../rust/machines/voice/kmul.rs) does,
-and the Rust lattice took 1.7 times the hand-written one's instructions that way.
+and the Rust lattice took 1.8 times the hand-written one's instructions that way.
 
 ## What's precomputed
 
@@ -182,7 +182,7 @@ make 48 kHz of them. For the three texts below, in dB:
 | Text | Upsampler, 4-24 kHz | 4-4.5 kHz | 4.5-8 kHz | 8-24 kHz | Each sample six times, 4-24 kHz |
 |---|---:|---:|---:|---:|---:|
 | "All your base are belong to us. You have no chance to survive. Make your time." | -46.6 | -52.1 | -49.3 | -54.1 | -7.0 |
-| "It doesn't have to be like this. All we need to do is make sure. we keep. talking." | -45.0 | -51.2 | -47.4 | -52.4 | -6.9 |
+| "It doesn't have to be like this. All we need to do is make sure. we keep. talking." | -45.0 | -51.3 | -47.4 | -52.4 | -6.9 |
 | "for millions of years, mankind lived just like the animals. ..." | -44.7 | -51.0 | -47.0 | -52.1 | -6.8 |
 
 So the images are 45 to 47 dB below the speech, where repeating each sample leaves them 7 dB below. Most of what is
