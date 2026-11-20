@@ -153,6 +153,10 @@ def build(C):
                 if p in ('K', 'G'):
                     ks, a = pf.noise_filter(p, True)
                     r[F_ALT] = add(ks, a, pw, False)
+                # the bursts at twice the gain of their power (+6 dB), chosen by ear
+                for slot in (F_NOISE, F_ALT):
+                    if r[slot]:
+                        filters[r[slot]][10] *= 2
                 if p in ('B', 'D', 'G'):
                     ks, a = pf.voicebar_filter(p)
                     r[F_VBAR] = add(ks, a, pf.VOICEBAR_POWER, True)

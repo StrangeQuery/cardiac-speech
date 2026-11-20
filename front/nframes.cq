@@ -1,7 +1,9 @@
 ; Two cards a segment in (kind, dur in ms), the segment's frames out (25 ms each). The time so far is kept as
 ; whole frames not yet handed out (D) and ms over (rem); a segment gets the frames that bring the handed-out total
 ; to the time so far rounded (rem from 13 up rounds up), but at least one for a sound and two for a stop or an
-; affricate (kinds 4 and 6), none for a pause.
+; affricate (kinds 4 and 6), none for a pause. A stop's duration is its closure, and its burst gets one frame more
+; after it: the stop's frames go out one more, and the time so far moves on by that frame too, so D is left as
+; it would be without it.
 ;
 ; Address Contents Label Opcode Operand Comment
   03            rec     INP   kind     03-15: the time so far, in whole frames and ms over
@@ -51,20 +53,29 @@
   47                    JMP   out
   48            up      CLA   least
   49                    STO   n
-  50            out     OUT   n        50-54: n out, D less n
-  51                    CLA   dd
-  52                    SUB   n
-  53                    STO   dd
-  54                    JMP   rec
-  60            kind    DATA  0
-  61            dur     DATA  0
-  62            rem     DATA  0
-  63            dd      DATA  0
-  64            n       DATA  0
-  65            least   DATA  0
-  66            z       DATA  0
-  67            c25     DATA  25
-  68            c13     DATA  13
-  69            c8      DATA  8
-  70            n4      DATA  4
-  71            n2      DATA  2
+  50            out     CLA   dd       50-75: D less n; n out, one more for a stop's burst
+  51                    SUB   n
+  52                    STO   dd
+  53                    CLA   kind
+  54                    SUB   n4
+  55                    TAC   emit
+  56                    SUB   00
+  57                    TAC   stop
+  58            emit    OUT   n
+  59                    JMP   rec
+  60            stop    CLA   n
+  61                    ADD   00
+  62                    STO   n
+  63                    JMP   emit
+  64            kind    DATA  0
+  65            dur     DATA  0
+  66            rem     DATA  0
+  67            dd      DATA  0
+  68            n       DATA  0
+  69            least   DATA  0
+  70            z       DATA  0
+  71            c25     DATA  25
+  72            c13     DATA  13
+  73            c8      DATA  8
+  74            n4      DATA  4
+  75            n2      DATA  2

@@ -1,7 +1,7 @@
 //! weights: a frame's j, k and n (from framer) in; the glide weights at its segment's two ends out, wl and wr: the
 //! share of the segment's own filter in its first and last frames, in tenths (front_ref.glide_weight; 0 for none).
 //! A segment of four frames or more glides over two frames at each end (3 and then 9), of three over one (3), and
-//! of two over one, its first (5).
+//! of two only at its start, over its first frame (5), the second keeping the segment's own target.
 use cardiac::*;
 
 /// The weight for the frame k from one end of a segment of n frames.
@@ -26,6 +26,6 @@ fn main() {
         let k = inp();
         let n = inp();
         out(weight(j, n));
-        out(weight(k, n));
+        out(if n == 2 { 0 } else { weight(k, n) });
     }
 }

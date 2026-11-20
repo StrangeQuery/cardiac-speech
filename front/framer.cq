@@ -1,8 +1,9 @@
 ; A segment's frames. Two cards a segment in (n, send); for each frame j out, five cards to the chooser (j, u, wl,
 ; wr, end) and u twice more, for the pitch and the level. u = (10 j + 5) / n, the frame's place in
 ; the segment in tenths, by taking n away. wl and wr weigh the glides at the segment's start and end: the first frame
-; 3 and the second 9 when n is 4 or more, the first 3 when n is 3, 5 when n is 2. end is 1 for the last frame of the
-; pause that ends everything (send 3).
+; 3 and the second 9 when n is 4 or more, the first 3 when n is 3; when n is 2 only the start glides, wl 5 for the
+; first frame, and the second frame keeps the segment's own target. end is 1 for the last frame of the pause that
+; ends everything (send 3): send - k - 3 is 0 there and less everywhere else.
 ;
 ; Address Contents Label Opcode Operand Comment
   03            seg     INP   n        03-09: a segment; a pause can have no frames
@@ -36,52 +37,52 @@
   31                    STO   k
   32                    JMP   wgt
   33                    STO   wr
-  34                    CLA   z        34-51: end, then the cards
+  34                    CLA   z        34-48: end, then the cards
   35                    STO   e
   36                    CLA   send
-  37                    SUB   n3
-  38                    TAC   outs
-  39                    CLA   k
-  40                    SUB   00
-  41                    TAC   one
-  42                    JMP   outs
-  43            one     CLA   00
-  44                    STO   e
-  45            outs    OUT   j
-  46                    OUT   u
-  47                    OUT   wl
-  48                    OUT   wr
-  49                    OUT   e
-  50            up      OUT   u
-  51            ul      OUT   u
-  52                    CLA   j        52-57: the next frame
-  53                    ADD   00
-  54                    STO   j
-  55                    SUB   n
-  56                    TAC   frm
-  57                    JMP   seg
-  58            wgt     CLA   99       58-96: the weight of the frame k from a segment's end
-  59                    STO   ret
-  60                    CLA   k
-  61                    SUB   00
-  62                    TAC   k0
-  63                    SUB   00
-  64                    TAC   k1
-  65                    JMP   w0
-  66            k1      CLA   n
-  67                    SUB   n4
-  68                    TAC   w0
-  69                    CLA   c9
-  70                    JMP   ret
-  71            k0      CLA   n
-  72                    SUB   n2
-  73                    TAC   w0
-  74                    SUB   00
-  75                    TAC   w5
-  76                    CLA   n3
-  77                    JMP   ret
-  78            w5      CLA   five
-  79                    JMP   ret
+  37                    SUB   k
+  38                    SUB   n3
+  39                    TAC   outs
+  40                    CLA   00
+  41                    STO   e
+  42            outs    OUT   j
+  43                    OUT   u
+  44                    OUT   wl
+  45                    OUT   wr
+  46                    OUT   e
+  47            up      OUT   u
+  48            ul      OUT   u
+  49                    CLA   j        49-54: the next frame
+  50                    ADD   00
+  51                    STO   j
+  52                    SUB   n
+  53                    TAC   frm
+  54                    JMP   seg
+  55            wgt     CLA   99       55-96: the weight of the frame k from a segment's end
+  56                    STO   ret
+  57                    CLA   k
+  58                    SUB   00
+  59                    TAC   k0
+  60                    SUB   00
+  61                    TAC   k1
+  62                    JMP   w0
+  63            k1      CLA   n
+  64                    SUB   n4
+  65                    TAC   w0
+  66                    CLA   c9
+  67                    JMP   ret
+  68            k0      CLA   n
+  69                    SUB   n2
+  70                    TAC   w0
+  71                    SUB   00
+  72                    TAC   w5
+  73                    CLA   n3
+  74                    JMP   ret
+  75            w5b     CLA   five
+  76                    JMP   ret
+  77            w5      CLA   j        n is 2: 5 for the first frame (j 0), which only the start's glide asks for
+  78                    SUB   00
+  79                    TAC   w5b
   80            w0      CLA   z
   81            ret     DATA  0
   82            n       DATA  0

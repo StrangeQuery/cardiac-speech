@@ -170,7 +170,7 @@ def tabulate(level, names, nf):
     for i, (p, alt) in names.items():
         v = level[i] if p not in COGNATE else by_name[(COGNATE[p], False)] * 10 ** (AF_VOICED_DB / 20)
         table[i] = int(round(v))
-        assert 0 < table[i] <= 60, (p, table[i])
+        assert 0 < table[i] and (table[i] <= 60 or p in STOPS), (p, table[i])   # by_ear gives the bursts none
     return table
 
 

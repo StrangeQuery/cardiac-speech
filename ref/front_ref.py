@@ -257,7 +257,8 @@ def p3(recs):
         dur = mulf(dur, RATE)                                         # the speaking rate
         assert dur <= 999, dur
         # frames: the running time rounded to frames, less those handed out (at least one for a sound, two for a
-        # stop or an affricate)
+        # stop or an affricate); a stop's duration is its closure, and its burst gets one more frame after it, the
+        # time moving on by that frame too
         rem += dur
         while rem >= FRAME_MS:
             rem -= FRAME_MS
@@ -266,6 +267,9 @@ def p3(recs):
         n = rounded - done
         least = 0 if kind == K_PAUSE else 2 if kind in (K_STOP, K_AFFR) else 1
         n = max(least, n)
+        if kind == K_STOP:
+            n += 1
+            F += 1
         done += n
         prevv = pnpc if pnpk == K_VOWEL else 0
         out.append([pc, kind, s, n, send, pte, nts, ts, te, nxtpc, adjv, prevv, nextv, pvls, pnpk])
@@ -366,7 +370,7 @@ def glide_weight(j, n, side):
     if n == 3:
         return 3 if k == 0 else None
     if n == 2:
-        return 5 if k == 0 else None
+        return 5 if (k == 0 and side == 'left') else None     # the first frame glides, the second keeps the target
     return None
 
 
@@ -426,7 +430,7 @@ def frames(recs, sums, info=None):
                     G = blend(gain(ts), gain(te), u)
                     vowel_factors = glides = True
             elif kind == K_SON:
-                if j == 0 and pvls and n > 1:
+                if j == 0 and pvls:
                     K, G, V = kvec(ft[tb.F_ASP]), gain(ft[tb.F_ASP]), 0
                     son_ref = nextv
                 else:

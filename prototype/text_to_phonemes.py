@@ -504,7 +504,7 @@ EXCEPTIONS = {
     'SEVENTY': 'S EH1 V AX0 N T IY0',      # rules: S IY V EH N T IY
     'NINETY': 'N AY1 N T IY0',      # rules: N IH N EH T IY
     'OH': 'OW1',                    # rules: AA
-    'CARDIAC': 'K AA1 R D IY0 AE2 K',   # CAR-dee-ack, a full but unstressed IY; rules: K AA R D IH AE K, the IH swallowed
+    'CARDIAC': 'K AA1 R D IY2 AE2 K',   # CAR-dee-ack, IY with secondary stress so it holds its own syllable; rules: K AA R D IH AE K, the IH swallowed
     'FATHER': 'F AA1 DH ER0',          # rules: F AE DH ER
     'HAGELBARGER': 'HH EY1 G AX0 L B AA2 R G ER0',   # HAIG-uhl-bar-grr; rules give soft Gs
     'LIVED': 'L IH1 V D',            # rules: L AY V D

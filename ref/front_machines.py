@@ -232,7 +232,8 @@ def f3_mul(xb, fa, fb):
 
 def f3_frames(recs):
     """frames.cq: (kind, dur) -> n: the running time in 25 ms frames, rounded, less the frames handed out; at
-    least one for a sound, two for a stop or affricate."""
+    least one for a sound, two for a stop or affricate; then a stop's burst gets one frame more, and the time moves
+    on by it."""
     F = rem = done = 0
     out = []
     for kind, dur in recs:
@@ -243,6 +244,9 @@ def f3_frames(recs):
         n = F + (1 if rem >= 13 else 0) - done
         least = 0 if kind == 8 else 2 if kind in (4, 6) else 1
         n = max(least, n)
+        if kind == 4:
+            n += 1
+            F += 1
         done += n
         out.append([n])
     return out
@@ -312,13 +316,13 @@ def f4_sum(recs):
 
 
 # ------------------------------------------------------------------ the frames
-def weight(k, n):
+def weight(k, n, left=True):
     if n >= 4:
         return {0: 3, 1: 9}.get(k, 0)
     if n == 3:
         return 3 if k == 0 else 0
     if n == 2:
-        return 5 if k == 0 else 0
+        return 5 if (k == 0 and left) else 0      # only the first frame glides
     return 0
 
 
@@ -330,7 +334,7 @@ def f5_framer(segs):
     for n, send in segs:
         for j in range(n):
             u = (10 * j + 5) // n
-            out.append([j, u, weight(j, n), weight(n - 1 - j, n), 1 if (send == 3 and j == n - 1) else 0])
+            out.append([j, u, weight(j, n), weight(n - 1 - j, n, False), 1 if (send == 3 and j == n - 1) else 0])
             us.append(u)
     return out, us
 
@@ -389,14 +393,15 @@ def f5_main(recs):
 def f5_edge(recs):
     """edge.cq: (pc, kind, n, pvls, pnpk) and the table's ASP VOICED VBAR -> cf (a stop's closure: its voice bar
     when it is voiced and a vowel, sonorant or nasal came before, else 0 for silence) and af (the aspirated filter for
-    a vowel's or sonorant's first frame right after P T K, when it has more than one frame; else 0)."""
+    a vowel's or sonorant's first frame right after P T K, a vowel's only when it has more than one frame; else
+    0)."""
     out = []
     for pc, kind, n, pvls, pnpk in recs:
         r = row(pc)
         cf = af = 0
         if kind == 4 and r[tb.F_VOICED] and pnpk in (1, 2, 3):
             cf = r[tb.F_VBAR]
-        if kind in (1, 2) and pvls and n > 1:
+        if pvls and (kind == 2 or (kind == 1 and n > 1)):
             af = r[tb.F_ASP]
         out.append([cf, af])
     return out

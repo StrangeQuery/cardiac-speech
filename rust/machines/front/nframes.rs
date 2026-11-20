@@ -1,6 +1,7 @@
 //! nframes: each segment's kind and duration in; its number of 25 ms frames out: the running time in frames,
 //! rounded, less the frames handed out so far, but at least one for a sound and two for a stop or an affricate
-//! (front_machines.f3_frames). The frames run past a card over a long text, so what is kept is the frames worked
+//! (front_machines.f3_frames). A stop's duration is its closure, and its burst gets one frame more after it, the
+//! time moving on by that frame too. The frames run past a card over a long text, so what is kept is the frames worked
 //! out less those handed out.
 use cardiac::*;
 
@@ -33,6 +34,9 @@ fn main() {
             n = least;
         }
         owed -= n;
+        if kind == STOP {
+            n += 1;
+        }
         out(n);
     }
 }

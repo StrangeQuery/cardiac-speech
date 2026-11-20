@@ -77,7 +77,7 @@ def expected(toks):
     for (r, (n,), c, st, bk, cl, mn, ed), f4, l2 in zip(segs, flr, ldr):
         for j in range(n):
             u = (10 * j + 5) // n
-            fr_ += [j, u, fm.weight(j, n), fm.weight(n - 1 - j, n), 1 if (r[fm.SEND] == 3 and j == n - 1) else 0, u, u]
+            fr_ += [j, u, fm.weight(j, n), fm.weight(n - 1 - j, n, False), 1 if (r[fm.SEND] == 3 and j == n - 1) else 0, u, u]
             ns_.append(ns)
             ns = 0
             sa += cl + mn + ed

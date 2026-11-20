@@ -8,7 +8,7 @@ front/choose 78
 front/closure 82
 front/decl 41
 front/dur 83
-front/edge 61
+front/edge 64
 front/fall 80
 front/fill 39
 front/framer 68
@@ -23,7 +23,7 @@ front/lsel 39
 front/main 87
 front/mul 88
 front/next 80
-front/nframes 66
+front/nframes 76
 front/onset 93
 front/p1 82
 front/period 43
@@ -42,7 +42,7 @@ front/tailf 81
 front/tailt 77
 front/taily 66
 front/vsel 66
-front/weights 59
+front/weights 68
 text/ask 18
 text/end 27
 text/excl 93

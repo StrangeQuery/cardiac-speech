@@ -2,10 +2,11 @@
 ; phoneme table), two out: cf, the filter of a stop's closure (its voice bar,
 ; VBAR, when the stop is voiced and the sound before it is a vowel, sonorant or nasal; else 0, silence), and af,
 ; the aspirated filter (ASP) a vowel or sonorant speaks its first frame through when it comes right after P T K
-; (pvls) and has more than one frame; else 0.
+; (pvls), a vowel only when it has more than one frame (a sonorant of one frame is then voiceless all through, as
+; the R of "tree" is); else 0.
 ;
 ; Address Contents Label Opcode Operand Comment
-  03            rec     INP   pc       03-36: a segment: does it need the table
+  03            rec     INP   pc       03-40: a segment: does it need the table
   04                    INP   kind
   05                    INP   n
   06                    INP   pvls
@@ -29,41 +30,45 @@
   24            va      CLA   pvls
   25                    SUB   00
   26                    TAC   out
-  27                    CLA   n
+  27                    CLA   kind
   28                    SUB   n2
-  29                    TAC   out
+  29                    TAC   vn
   30                    JMP   ask
-  31            st      CLA   pnpk
-  32                    SUB   00
+  31            vn      CLA   n
+  32                    SUB   n2
   33                    TAC   out
-  34                    SUB   n3
-  35                    TAC   ask
-  36                    JMP   out
-  37            ask     CLA   kind    37-64: the table's cards, then cf or af
+  34                    JMP   ask
+  35            st      CLA   pnpk
+  36                    SUB   00
+  37                    TAC   out
   38                    SUB   n3
-  39                    TAC   seta
-  40                    CLA   voiced
-  41                    SUB   00
-  42                    TAC   out
-  43                    CLA   vbar
-  44                    STO   cf
-  45                    JMP   out
-  46            seta    CLA   asp
-  47                    STO   af
-  48            out     OUT   cf
-  49                    OUT   af
-  50                    JMP   rec
-  51            pc      DATA  0
-  52            kind    DATA  0
-  53            n       DATA  0
-  54            pvls    DATA  0
-  55            pnpk    DATA  0
-  56            cf      DATA  0
-  57            af      DATA  0
-  58            asp     DATA  0
-  59            voiced  DATA  0
-  60            vbar    DATA  0
-  61            x       DATA  0
-  62            z       DATA  0
-  63            n2      DATA  2
-  64            n3      DATA  3
+  39                    TAC   ask
+  40                    JMP   out
+  41            ask     CLA   kind    41-68: the table's cards, then cf or af
+  42                    SUB   n3
+  43                    TAC   seta
+  44                    CLA   voiced
+  45                    SUB   00
+  46                    TAC   out
+  47                    CLA   vbar
+  48                    STO   cf
+  49                    JMP   out
+  50            seta    CLA   asp
+  51                    STO   af
+  52            out     OUT   cf
+  53                    OUT   af
+  54                    JMP   rec
+  55            pc      DATA  0
+  56            kind    DATA  0
+  57            n       DATA  0
+  58            pvls    DATA  0
+  59            pnpk    DATA  0
+  60            cf      DATA  0
+  61            af      DATA  0
+  62            asp     DATA  0
+  63            voiced  DATA  0
+  64            vbar    DATA  0
+  65            x       DATA  0
+  66            z       DATA  0
+  67            n2      DATA  2
+  68            n3      DATA  3
