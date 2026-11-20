@@ -22,6 +22,9 @@ fn main() {
             half = -half;
         }
         let mut v = 0;
+        // Unrolled five times on purpose. As `for _ in 0..10 { out(v); v += n; }` it is 75 cells against 87, but on
+        // the README's test sentence ktable runs 3,888,918 instructions against 2,608,954, about 40 more a
+        // coefficient, and the all-Rust lattice 1,024 a sample against 1,004.
         for _ in 0..2 {
             out(v);
             v += n;
