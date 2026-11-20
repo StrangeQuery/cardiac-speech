@@ -48,7 +48,7 @@ RUNCARDIAC = ROOT.parent / 'runcardiac'
 sys.path.insert(0, str(REF))
 
 SENTENCE = "Hello, my name is cardiac and I was born in 1968 to D W Hagelbarger. And now I can talk."
-# the paper's three sample texts measured in its Section 7.2, as runcardiac/build_site.py speaks them
+# the paper's three sample texts measured in its Section 8.2, as runcardiac/build_site.py speaks them
 SAMPLES = [('All your base', "All your base are belong to us. You have no chance to survive. Make your time."),
            ('Keep talking', "It doesn't have to be like this. All we need to do is make sure. we keep. talking."),
            ('For millions of years', "for millions of years, mankind lived just like the animals. Then something "
@@ -1035,7 +1035,7 @@ def fig_memmap():
     write_svg('lattice-cells', '\n'.join(out) + '\n', cap)
 
 
-# --- Sections 5.3 and 5.4: spectrograms and the resampler's filters -------------------------------------------------
+# --- Sections 5.3 and 6.2: spectrograms and the resampler's filters -------------------------------------------------
 def stft_db(x, rate=48000, n=1024, hop=240):
     win = np.hanning(n)
     frames_ = np.lib.stride_tricks.sliding_window_view(np.concatenate([np.zeros(n // 2), x, np.zeros(n // 2)]),
@@ -1174,7 +1174,7 @@ def fig_responses():
     save(fig, 'resampler-filters', cap)
 
 
-# --- Section 6.1: the host ----------------------------------------------------------------------------------------
+# --- Section 7.1: the host ----------------------------------------------------------------------------------------
 def fig_host():
     H = 10.3
     fig, ax = blank(W_IN, H)
@@ -1284,7 +1284,7 @@ def fig_host():
     save(fig, 'host', cap)
 
 
-# --- Section 7: evaluation ----------------------------------------------------------------------------------------
+# --- Section 8: evaluation ----------------------------------------------------------------------------------------
 def fig_images():
     import up_measure as um
     rows = []
@@ -1329,7 +1329,7 @@ def fig_images():
            '4,096 samples, half overlapping), for the 48 kHz output of the CARDIAC resampler and for the same 8 kHz '
            'samples each repeated six times; shading marks 4 to 24 kHz, where the 8 kHz speech has nothing. (b) The '
            'energy from 4 to 24 kHz relative to 0 to 4 kHz for the paper\u2019s three sample texts, as in the table of '
-           'Section 7.2, which is %s for the resampler (green) against %s for repetition (grey). Measured by '
+           'Section 8.2, which is %s for the resampler (green) against %s for repetition (grey). Measured by '
            'ref/up_measure.py on the output of upsample/target/release/talk --no-hiband and talk --8k (heartburn).'
            % (SAMPLES[0][0], ', '.join('%.1f' % r[1] for r in rows) + ' dB',
               ', '.join('%.1f' % r[2] for r in rows) + ' dB'))

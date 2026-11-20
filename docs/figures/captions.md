@@ -62,7 +62,7 @@ Made by docs/figures.py from the programs’ own output and the tables they read
 
 `fig15-host.svg`
 
-**Figure 16.** Images above 4 kHz. (a) The power spectrum of "All your base" averaged over the whole utterance (Hann windows of 4,096 samples, half overlapping), for the 48 kHz output of the CARDIAC resampler and for the same 8 kHz samples each repeated six times; shading marks 4 to 24 kHz, where the 8 kHz speech has nothing. (b) The energy from 4 to 24 kHz relative to 0 to 4 kHz for the paper’s three sample texts, as in the table of Section 7.2, which is -45.4, -43.9, -43.5 dB for the resampler (green) against -7.1, -6.8, -6.8 dB for repetition (grey). Measured by ref/up_measure.py on the output of upsample/target/release/talk --no-hiband and talk --8k (heartburn).
+**Figure 16.** Images above 4 kHz. (a) The power spectrum of "All your base" averaged over the whole utterance (Hann windows of 4,096 samples, half overlapping), for the 48 kHz output of the CARDIAC resampler and for the same 8 kHz samples each repeated six times; shading marks 4 to 24 kHz, where the 8 kHz speech has nothing. (b) The energy from 4 to 24 kHz relative to 0 to 4 kHz for the paper’s three sample texts, as in the table of Section 8.2, which is -45.4, -43.9, -43.5 dB for the resampler (green) against -7.1, -6.8, -6.8 dB for repetition (grey). Measured by ref/up_measure.py on the output of upsample/target/release/talk --no-hiband and talk --8k (heartburn).
 
 `fig16-images.svg`
 
