@@ -257,6 +257,13 @@ def tables(deck):
     most = max(len(r) for r in secs.values())
     bodies = {'left': {0: [-2] * most}, 'right': {0: [-2] * most}, 'phonemes': {0: []}}
     for letter, rules in secs.items():
+        # left and right index the word without a bounds check (get_unchecked): they can't read past its edges,
+        # because only an element that can match the edge (28) passes it, and each such element matches exactly
+        # one card and is the last of its context
+        for n, l, r, p in rules:
+            for els in (l, r):
+                for k, (q, lo, hi) in enumerate(els):
+                    assert hi < 28 or (q == 1 and k == len(els) - 1), (letter, els)
         pad = [-2] * (most - len(rules))
         bodies['left'][letter] = [c for n, l, r, p in rules for c in [x for e in l for x in element(e)] + [-2]] + pad
         bodies['right'][letter] = [c for n, l, r, p in rules for c in [x for e in r for x in element(e)] + [-2]] + pad

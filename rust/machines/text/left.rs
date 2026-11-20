@@ -35,8 +35,10 @@ fn main() {
             if ok > 0 {
                 let start = pos;
                 while start - pos < most {
-                    // SAFETY: a context never reads past the edges of the word (checked against
-                    // text_ref.match_word), and once an element fails the rest aren't tried
+                    // SAFETY: pos stays within the word and its two edges (28). An element of letters
+                    // stops at an edge; only an element that can match the edge passes it, and each such
+                    // element matches exactly one card and is the last of its context (text_tables.py
+                    // asserts this when it writes the tables)
                     let c = unsafe { *word.get_unchecked(pos as usize) };
                     if c < lo || c > hi {
                         break;
