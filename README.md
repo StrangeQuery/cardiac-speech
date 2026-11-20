@@ -61,7 +61,7 @@ the speech as a WAV file instead:
 The other two programs run parts of the pipeline on their own. `talk-phonemes` reads phoneme cards and prints frame
 cards, and `talk-frames` reads frame cards and writes samples. They are there for testing.
 
-On this Mac (an Apple M5 Ultra) the sentence above, 7.83 seconds of speech, takes about 0.078 seconds to work out:
+On this Mac (an Apple M5 Ultra) the sentence above, 9.50 seconds of speech, takes about 0.092 seconds to work out:
 a real-time factor of about 0.010.
 
 ## The inspiration: the Speak & Spell
@@ -117,8 +117,10 @@ LITTLE two Ts), put primary stress on a content word's first full vowel and seco
 vowels, and mark the boundaries between words.
 
 The rules were typed in from the report's Table 6, and the stress rules, the exception list and the handling of
-numbers and spelling were added for this program. [`TTS_SOURCES.md`](prototype/TTS_SOURCES.md) in the prototype
-lists which numbers come from which table and which are estimates.
+numbers and spelling were added for this program. Cardiac itself is one of the exceptions, K AA1 R D IY2 AE2 K. The
+rules give it an IH that the AE after it swallows, and its IY has secondary stress, which lets it keep its full
+minimum duration, so that it is long enough to be a syllable of its own: CAR-dee-ack, not car-dyak.
+[`TTS_SOURCES.md`](prototype/TTS_SOURCES.md) in the prototype lists which numbers come from which table and which are estimates.
 
 ### Phonemes to frames: Klatt's durations and formants
 
@@ -168,9 +170,17 @@ The formant frequencies and bandwidths come from Klatt's 1980 paper on his casca
 consonants. The loudness of each sound comes from Sacia and Beck's 1926 measurements of the power of speech sounds
 at Bell Labs [[Sacia and Beck 1926]](#references).
 
-Each frame's filter is chosen by `choose`. A vowel moves from its target to its off-glide across the segment, a
-stop has a silent closure and then a burst of noise, P, T and K breathe out over the first frame of the sound after
-them, and the first and last frames of a sound glide halfway towards its neighbours. The pitch starts at 130 Hz and
+Each frame's filter is chosen by `choose`. A vowel moves from its target to its off-glide across the segment. A
+stop has a silent closure and then a burst of noise. Klatt's duration for a stop is its closure, so the burst gets
+a frame of its own after it, and `nframes` moves the time on by that frame, so that the sounds after the stop keep
+their frames. Before this the burst took the last frame of the closure, and a stop of two frames was closed for
+only 25 ms, which made "computation" hard to follow. P, T and K breathe out over the first frame of the sound after
+them. A sonorant of a single frame after them, such as the Y of "computation" or the R of "illustrative", speaks
+that frame voiceless, as English devoices the R of "tree"; before, it went straight to voicing and the P of
+"computation" sounded like a B. The first and last frames of a sound glide halfway towards its neighbours, but a
+sound of only two frames glides at its start alone, and its second frame keeps its own target. When both of its
+frames glided, a short R never reached its low third formant (the frames stayed near 1,680 Hz against R's 1,360),
+and "cardboard" sounded like "cod bod". The pitch starts at 130 Hz and
 falls to 100 Hz across each sentence (Klatt gives that fall for an isolated vowel [[Klatt 1980]](#references), and
 here it is stretched over the sentence). A stressed vowel's onset is raised by 15 percent for primary stress and 7
 for secondary, and from the last stressed vowel on the pitch moves towards 85 Hz for a statement or 160 Hz for a
@@ -261,6 +271,11 @@ version in Python, and each such place is marked INTEGER there. The differences 
 - **Pitch.** The fall across a sentence and the place in the final fall are kept by Bresenham's method, adding and
   taking away instead of dividing (`decl`, `taily`), and the pitch period is 8000 / f0 by repeated subtraction
   (`period`).
+- **Three rules changed by ear.** The CARDIAC version gives a stop's burst a frame of its own after the closure,
+  speaks a sonorant of one frame after P, T or K voiceless, and glides a sound of two frames at its start alone
+  ([Phonemes to frames](#phonemes-to-frames-klatts-durations-and-formants)). The float front end still takes the
+  burst from the closure, aspirates only a sound of more than one frame, and glides both ends of every sound. The
+  stops' bursts are also 6 dB louder in the phoneme table than in the float front end.
 
 `ref/compare_wavs.py` sets the CARDIAC speech beside the Python pipeline's (the float front end, then the
 CARDIAC-arithmetic synthesizer with the chirp), sound by sound. For the sentence above, the log-spectral distance
@@ -273,8 +288,8 @@ bare pulses, as the CARDIACs had before, the distances were 8.9 dB and 7.3 dB.
 These are all 79 machines, in the order the host wires them. Cells are the cells each listing fills. A CARDIAC has
 100 cells; cell 00 always holds 001 and the loader uses cells 01 and 02, so a program has cells 03 to 99, and a
 program that JMPs uses cell 99 for the way back. Instructions are counted by `talk -v` for "Hello, my name is cardiac
-and I was born in 1968 to D W Hagelbarger. And now I can talk.", which comes to 101 phoneme cards, 313 frames and
-62,600 samples (7.83 seconds), and they include each machine's loading of its own deck. For the voice box, the last
+and I was born in 1968 to D W Hagelbarger. And now I can talk.", which comes to 101 phoneme cards, 380 frames and
+76,000 samples (9.50 seconds), and they include each machine's loading of its own deck. For the voice box, the last
 column also gives the count per sample.
 ### Text to phonemes (25 machines)
 
@@ -293,7 +308,7 @@ column also gives the count per sample.
 | names | [text/names.cq](text/names.cq) | says each spelled letter by name, stressing the last | 89 | 6,809 |
 | items | [text/items.cq](text/items.cq) | packs each word or run of phonemes into a record of 17 cards | 55 | 6,989 |
 | excl | [text/excl.cq](text/excl.cq) | looks each word up among the function words, dealt again after each word | 70 | 66,537 |
-| excx | [text/excx.cq](text/excx.cq) | looks each word up among the exceptions, dealt again after each word | 74 | 115,581 |
+| excx | [text/excx.cq](text/excx.cq) | looks each word up among the exceptions, dealt again after each word | 74 | 132,705 |
 | excp | [text/excp.cq](text/excp.cq) | replaces an exception with its phonemes and marks the other words for the rules | 74 | 5,552 |
 | letters | [text/letters.cq](text/letters.cq) | makes a record for each letter of a word, asking for the letter's rules | 61 | 9,180 |
 | left | [text/left.cq](text/left.cq) | tests every rule's left context at the letter, reading leftwards through the word | 74 | 136,517 |
@@ -305,7 +320,7 @@ column also gives the count per sample.
 | posth | [text/posth.cq](text/posth.cq) | puts the header postc reads before a rules word: whether it is a function word, and whether it has a full vowel | 24 | 1,086 |
 | postc | [text/postc.cq](text/postc.cq) | gives each phoneme of a rules word its stress | 93 | 2,225 |
 | join | [text/join.cq](text/join.cq) | puts the boundaries between words, the pauses and the end card in place for the front end | 85 | 2,000 |
-| | | **25 machines** | | **860,492** |
+| | | **25 machines** | | **877,616** |
 
 ### Front end (43 machines)
 
@@ -315,72 +330,72 @@ column also gives the count per sample.
 | after | [front/after.cq](front/after.cq) | last first: whether a vowel comes later in the word, and the stress of the next vowel | 38 | 1,773 |
 | ahead | [front/ahead.cq](front/ahead.cq) | last first: the kind of the next sound, whether the word comes before a pause, and a vowel's Klatt rule 9 factor | 93 | 3,304 |
 | next | [front/next.cq](front/next.cq) | last first: the next sound that isn't a pause, the next vowel, and each sound's start and end filters | 72 | 2,735 |
-| stress | [front/stress.cq](front/stress.cq) | a consonant's stress, and whether a sound is in its word's last syllable or before a pause | 88 | 4,090 |
-| base | [front/base.cq](front/base.cq) | the inherent and minimum durations, halving the minimum for an unstressed sound (rules 7 and 11) | 61 | 2,740 |
+| stress | [front/stress.cq](front/stress.cq) | a consonant's stress, and whether a sound is in its word's last syllable or before a pause | 88 | 4,088 |
+| base | [front/base.cq](front/base.cq) | the inherent and minimum durations, halving the minimum for an unstressed sound (rules 7 and 11) | 61 | 2,738 |
 | rules2 | [front/rules2.cq](front/rules2.cq) | Klatt's duration rules 2 to 4, as factors in hundredths | 58 | 2,197 |
-| rules5 | [front/rules5.cq](front/rules5.cq) | Klatt's duration rules 5 to 7 | 80 | 2,922 |
+| rules5 | [front/rules5.cq](front/rules5.cq) | Klatt's duration rules 5 to 7 | 80 | 2,918 |
 | rules9 | [front/rules9.cq](front/rules9.cq) | Klatt's duration rules 9 and 10 | 89 | 3,034 |
-| mul | [front/mul.cq](front/mul.cq) | multiplies the factors into PRCNT, works out the duration in milliseconds and multiplies it by the speaking rate | 87 | 46,649 |
-| nframes | [front/nframes.cq](front/nframes.cq) | turns durations into whole 25 ms frames, carrying the remainder on | 64 | 5,527 |
+| mul | [front/mul.cq](front/mul.cq) | multiplies the factors into PRCNT, works out the duration in milliseconds and multiplies it by the speaking rate | 87 | 47,150 |
+| nframes | [front/nframes.cq](front/nframes.cq) | turns durations into whole 25 ms frames, carrying the remainder on, and gives a stop's burst a frame after its closure | 73 | 6,314 |
 | back | [front/back.cq](front/back.cq) | the sound before each one: its end filter, whether it is a vowel, whether it is P, T or K | 41 | 2,224 |
-| sum | [front/sum.cq](front/sum.cq) | for each sentence, its length in frames and where the final fall starts | 96 | 2,974 |
+| sum | [front/sum.cq](front/sum.cq) | for each sentence, its length in frames and where the final fall starts | 96 | 2,977 |
 | closure | [front/closure.cq](front/closure.cq) | how many of a stop's or affricate's frames are its closure | 78 | 1,635 |
 | main | [front/main.cq](front/main.cq) | the filters a sound's frames speak through, and whether they are voiced | 88 | 3,591 |
-| edge | [front/edge.cq](front/edge.cq) | a voiced stop's voice bar, and the breathy first frame after P, T or K | 62 | 2,338 |
+| edge | [front/edge.cq](front/edge.cq) | a voiced stop's voice bar, and the breathy first frame after P, T or K, which is all of a sonorant of one frame | 66 | 2,371 |
 | loud | [front/loud.cq](front/loud.cq) | the loudness a sonorant takes from the vowel next to it | 30 | 1,544 |
 | fill | [front/fill.cq](front/fill.cq) | last first: hands each sentence's summary to all its segments | 30 | 1,199 |
-| framer | [front/framer.cq](front/framer.cq) | each frame's place in its segment in tenths, and the weights of the glides at the segment's ends | 94 | 30,825 |
-| sents | [front/sents.cq](front/sents.cq) | which frames start a sentence, for the pitch | 20 | 3,243 |
-| spreada | [front/spread.cq](front/spread.cq) | deals each frame its segment's cards for choose | 35 | 21,815 |
-| spreadb | [front/spread.cq](front/spread.cq) | deals each frame its segment's cards for glides, the pitch and the level | 35 | 12,311 |
-| spreadc | [front/spread.cq](front/spread.cq) | deals each frame its sentence's summary and its segment's loudness | 35 | 17,063 |
-| choose | [front/choose.cq](front/choose.cq) | each frame's two target filters, and whether it sounds and is voiced | 86 | 13,287 |
-| glides | [front/glides.cq](front/glides.cq) | at a segment's first and last frames, the filters to glide towards and how far | 58 | 9,402 |
-| glidea | [front/glidea.cq](front/glidea.cq) | asks for the two target filters and blends them by the frame's place | 67 | 95,672 |
-| glideb | [front/glideb.cq](front/glideb.cq) | asks for the two filters at the segment's end and blends the frame's filter towards halfway between them | 77 | 130,132 |
-| decl | [front/decl.cq](front/decl.cq) | the pitch falling from 130 Hz to 100 Hz across the sentence | 41 | 7,056 |
-| rise | [front/rise.cq](front/rise.cq) | the rise at a stressed vowel, 15 or 7 percent, fading across the vowel | 83 | 9,401 |
-| taily | [front/taily.cq](front/taily.cq) | how far each frame is into the sentence's final fall, in hundredths | 60 | 9,633 |
-| tailf | [front/tailf.cq](front/tailf.cq) | the final fall to 85 Hz or rise to 160 Hz | 75 | 7,564 |
-| period | [front/period.cq](front/period.cq) | the pitch period, 8000 / f0 samples, by repeated subtraction | 44 | 296,163 |
-| lsel | [front/lsel.cq](front/lsel.cq) | for a sonorant, the loudness to multiply by | 45 | 6,276 |
-| vsel | [front/vsel.cq](front/vsel.cq) | for a vowel, 3 dB down when unstressed and the fall across the vowel | 51 | 8,493 |
-| psel | [front/psel.cq](front/psel.cq) | for a voiced frame, sqrt(60 P) / 100 by counting odd numbers | 73 | 200,726 |
-| gnorm | [front/gnorm.cq](front/gnorm.cq) | for a frame that glides, asks for its record of the glide table and takes the factor that puts its power back | 68 | 1,081,699 |
-| mulx1 | [front/mulx.cq](front/mulx.cq) | multiplies the gain by lsel's factor | 89 | 5,573 |
-| mulx2 | [front/mulx.cq](front/mulx.cq) | multiplies by vsel's stress factor | 89 | 7,038 |
-| mulx3 | [front/mulx.cq](front/mulx.cq) | takes off vsel's fall across the vowel | 89 | 10,617 |
-| mulx4 | [front/mulx.cq](front/mulx.cq) | multiplies by psel's square root | 89 | 12,811 |
-| mulx5 | [front/mulx.cq](front/mulx.cq) | multiplies by gnorm's factor, at most 999 | 89 | 11,025 |
-| kcarry | [front/kcarry.cq](front/kcarry.cq) | gives a silent frame the filter of the frame before it | 46 | 65,116 |
-| asm | [front/asm.cq](front/asm.cq) | puts each frame together as the voice box reads it, V, P, A, K10 to K1, and ends with -1 | 72 | 46,820 |
-| | | **43 machines** | | **2,213,057** |
+| framer | [front/framer.cq](front/framer.cq) | each frame's place in its segment in tenths, and the weights of the glides at the segment's ends, at the start alone for a segment of two frames | 94 | 37,524 |
+| sents | [front/sents.cq](front/sents.cq) | which frames start a sentence, for the pitch | 20 | 3,779 |
+| spreada | [front/spread.cq](front/spread.cq) | deals each frame its segment's cards for choose | 35 | 25,500 |
+| spreadb | [front/spread.cq](front/spread.cq) | deals each frame its segment's cards for glides, the pitch and the level | 35 | 14,388 |
+| spreadc | [front/spread.cq](front/spread.cq) | deals each frame its sentence's summary and its segment's loudness | 35 | 19,944 |
+| choose | [front/choose.cq](front/choose.cq) | each frame's two target filters, and whether it sounds and is voiced | 86 | 15,923 |
+| glides | [front/glides.cq](front/glides.cq) | at a segment's first and last frames, the filters to glide towards and how far | 58 | 11,093 |
+| glidea | [front/glidea.cq](front/glidea.cq) | asks for the two target filters and blends them by the frame's place | 67 | 116,107 |
+| glideb | [front/glideb.cq](front/glideb.cq) | asks for the two filters at the segment's end and blends the frame's filter towards halfway between them | 77 | 157,937 |
+| decl | [front/decl.cq](front/decl.cq) | the pitch falling from 130 Hz to 100 Hz across the sentence | 41 | 8,399 |
+| rise | [front/rise.cq](front/rise.cq) | the rise at a stressed vowel, 15 or 7 percent, fading across the vowel | 83 | 11,284 |
+| taily | [front/taily.cq](front/taily.cq) | how far each frame is into the sentence's final fall, in hundredths | 60 | 11,307 |
+| tailf | [front/tailf.cq](front/tailf.cq) | the final fall to 85 Hz or rise to 160 Hz | 75 | 9,020 |
+| period | [front/period.cq](front/period.cq) | the pitch period, 8000 / f0 samples, by repeated subtraction | 44 | 359,254 |
+| lsel | [front/lsel.cq](front/lsel.cq) | for a sonorant, the loudness to multiply by | 45 | 7,562 |
+| vsel | [front/vsel.cq](front/vsel.cq) | for a vowel, 3 dB down when unstressed and the fall across the vowel | 51 | 10,156 |
+| psel | [front/psel.cq](front/psel.cq) | for a voiced frame, sqrt(60 P) / 100 by counting odd numbers | 73 | 244,623 |
+| gnorm | [front/gnorm.cq](front/gnorm.cq) | for a frame that glides, asks for its record of the glide table and takes the factor that puts its power back | 68 | 1,317,170 |
+| mulx1 | [front/mulx.cq](front/mulx.cq) | multiplies the gain by lsel's factor | 89 | 6,652 |
+| mulx2 | [front/mulx.cq](front/mulx.cq) | multiplies by vsel's stress factor | 89 | 8,199 |
+| mulx3 | [front/mulx.cq](front/mulx.cq) | takes off vsel's fall across the vowel | 89 | 12,550 |
+| mulx4 | [front/mulx.cq](front/mulx.cq) | multiplies by psel's square root | 89 | 15,493 |
+| mulx5 | [front/mulx.cq](front/mulx.cq) | multiplies by gnorm's factor, at most 999 | 89 | 11,733 |
+| kcarry | [front/kcarry.cq](front/kcarry.cq) | gives a silent frame the filter of the frame before it | 46 | 78,317 |
+| asm | [front/asm.cq](front/asm.cq) | puts each frame together as the voice box reads it, V, P, A, K10 to K1, and ends with -1 | 72 | 56,807 |
+| | | **43 machines** | | **2,665,333** |
 
 ### Voice box (11 machines)
 
 | Machine | Listing | What it does | Cells | Instructions | Per sample |
 |---|---|---|---:|---:|---:|
-| interp | [voice/interp.cq](voice/interp.cq) | each value's step to the next frame, none across a change of voicing | 37 | 52,886 | 0.8 |
-| steps | [voice/steps.cq](voice/steps.cq) | ten steps of 20 samples a frame: V, P and A for the excitation | 28 | 45,788 | 0.7 |
-| ksteps | [voice/ksteps.cq](voice/ksteps.cq) | the ten Ks of each step, each after the step's A, for reduce | 65 | 678,472 | 10.8 |
-| reduce | [voice/reduce.cq](voice/reduce.cq) | each K as the five cards of a multiply routine, or in a pause the cards of k = 0 | 94 | 1,082,079 | 17.3 |
-| excite | [voice/excite.cq](voice/excite.cq) | pulses every P samples through a one-pole low-pass, or random plus and minus A | 63 | 1,555,432 | 24.8 |
-| L1 | [voice/lattice_top.cq](voice/lattice_top.cq) | lattice stages 10 and 9 | 89 | 5,667,206 | 90.5 |
-| L2 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 8 and 7 | 93 | 7,017,628 | 112.1 |
-| L3 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 6 and 5 | 93 | 7,040,163 | 112.5 |
-| L4 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 4 and 3 | 93 | 7,096,118 | 113.4 |
-| L5 | [voice/lattice_bottom.cq](voice/lattice_bottom.cq) | lattice stages 2 and 1 | 94 | 7,541,202 | 120.5 |
-| output | [voice/output.cq](voice/output.cq) | the de-emphasis, and each sample as thousands and units | 58 | 2,631,841 | 42.0 |
-| | | **11 machines** | | **40,408,815** | **645.5** |
+| interp | [voice/interp.cq](voice/interp.cq) | each value's step to the next frame, none across a change of voicing | 37 | 64,209 | 0.8 |
+| steps | [voice/steps.cq](voice/steps.cq) | ten steps of 20 samples a frame: V, P and A for the excitation | 28 | 55,570 | 0.7 |
+| ksteps | [voice/ksteps.cq](voice/ksteps.cq) | the ten Ks of each step, each after the step's A, for reduce | 65 | 823,661 | 10.8 |
+| reduce | [voice/reduce.cq](voice/reduce.cq) | each K as the five cards of a multiply routine, or in a pause the cards of k = 0 | 94 | 1,292,647 | 17.0 |
+| excite | [voice/excite.cq](voice/excite.cq) | pulses every P samples through a one-pole low-pass, or random plus and minus A | 63 | 1,893,090 | 24.9 |
+| L1 | [voice/lattice_top.cq](voice/lattice_top.cq) | lattice stages 10 and 9 | 89 | 6,837,135 | 90.0 |
+| L2 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 8 and 7 | 93 | 8,480,406 | 111.6 |
+| L3 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 6 and 5 | 93 | 8,496,859 | 111.8 |
+| L4 | [voice/lattice.cq](voice/lattice.cq) | lattice stages 4 and 3 | 93 | 8,569,257 | 112.8 |
+| L5 | [voice/lattice_bottom.cq](voice/lattice_bottom.cq) | lattice stages 2 and 1 | 94 | 9,081,134 | 119.5 |
+| output | [voice/output.cq](voice/output.cq) | the de-emphasis, and each sample as thousands and units | 58 | 3,194,828 | 42.0 |
+| | | **11 machines** | | **48,788,796** | **642.0** |
 
-All together the 79 machines ran 43,482,364 instructions for 7.83 seconds of speech, which is about 5.6 million
-instructions a second of speech, or 695 a sample. The voice box does 93 percent of that work, and the five lattice
-machines alone do 79 percent. The text machines and the front end run 3.1 million instructions between them, and
+All together the 79 machines ran 52,331,745 instructions for 9.50 seconds of speech, which is about 5.5 million
+instructions a second of speech, or 689 a sample. The voice box does 93 percent of that work, and the five lattice
+machines alone do 79 percent. The text machines and the front end run 3.5 million instructions between them, and
 most of those go to reading through decks and table records (`gnorm`, `right`, `left`, `excx`) and to the division
 and square root done by subtraction (`period`, `psel`).
 
-The cards add up the same way. The 79 programs load 10,794 program cards between them. Running the sentence, the
-machines read 1,115,393 cards with INP and put out 1,039,545 values with OUT, almost all of them in the voice box,
+The cards add up the same way. The 79 programs load 10,820 program cards between them. Running the sentence, the
+machines read 1,333,906 cards with INP and put out 1,258,903 values with OUT, almost all of them in the voice box,
 where every sample passes up and down the lattice. `talk -v` prints these counts after the instruction counts.
 
 ## Comparison with other speech generators
@@ -489,7 +504,8 @@ of poles, r = exp(-pi B T) at angle 2 pi F T), a step-down recursion that divide
 None of that is something a CARDIAC could do in a reasonable number of cells, and none of it depends on the text,
 so it is done once, in floating point, and stored as cards, the way the Speak & Spell kept its words in ROM. The
 table has a record of 17 cards for each of the 41 phonemes, and 11 cards (K10 to K1 and a gain) for each filter.
-A voiced filter's gain counts the excitation's low-pass. The glide table, [`front/glides.cards`](front/glides.cards),
+A voiced filter's gain counts the excitation's low-pass. A stop's burst filters have twice the gain that the
+stop's power gives them, 6 dB more, which was chosen by ear. The glide table, [`front/glides.cards`](front/glides.cards),
 is made the same way: for each filter a sound's frames can glide from, and each filter they can glide towards and
 each glide weight, the factor (in percent) that brings the glided filter's power back to the filter's own,
 100 sqrt(E(own) / E(glided)), 17,460 cards in all.
@@ -519,11 +535,11 @@ Rust version's, in `rust/target/release`):
 
     cargo build --release
     cd ref
-    python3 check_text.py                    # talk --phonemes on 929 texts against text_to_phonemes.py
+    python3 check_text.py                    # talk --phonemes on 937 texts against text_to_phonemes.py
     python3 check_front.py                   # talk-phonemes and talk-frames on 23 sentences against front_ref and voice_ref
     python3 check_voice.py hello_tts mtv_tts fox_tts born1968_tts   # talk-frames on the frame files in fixtures/ against voice_ref
 
-On the day this README was written, check_text found all 929 texts exact, check_front found the frame cards and
+On the day this README was written, check_text found all 937 texts exact, check_front found the frame cards and
 the samples exact for all 23 sentences, and check_voice found all four exact. `make_wavs.py` runs `talk` on three
 texts, writes WAVs into `prototype/out/` and checks every sample against the three references end to end, and
 `compare_wavs.py` compares the speech with the Python pipeline's (make those first with `prototype/tts.sh "TEXT"
@@ -533,7 +549,7 @@ front end; they are test input for the voice box only.
 There are also tests of single machines on `ref/cardiac.py`, a CARDIAC written in Python for trying programs
 quickly, wired as the host wires them (`ref/nets.py`). `run_tests.py` runs the front end on 23 sentences and checks
 what each of its machines punches against the references (`run_tests.py feat glidea ...` for some of them),
-`test_text_m.py` does the same for the text machines on the 929 texts (excp, letters and postb are checked through
+`test_text_m.py` does the same for the text machines on the 937 texts (excp, letters and postb are checked through
 the machines after them, and left, right, first and pick together as match), `test_lattice.py` tests the five
 lattice machines with awkward coefficients, and `test_voice.py` and `test_front_net.py` run the voice box and the
 whole front end. All of them reported exact. These need `carc`, heartburn's assembler, on the PATH.

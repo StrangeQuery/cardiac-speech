@@ -622,10 +622,13 @@ def fig_filters():
     label(a1, 'a')
     # the glide with the largest level factor in the sentence
     tap = WORK / 'tap8'
-    gl, gb, gn = cards(tap / 'glides'), cards(tap / 'glideb'), cards(tap / 'gnorm')
+    gl, gb, gn, ga = cards(tap / 'glides'), cards(tap / 'glideb'), cards(tap / 'gnorm'), cards(tap / 'glidea')
     nf = len(gn) // 3
-    assert len(gl) == 6 * nf and len(gb) == 12 * nf
-    f = max(range(nf), key=lambda i: gn[3 * i + 2] if gn[3 * i + 1] == 4 else 0)
+    assert len(gl) == 6 * nf and len(gb) == 12 * nf and len(ga) == 13 * nf
+    # among the frames whose own filter is a target as it stands (glidea's blend is the filter itself), so that
+    # the glide table's factor is exactly the one that frame needs
+    own = lambda i: ga[13 * i + 2:13 * i + 12] == flt(gl[6 * i + 4])[:10]
+    f = max(range(nf), key=lambda i: gn[3 * i + 2] if gn[3 * i + 1] == 4 and own(i) else 0)
     _, _, _, n_, o_, w = gl[6 * f:6 * f + 6]
     c = gn[3 * f + 2]
     Kg = gb[12 * f + 2:12 * f + 12]
@@ -1340,7 +1343,7 @@ def fig_cost():
     mult = {'L1', 'L2', 'L3', 'L4', 'L5', 'fir1', 'fir2'}
     tot = [sum(c for _, c in s) for s in st]
     rows_ = [sum(c for n, c in s if n in mult) for s in st]
-    assert tot == [860492, 2209801, 40408815, 308902916], tot
+    assert tot == [877616, 2665333, 48788796, 375023790], tot
     fig, ax = plt.subplots(figsize=(W_IN, 3.9))
     fig.subplots_adjust(left=0.05, right=0.95, top=0.82, bottom=0.17)
     y = np.arange(4)

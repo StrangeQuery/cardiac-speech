@@ -39,9 +39,9 @@ To change a Rust machine, you need [cargo-cardiac](https://crates.io/crates/carg
 their sources, and writes their sizes to [`machines/cells.txt`](machines/cells.txt). The filter tables are made by
 [`../ref/up_table.py`](../ref/up_table.py).
 
-On this Mac (an Apple M5 Ultra) the sentence above, 7.83 seconds of speech, takes 1.41 seconds to work out, a
-real-time factor of about 0.18 (1.36 seconds without the high band), where the first version takes 0.084 seconds,
-about 0.011.
+On this Mac (an Apple M5 Ultra) the sentence above, 9.50 seconds of speech, takes 1.73 seconds to work out, a
+real-time factor of about 0.18 (1.67 seconds without the high band), where the first version takes 0.092 seconds,
+about 0.010.
 
 ## How it works
 
@@ -202,40 +202,40 @@ Klatt's rule instead: its level is its voiceless cognate's 10 dB down. The voice
 
 | Sound | Level | Klatt, 4-8 kHz against 0-4 kHz | Measured, 4-8 kHz against 0-4 kHz | High band below 4 kHz against the speech |
 |---|---:|---:|---:|---:|
-| S | 39 | 5.5 dB | 5.4 dB | -12.8 dB |
-| T (burst) | 35 | 4.6 dB | 4.7 dB | -13.6 dB |
-| D (burst) | 11 | 0.3 dB | 0.7 dB | -17.5 dB |
-| F | 6 | 0.0 dB | -0.8 dB | -18.1 dB |
-| TH | 3 | 0.0 dB | -1.5 dB | -18.0 dB |
-| P (burst) | 17 | 0.0 dB | 0.0 dB | -18.3 dB |
-| B (burst) | 10 | 0.0 dB | -0.5 dB | -17.4 dB |
-| CH | 18 | -3.0 dB | -3.1 dB | -21.3 dB |
-| G (burst) | 14 | -4.4 dB | -4.4 dB | -22.2 dB |
-| K (burst) | 13 | -4.9 dB | -5.1 dB | -23.1 dB |
-| SH | 13 | -7.2 dB | -7.2 dB | -24.8 dB |
-| K before a back vowel | 7 | -9.6 dB | -9.0 dB | -26.4 dB |
-| G before a back vowel | 8 | -9.3 dB | -9.9 dB | -26.8 dB |
-| Z | 12 | S's level, 10 dB down | -7.6 dB | -25.3 dB |
-| JH | 6 | CH's, 10 dB down | -15.8 dB | -32.8 dB |
-| ZH | 4 | SH's, 10 dB down | -17.8 dB | -34.1 dB |
-| V | 2 | F's, 10 dB down | -19.5 dB | -33.9 dB |
-| DH | 1 | TH's, 10 dB down | -29.8 dB | -40.3 dB |
+| S | 39 | 5.5 dB | 5.3 dB | -12.8 dB |
+| T (burst) | 63 | 4.6 dB | 4.7 dB | -13.5 dB |
+| D (burst) | 21 | 0.3 dB | 0.3 dB | -17.5 dB |
+| F | 6 | 0.0 dB | -0.7 dB | -18.5 dB |
+| TH | 3 | 0.0 dB | -1.3 dB | -17.8 dB |
+| P (burst) | 31 | 0.0 dB | -0.1 dB | -18.1 dB |
+| B (burst) | 20 | 0.0 dB | 0.0 dB | -18.9 dB |
+| CH | 19 | -3.0 dB | -2.9 dB | -20.6 dB |
+| G (burst) | 28 | -4.4 dB | -4.4 dB | -23.5 dB |
+| K (burst) | 25 | -4.9 dB | -5.1 dB | -23.2 dB |
+| SH | 13 | -7.2 dB | -7.2 dB | -25.2 dB |
+| K before a back vowel | 13 | -9.6 dB | -11.0 dB | -29.2 dB |
+| G before a back vowel | 16 | -9.3 dB | -9.0 dB | -27.2 dB |
+| Z | 12 | S's level, 10 dB down | -7.4 dB | -24.9 dB |
+| JH | 6 | CH's, 10 dB down | -16.2 dB | -32.9 dB |
+| ZH | 4 | SH's, 10 dB down | -16.9 dB | -34.0 dB |
+| V | 2 | F's, 10 dB down | -18.8 dB | -33.0 dB |
+| DH | 1 | TH's, 10 dB down | -29.8 dB | -40.1 dB |
 
 The measured columns are from [`../ref/hb_measure.py`](../ref/hb_measure.py), which runs `talk` with and without the
 high band on the twelve texts and takes each sound's frames, 1,200 samples at 48 kHz each, 245 samples late, under a
-Hann window. The voiceless sounds and bursts come within 1 dB of Klatt's figures, but for TH, at 1.5 dB, whose level
-is 3 and can't be set finer. A voiced fricative's figure is low against its own speech band because that band is its
+Hann window. The voiceless sounds and bursts come within 1 dB of Klatt's figures, but for TH, at 1.3 dB, whose level
+is 3 and can't be set finer, and K before a back vowel, at 1.4 dB. A voiced fricative's figure is low against its own speech band because that band is its
 voicing. The last column is what the high band adds below 4 kHz, where its filter's skirt reaches: S's speech band
-gains 0.2 dB, and the others' less. Over the twelve texts the high band's power is 14.3 dB below the speech's. For
+gains 0.2 dB, and the others' less. Over the twelve texts the high band's power is 12.6 dB below the speech's. For
 the three texts of the table below, the energy from 4 to 24 kHz against 0 to 4 kHz over the whole utterance is now
--14.6, -14.4 and -15.9 dB, where the upsampler alone leaves -45.5, -43.6 and -43.5 dB.
+-13.7, -13.3 and -14.6 dB, where the upsampler alone leaves -45.4, -43.9 and -43.5 dB.
 
-The high band peaks at 2,440 (y at 610) over the four passages, where a card holds 999, and the samples at 10,680.
+The high band peaks at 3,524 (y at 881) over the four passages, where a card holds 999, and the samples at 10,740.
 
 The levels Klatt's figures give were then set by ear. At those levels the high band sounded like static, so in a
 blind test Jason compared the fricatives' band at full, half and a quarter level, with no high band on the stops'
 bursts, and a quarter level was clearest. `ref/hb_table.py` works the levels out as above and then keeps a quarter
-of each fricative's (`by_ear`), and gives the bursts none, so `hiband.cards` holds S 10, CH 4, SH 3, Z 3, F 2,
+of each fricative's (`by_ear`), and gives the bursts none, so `hiband.cards` holds S 10, CH 5, SH 3, Z 3, F 2,
 JH 2, TH 1, V 1, ZH 1 and DH 0. The measurements below are of the levels before that step.
 
 ## What each machine does
@@ -243,40 +243,40 @@ JH 2, TH 1, V 1, ZH 1 and DH 0. The measurements below are of the levels before 
 These are the ten machines the third version adds, after the first version's 79 (whose table is in the
 [README](../README.md#what-each-machine-does) above). Cells are what `cargo cardiac build` reports for a Rust
 machine and the cells a listing fills for a hand-written one. Instructions are counted by `talk -v` for "Hello, my
-name is cardiac and I was born in 1968 to D W Hagelbarger. And now I can talk.", 62,600 samples at 8 kHz and 375,600
-at 48 kHz (7.83 seconds), and include each machine's loading of its deck. The last column gives the count per 8 kHz
+name is cardiac and I was born in 1968 to D W Hagelbarger. And now I can talk.", 76,000 samples at 8 kHz and 456,000
+at 48 kHz (9.50 seconds), and include each machine's loading of its deck. The last column gives the count per 8 kHz
 sample.
 
 | Machine | Source | What it does | Cells | Instructions | Per sample |
 |---|---|---|---:|---:|---:|
 | digits1, digits2 | [machines/digits.rs](machines/digits.rs) | each coefficient of a table as its sign word and its three digits, counted down | 49 | 5,541 and 935 | |
 | words1, words2 | [machines/words.rs](machines/words.rs) | the digits as the five cards of fir's routine | 86 | 6,567 and 755 | |
-| yd | [machines/yd.rs](machines/yd.rs) | each 8 kHz sample's thousands and units back into yd | 21 | 1,189,463 | 19.0 |
-| fir1 | [hand/fir.cq](hand/fir.cq) | 8 kHz to 16 kHz, two phases of 80 and 79 taps | 69 | 251,609,842 | 4,019.3 |
-| fir2 | [hand/fir.cq](hand/fir.cq) | 16 kHz to 48 kHz, two phases of six taps and the sample itself, each 48 kHz sample out as thousands and units | 69 | 56,089,813 | 896.0 |
-| hnoise | [hand/hnoise.cq](hand/hnoise.cq) | each frame's high-band level ramped over its ten steps, and +L or -L for each 48 kHz sample | 85 | 2,826,514 | 45.2 |
-| hfilt | [hand/hfilt.cq](hand/hfilt.cq) | the noise shaped into the band above 4 kHz: three zeros at 0 Hz, two at 24 kHz, and a resonance at 5.0 kHz | 73 | 6,970,021 | 111.3 |
-| hmix | [hand/hmix.cq](hand/hmix.cq) | 4 y added to each 48 kHz sample, as thousands and units | 22 | 6,760,872 | 108.0 |
-| | | **10 machines** | | **325,460,323** | **5,199.0** |
+| yd | [machines/yd.rs](machines/yd.rs) | each 8 kHz sample's thousands and units back into yd | 21 | 1,444,063 | 19.0 |
+| fir1 | [hand/fir.cq](hand/fir.cq) | 8 kHz to 16 kHz, two phases of 80 and 79 taps | 69 | 305,469,716 | 4,019.3 |
+| fir2 | [hand/fir.cq](hand/fir.cq) | 16 kHz to 48 kHz, two phases of six taps and the sample itself, each 48 kHz sample out as thousands and units | 69 | 68,096,213 | 896.0 |
+| hnoise | [hand/hnoise.cq](hand/hnoise.cq) | each frame's high-band level ramped over its ten steps, and +L or -L for each 48 kHz sample | 85 | 2,999,540 | 39.5 |
+| hfilt | [hand/hfilt.cq](hand/hfilt.cq) | the noise shaped into the band above 4 kHz: three zeros at 0 Hz, two at 24 kHz, and a resonance at 5.0 kHz | 73 | 7,298,037 | 96.0 |
+| hmix | [hand/hmix.cq](hand/hmix.cq) | 4 y added to each 48 kHz sample, as thousands and units | 22 | 8,208,072 | 108.0 |
+| | | **10 machines** | | **393,529,439** | **5,178.0** |
 
-All together the 89 machines ran 368,942,687 instructions for 7.83 seconds of speech, about 47.1 million a second of
-speech. The first version's 79 run 43,482,364 of them, 5.56 million a second, the upsampler's seven 308,902,916,
-39.5 million a second, and the high band's three 16,557,407, 2.1 million a second, 4.5 percent of the whole. That is
-982 instructions for each 48 kHz sample, against 695 for each 8 kHz sample of the first version. `hnoise` and
+All together the 89 machines ran 445,861,184 instructions for 9.50 seconds of speech, about 46.9 million a second of
+speech. The first version's 79 run 52,331,745 of them, 5.51 million a second, the upsampler's seven 375,023,790,
+39.5 million a second, and the high band's three 18,505,649, 1.9 million a second, 4.2 percent of the whole. That is
+978 instructions for each 48 kHz sample, against 689 for each 8 kHz sample of the first version. `hnoise` and
 `hfilt` are cheap in the vowels and pauses, where `hnoise` puts out 0s for 6 instructions a sample and `hfilt`
 passes them on for 15. In a fricative `hnoise` runs about 19 a sample and `hfilt` about 50, and `hmix` runs its 18
 for every sample. Without the high band
-(`--no-hiband`) the 86 machines run 352,385,280. A tap costs 17 instructions of reading, signing, shifting and
+(`--no-hiband`) the 86 machines run 427,355,535. A tap costs 17 instructions of reading, signing, shifting and
 carrying, and as many ADDs as its digits add up to (one fewer for the third digit), so `fir1`, most of whose taps
 are small, runs about 25 instructions a tap and `fir2`, whose coefficients are larger, about 32. `fir1` is 81
 percent of the upsampler's work. With 39 taps, passing only to 3.3 kHz, it ran 69,068,968 instructions for this
 sentence, and the whole sentence took 0.57 seconds, a real-time factor of 0.073.
 
-The cards add up as well. The 89 programs load 12,008 program cards, and running the sentence the machines read
-72,231,455 cards with INP, where the first version's read 1,115,393. Each 8 kHz sample is read once by each of
+The cards add up as well. The 89 programs load 12,034 program cards, and running the sentence the machines read
+87,672,636 cards with INP, where the first version's read 1,333,906. Each 8 kHz sample is read once by each of
 `fir1`'s 159 taps, and each of `fir1`'s by each of `fir2`'s 13, with five cards of the routine for each tap. They
-put out 3,482,667 values with OUT, of which the high band's three put out 1,502,400. Without it the 86 read
-70,727,800 and put out 1,980,267.
+put out 4,224,625 values with OUT, of which the high band's three put out 1,824,000. Without it the 86 read
+85,847,114 and put out 2,400,625.
 
 ## Written in Rust, or by hand
 
@@ -322,11 +322,11 @@ below, in dB:
 
 | Text | Upsampler, 4-24 kHz | 4-4.5 kHz | 4.5-8 kHz | 8-24 kHz | Each sample six times, 4-24 kHz |
 |---|---:|---:|---:|---:|---:|
-| "All your base are belong to us. You have no chance to survive. Make your time." | -45.5 | -49.6 | -49.2 | -52.9 | -7.0 |
-| "It doesn't have to be like this. All we need to do is make sure. we keep. talking." | -43.6 | -47.1 | -47.5 | -52.0 | -6.9 |
-| "for millions of years, mankind lived just like the animals. ..." | -43.5 | -47.1 | -47.3 | -51.8 | -6.8 |
+| "All your base are belong to us. You have no chance to survive. Make your time." | -45.4 | -49.4 | -49.1 | -52.9 | -7.1 |
+| "It doesn't have to be like this. All we need to do is make sure. we keep. talking." | -43.9 | -47.4 | -47.7 | -52.1 | -6.8 |
+| "for millions of years, mankind lived just like the animals. ..." | -43.5 | -47.3 | -47.3 | -51.8 | -6.8 |
 
-So the images are 43 to 46 dB below the speech, where repeating each sample leaves them 7 dB below. Most of what is
+So the images are 43 to 45 dB below the speech, where repeating each sample leaves them 7 dB below. Most of what is
 left above 4 kHz isn't images but the arithmetic. With each 16 kHz sample kept unrounded, the first text's figure
 would be -47.8 dB, and with each product worked out exactly too, -53.4 dB, which is what the filters themselves
 leave with their coefficients in thousandths. With the products exact and the 16 kHz samples rounded it would be
@@ -337,7 +337,7 @@ to about as much as the rounding. With the 39-tap filter of before, which passed
 
 The coefficients are kept in thousandths because a finer step would buy nothing that can be heard. With its
 coefficients exact the filter would leave -54.7 dB for the first text, against -53.4 dB in thousandths, both well
-under the -45.5 dB that the arithmetic leaves, and a fourth digit would take a sixth card and another jump into the
+under the -45.4 dB that the arithmetic leaves, and a fourth digit would take a sixth card and another jump into the
 row for every tap.
 
 ## How it was checked
@@ -383,4 +383,4 @@ Its level is fixed for each sound. An unvoiced fricative's A in the 8 kHz speech
 fricative's moves with its pitch period, and its high band doesn't follow that. The weakest sounds' levels are small whole numbers (DH 1, V 2, TH 3), so
 they are only as fine as a step of 1 can make them. Between 3.9 and 4.5 kHz both the speech and the high band are
 weak, the speech because stage 1 cuts it off there and the high band because its filter rises from 4 kHz. And y has
-to fit in a cell, which it does with 4.3 dB to spare at the loudest S of the four passages.
+to fit in a cell, which it does at Klatt's levels with 1.1 dB to spare over the four passages.

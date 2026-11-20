@@ -33,7 +33,7 @@ and writes their sizes to [`machines/cells.txt`](machines/cells.txt). The machin
 binary target, built with overflow checks off. Each one uses the `cardiac` crate's `inp()` to read the next card
 and `out(v)` to punch one, and nothing else of the outside world.
 
-On this Mac (an Apple M5 Ultra) the sentence above, 7.83 seconds of speech, takes 0.078 seconds to work out, a
+On this Mac (an Apple M5 Ultra) the sentence above, 9.50 seconds of speech, takes 0.092 seconds to work out, a
 real-time factor of about 0.010, about the same as the first version's.
 
 ## How the host feeds the machines
@@ -125,17 +125,17 @@ sample (20 yd as thousands and units), which on the README's sentence ran 5,355,
 against 2,631,841, 42.0 a sample, for the hand-written [`hand/output.cq`](hand/output.cq). That is 6 percent of the
 whole, so the output stage is written by hand too. `--all-rust` runs deemph and sample.
 
-Every other Rust machine is within a small factor of the hand-written one it replaces. The text machines ran
-935,136 instructions against 875,205 then (860,492 now), the front end 2,266,215 against 1,427,517 then (2,213,057
-now), and the voice box's five Rust machines (interp, steps, ksteps, reduce, excite) 4,598,314 against 3,527,705
-then for the first version's four (3,414,657 now for its five).
+Every other Rust machine is within a small factor of the hand-written one it replaces. On the sentence below the
+text machines run 953,376 instructions against the first version's 877,616, the front end 2,726,001 against
+2,665,333, and the voice box's five Rust machines (interp, steps, ksteps, reduce, excite) 5,577,770 against
+4,129,177 for the first version's five.
 
 ## What each machine does
 
 These are all 89 machines, in the order the host wires them. Cells are what `cargo cardiac build` reports for a
 Rust machine (machines/cells.txt), and the cells a listing fills for a hand-written one; a program has cells 03 to
 98. Instructions are counted by `talk -v` for "Hello, my name is cardiac and I was born in 1968 to D W
-Hagelbarger. And now I can talk.", 62,600 samples (7.83 seconds), and include each machine's loading of its deck.
+Hagelbarger. And now I can talk.", 76,000 samples (9.50 seconds), and include each machine's loading of its deck.
 
 ### Text to phonemes (29 machines)
 
@@ -157,7 +157,7 @@ Hagelbarger. And now I can talk.", 62,600 samples (7.83 seconds), and include ea
 | names | [machines/text/names.rs](machines/text/names.rs) | says each spelled letter by name, stressing the last | 86 | 12,663 |
 | items | [machines/text/items.rs](machines/text/items.rs) | packs each word or run of phonemes into a record of 17 cards | 82 | 6,803 |
 | excl | [machines/text/excl.rs](machines/text/excl.rs) | looks each word up among the function words, dealt again after each word | 93 | 78,376 |
-| excx | [machines/text/excx.rs](machines/text/excx.rs) | looks each word up among the exceptions, dealt again after each word | 95 | 127,542 |
+| excx | [machines/text/excx.rs](machines/text/excx.rs) | looks each word up among the exceptions, dealt again after each word | 95 | 145,782 |
 | excp | [machines/text/excp.rs](machines/text/excp.rs) | replaces an exception with its phonemes and marks the other words for the rules | 83 | 5,002 |
 | letters | [machines/text/letters.rs](machines/text/letters.rs) | makes a record for each letter of a word, asking for the letter's rules | 93 | 13,177 |
 | left | [machines/text/left.rs](machines/text/left.rs) | tests every rule's left context at the letter, reading leftwards through the word | 95 | 139,496 |
@@ -170,7 +170,7 @@ Hagelbarger. And now I can talk.", 62,600 samples (7.83 seconds), and include ea
 | postd | [machines/text/postd.rs](machines/text/postd.rs) | gives a rules word's other long vowels secondary stress | 84 | 1,745 |
 | join | [machines/text/join.rs](machines/text/join.rs) | puts the boundaries between words and the pauses in place for the front end | 71 | 1,860 |
 | end | [machines/text/end.rs](machines/text/end.rs) | puts a period before the end if the text didn't end a sentence | 27 | 1,188 |
-| | | **29 machines** | | **935,136** |
+| | | **29 machines** | | **953,376** |
 
 ### Front end (49 machines)
 
@@ -181,74 +181,74 @@ Hagelbarger. And now I can talk.", 62,600 samples (7.83 seconds), and include ea
 | ahead | [machines/front/ahead.rs](machines/front/ahead.rs) | last first: the kind of the next sound, and whether the word comes before a pause | 33 | 1,418 |
 | p1 | [machines/front/p1.rs](machines/front/p1.rs) | last first: a vowel's Klatt rule 9 factor, from the consonants after it | 82 | 2,457 |
 | next | [machines/front/next.rs](machines/front/next.rs) | last first: the next sound that isn't a pause, the next vowel, and each sound's start and end filters | 80 | 3,311 |
-| stress | [machines/front/stress.rs](machines/front/stress.rs) | a consonant's stress, and whether a sound is in its word's last syllable or before a pause | 94 | 4,371 |
-| base | [machines/front/base.rs](machines/front/base.rs) | the inherent and minimum durations, halving the minimum for an unstressed sound (rules 7 and 11) | 63 | 2,826 |
+| stress | [machines/front/stress.rs](machines/front/stress.rs) | a consonant's stress, and whether a sound is in its word's last syllable or before a pause | 94 | 4,369 |
+| base | [machines/front/base.rs](machines/front/base.rs) | the inherent and minimum durations, halving the minimum for an unstressed sound (rules 7 and 11) | 63 | 2,825 |
 | rules2 | [machines/front/rules2.rs](machines/front/rules2.rs) | Klatt's duration rules 2 to 4, as factors in hundredths | 84 | 3,193 |
 | rules5 | [machines/front/rules5.rs](machines/front/rules5.rs) | Klatt's duration rules 5 and 6 | 43 | 2,015 |
-| rules7 | [machines/front/rules7.rs](machines/front/rules7.rs) | Klatt's duration rule 7, for an unstressed sound | 55 | 1,863 |
+| rules7 | [machines/front/rules7.rs](machines/front/rules7.rs) | Klatt's duration rule 7, for an unstressed sound | 55 | 1,861 |
 | rules9 | [machines/front/rules9.rs](machines/front/rules9.rs) | Klatt's duration rules 9 and 10 | 86 | 3,183 |
-| mul | [machines/front/mul.rs](machines/front/mul.rs) | multiplies the ten factors into PRCNT | 88 | 40,352 |
-| dur | [machines/front/dur.rs](machines/front/dur.rs) | works out the duration in milliseconds and multiplies it by the speaking rate | 83 | 18,168 |
-| nframes | [machines/front/nframes.rs](machines/front/nframes.rs) | turns durations into whole 25 ms frames, carrying the remainder on | 66 | 5,553 |
+| mul | [machines/front/mul.rs](machines/front/mul.rs) | multiplies the ten factors into PRCNT | 88 | 40,214 |
+| dur | [machines/front/dur.rs](machines/front/dur.rs) | works out the duration in milliseconds and multiplies it by the speaking rate | 83 | 23,745 |
+| nframes | [machines/front/nframes.rs](machines/front/nframes.rs) | turns durations into whole 25 ms frames, carrying the remainder on, and gives a stop's burst a frame after its closure | 76 | 6,328 |
 | back | [machines/front/back.rs](machines/front/back.rs) | the sound before each one: its end filter, whether it is a vowel, whether it is P, T or K | 46 | 2,373 |
-| sum | [machines/front/sum.rs](machines/front/sum.rs) | for each sentence, its length in frames and where the final fall starts | 73 | 2,688 |
+| sum | [machines/front/sum.rs](machines/front/sum.rs) | for each sentence, its length in frames and where the final fall starts | 73 | 2,691 |
 | closure | [machines/front/closure.rs](machines/front/closure.rs) | how many of a stop's or affricate's frames are its closure | 82 | 1,715 |
 | main | [machines/front/main.rs](machines/front/main.rs) | the filters a sound's frames speak through, and whether they are voiced | 87 | 3,644 |
-| edge | [machines/front/edge.rs](machines/front/edge.rs) | a voiced stop's voice bar, and the breathy first frame after P, T or K | 61 | 2,455 |
+| edge | [machines/front/edge.rs](machines/front/edge.rs) | a voiced stop's voice bar, and the breathy first frame after P, T or K, which is all of a sonorant of one frame | 64 | 2,184 |
 | loud | [machines/front/loud.rs](machines/front/loud.rs) | the loudness a sonorant takes from the vowel next to it | 29 | 1,431 |
 | fill | [machines/front/fill.rs](machines/front/fill.rs) | last first: hands each sentence's summary to all its segments | 39 | 1,060 |
-| framer | [machines/front/framer.rs](machines/front/framer.rs) | each frame's place in its segment, in frames and in tenths, and whether it starts a sentence | 68 | 15,390 |
-| spreada | [machines/front/spread.rs](machines/front/spread.rs) | deals each frame its segment's cards for choose | 71 | 57,017 |
-| spreadb | [machines/front/spread.rs](machines/front/spread.rs) | deals each frame its segment's cards for glides, the pitch and the level | 71 | 31,009 |
-| spreadc | [machines/front/spread.rs](machines/front/spread.rs) | deals each frame its sentence's summary and its segment's loudness | 71 | 44,013 |
-| weights | [machines/front/weights.rs](machines/front/weights.rs) | the weights of the glides at the segment's ends | 59 | 14,493 |
-| choose | [machines/front/choose.rs](machines/front/choose.rs) | each frame's two target filters, and whether it sounds and is voiced | 78 | 11,251 |
-| glides | [machines/front/glides.rs](machines/front/glides.rs) | at a segment's first and last frames, the filters to glide towards and how far | 56 | 8,229 |
-| glidea | [machines/front/glidea.rs](machines/front/glidea.rs) | blends the two target filters by the frame's place | 79 | 252,546 |
-| halfway | [machines/front/halfway.rs](machines/front/halfway.rs) | the filter halfway to the neighbour's | 71 | 316,369 |
-| glideb | [machines/front/glideb.rs](machines/front/glideb.rs) | blends the frame's filter towards that halfway filter at the segment's ends | 79 | 437,308 |
-| decl | [machines/front/decl.rs](machines/front/decl.rs) | the pitch falling from 130 Hz to 100 Hz across the sentence | 41 | 7,032 |
-| onset | [machines/front/onset.rs](machines/front/onset.rs) | the rise at a stressed vowel's onset, 15 or 7 percent | 93 | 15,932 |
-| rise | [machines/front/rise.rs](machines/front/rise.rs) | the rise, fading across the vowel | 44 | 27,262 |
-| taily | [machines/front/taily.rs](machines/front/taily.rs) | how far each frame is into the sentence's final fall, in hundredths | 66 | 9,135 |
-| tailt | [machines/front/tailt.rs](machines/front/tailt.rs) | the final fall's size so far | 77 | 13,808 |
-| tailf | [machines/front/tailf.rs](machines/front/tailf.rs) | the final fall to 85 Hz or rise to 160 Hz | 81 | 12,420 |
-| period | [machines/front/period.rs](machines/front/period.rs) | the pitch period, 8000 / f0 samples, by repeated subtraction | 43 | 272,503 |
-| lsel | [machines/front/lsel.rs](machines/front/lsel.rs) | for a sonorant, the loudness to multiply by | 39 | 4,947 |
-| vsel | [machines/front/vsel.rs](machines/front/vsel.rs) | for a vowel, 3 dB down when unstressed and the fall across the vowel | 66 | 12,062 |
-| psel | [machines/front/psel.rs](machines/front/psel.rs) | for a voiced frame, sqrt(60 P) / 100 by counting odd numbers | 64 | 213,298 |
-| gnorm | [machines/front/gnorm.rs](machines/front/gnorm.rs) | for a frame that glides, the factor from the glide table that puts its power back | 83 | 122,016 |
-| scale1 | [machines/front/scale.rs](machines/front/scale.rs) | multiplies the gain by lsel's loudness | 85 | 9,694 |
-| scale2 | [machines/front/scale.rs](machines/front/scale.rs) | multiplies by vsel's stress factor | 85 | 19,614 |
-| fall | [machines/front/fall.rs](machines/front/fall.rs) | takes off vsel's fall across the vowel | 80 | 25,746 |
-| scale4 | [machines/front/scale.rs](machines/front/scale.rs) | multiplies by psel's square root | 85 | 41,309 |
-| boost | [machines/front/boost.rs](machines/front/boost.rs) | multiplies by gnorm's factor, at most 999 | 87 | 23,800 |
-| kcarry | [machines/front/kcarry.rs](machines/front/kcarry.rs) | gives a silent frame the filter of the frame before it | 49 | 74,593 |
-| asm | [machines/front/asm.rs](machines/front/asm.rs) | puts each frame together as the voice box reads it, V, P, A, K10 to K1, and ends with -1 | 93 | 65,691 |
-| | | **49 machines** | | **2,266,215** |
+| framer | [machines/front/framer.rs](machines/front/framer.rs) | each frame's place in its segment, in frames and in tenths, and whether it starts a sentence | 68 | 17,603 |
+| spreada | [machines/front/spread.rs](machines/front/spread.rs) | deals each frame its segment's cards for choose | 71 | 66,397 |
+| spreadb | [machines/front/spread.rs](machines/front/spread.rs) | deals each frame its segment's cards for glides, the pitch and the level | 71 | 36,101 |
+| spreadc | [machines/front/spread.rs](machines/front/spread.rs) | deals each frame its sentence's summary and its segment's loudness | 71 | 51,249 |
+| weights | [machines/front/weights.rs](machines/front/weights.rs) | the weights of the glides at the segment's ends, at the start alone for a segment of two frames | 68 | 18,781 |
+| choose | [machines/front/choose.rs](machines/front/choose.rs) | each frame's two target filters, and whether it sounds and is voiced | 78 | 13,678 |
+| glides | [machines/front/glides.rs](machines/front/glides.rs) | at a segment's first and last frames, the filters to glide towards and how far | 56 | 9,670 |
+| glidea | [machines/front/glidea.rs](machines/front/glidea.rs) | blends the two target filters by the frame's place | 79 | 301,297 |
+| halfway | [machines/front/halfway.rs](machines/front/halfway.rs) | the filter halfway to the neighbour's | 71 | 383,431 |
+| glideb | [machines/front/glideb.rs](machines/front/glideb.rs) | blends the frame's filter towards that halfway filter at the segment's ends | 79 | 546,498 |
+| decl | [machines/front/decl.rs](machines/front/decl.rs) | the pitch falling from 130 Hz to 100 Hz across the sentence | 41 | 8,375 |
+| onset | [machines/front/onset.rs](machines/front/onset.rs) | the rise at a stressed vowel's onset, 15 or 7 percent | 93 | 19,161 |
+| rise | [machines/front/rise.rs](machines/front/rise.rs) | the rise, fading across the vowel | 44 | 32,997 |
+| taily | [machines/front/taily.rs](machines/front/taily.rs) | how far each frame is into the sentence's final fall, in hundredths | 66 | 10,708 |
+| tailt | [machines/front/tailt.rs](machines/front/tailt.rs) | the final fall's size so far | 77 | 16,275 |
+| tailf | [machines/front/tailf.rs](machines/front/tailf.rs) | the final fall to 85 Hz or rise to 160 Hz | 81 | 15,018 |
+| period | [machines/front/period.rs](machines/front/period.rs) | the pitch period, 8000 / f0 samples, by repeated subtraction | 43 | 330,533 |
+| lsel | [machines/front/lsel.rs](machines/front/lsel.rs) | for a sonorant, the loudness to multiply by | 39 | 5,940 |
+| vsel | [machines/front/vsel.rs](machines/front/vsel.rs) | for a vowel, 3 dB down when unstressed and the fall across the vowel | 66 | 14,480 |
+| psel | [machines/front/psel.rs](machines/front/psel.rs) | for a voiced frame, sqrt(60 P) / 100 by counting odd numbers | 64 | 260,089 |
+| gnorm | [machines/front/gnorm.rs](machines/front/gnorm.rs) | for a frame that glides, the factor from the glide table that puts its power back | 83 | 147,163 |
+| scale1 | [machines/front/scale.rs](machines/front/scale.rs) | multiplies the gain by lsel's loudness | 85 | 11,180 |
+| scale2 | [machines/front/scale.rs](machines/front/scale.rs) | multiplies by vsel's stress factor | 85 | 22,362 |
+| fall | [machines/front/fall.rs](machines/front/fall.rs) | takes off vsel's fall across the vowel | 80 | 30,169 |
+| scale4 | [machines/front/scale.rs](machines/front/scale.rs) | multiplies by psel's square root | 85 | 49,868 |
+| boost | [machines/front/boost.rs](machines/front/boost.rs) | multiplies by gnorm's factor, at most 999 | 87 | 23,544 |
+| kcarry | [machines/front/kcarry.rs](machines/front/kcarry.rs) | gives a silent frame the filter of the frame before it | 49 | 90,065 |
+| asm | [machines/front/asm.rs](machines/front/asm.rs) | puts each frame together as the voice box reads it, V, P, A, K10 to K1, and ends with -1 | 93 | 79,700 |
+| | | **49 machines** | | **2,726,001** |
 
 ### Voice box (11 machines)
 
 | Machine | Source | What it does | Cells | Instructions | Per sample |
 |---|---|---|---:|---:|---:|
-| interp | [machines/voice/interp.rs](machines/voice/interp.rs) | each value's step to the next frame, none across a change of voicing | 75 | 136,902 | 2.2 |
-| steps | [machines/voice/steps.rs](machines/voice/steps.rs) | ten steps of 20 samples a frame: V, P and A for the excitation | 28 | 43,266 | 0.7 |
-| ksteps | [machines/voice/ksteps.rs](machines/voice/ksteps.rs) | the ten Ks of each step, each after the step's A, for reduce | 89 | 885,028 | 14.1 |
-| reduce | [machines/voice/reduce.rs](machines/voice/reduce.rs) | each K as the five cards of a multiply routine, or in a pause the cards of k = 0 | 92 | 1,143,319 | 18.3 |
-| excite | [machines/voice/excite.rs](machines/voice/excite.rs) | pulses every P samples through a one-pole low-pass, or random plus and minus A | 91 | 2,389,799 | 38.2 |
-| L1 | [hand/lattice_top.cq](hand/lattice_top.cq) | lattice stages 10 and 9 | 89 | 5,667,206 | 90.5 |
-| L2 | [hand/lattice.cq](hand/lattice.cq) | lattice stages 8 and 7 | 93 | 7,017,628 | 112.1 |
-| L3 | [hand/lattice.cq](hand/lattice.cq) | lattice stages 6 and 5 | 93 | 7,040,163 | 112.5 |
-| L4 | [hand/lattice.cq](hand/lattice.cq) | lattice stages 4 and 3 | 93 | 7,096,118 | 113.4 |
-| L5 | [hand/lattice_bottom.cq](hand/lattice_bottom.cq) | lattice stages 2 and 1 | 94 | 7,541,202 | 120.5 |
-| output | [hand/output.cq](hand/output.cq) | the de-emphasis, and each sample as thousands and units | 58 | 2,631,841 | 42.0 |
-| | | **11 machines** | | **41,592,472** | **664.4** |
+| interp | [machines/voice/interp.rs](machines/voice/interp.rs) | each value's step to the next frame, none across a change of voicing | 75 | 168,828 | 2.2 |
+| steps | [machines/voice/steps.rs](machines/voice/steps.rs) | ten steps of 20 samples a frame: V, P and A for the excitation | 28 | 52,512 | 0.7 |
+| ksteps | [machines/voice/ksteps.rs](machines/voice/ksteps.rs) | the ten Ks of each step, each after the step's A, for reduce | 89 | 1,074,437 | 14.1 |
+| reduce | [machines/voice/reduce.rs](machines/voice/reduce.rs) | each K as the five cards of a multiply routine, or in a pause the cards of k = 0 | 92 | 1,366,605 | 18.0 |
+| excite | [machines/voice/excite.rs](machines/voice/excite.rs) | pulses every P samples through a one-pole low-pass, or random plus and minus A | 91 | 2,915,388 | 38.4 |
+| L1 | [hand/lattice_top.cq](hand/lattice_top.cq) | lattice stages 10 and 9 | 89 | 6,837,135 | 90.0 |
+| L2 | [hand/lattice.cq](hand/lattice.cq) | lattice stages 8 and 7 | 93 | 8,480,406 | 111.6 |
+| L3 | [hand/lattice.cq](hand/lattice.cq) | lattice stages 6 and 5 | 93 | 8,496,859 | 111.8 |
+| L4 | [hand/lattice.cq](hand/lattice.cq) | lattice stages 4 and 3 | 93 | 8,569,257 | 112.8 |
+| L5 | [hand/lattice_bottom.cq](hand/lattice_bottom.cq) | lattice stages 2 and 1 | 94 | 9,081,134 | 119.5 |
+| output | [hand/output.cq](hand/output.cq) | the de-emphasis, and each sample as thousands and units | 58 | 3,194,828 | 42.0 |
+| | | **11 machines** | | **50,237,389** | **661.0** |
 
 
-All together the 89 machines ran 44,793,823 instructions for 7.83 seconds of speech, about 5.7 million a second of
-speech, or 716 a sample, against 43,482,364 for the first version's 79 (45,783,161 for its 65 before it was given one reader). The voice box does 93 percent of it, and the
-five hand-written lattice machines 77 percent. The 89 programs load 11,096 program cards between them, and running
-the sentence the machines read 1,118,106 cards with INP and put out 1,040,323 values with OUT.
+All together the 89 machines ran 53,916,766 instructions for 9.50 seconds of speech, about 5.7 million a second of
+speech, or 709 a sample, against 52,331,745 for the first version's 79. The voice box does 93 percent of it, and the
+five hand-written lattice machines 77 percent. The 89 programs load 11,138 program cards between them, and running
+the sentence the machines read 1,337,222 cards with INP and put out 1,259,815 values with OUT.
 
 There are more machines than in the first version because a Rust machine needs more cells than a hand-written one
 for the same work, often a third more, and a machine that doesn't fit in memory is split in two.
@@ -452,7 +452,7 @@ The first version's checks take `--rust`, and run this folder's programs instead
 with the Rust lattice and output stage):
 
     cd rust && cargo build --release && cd ../ref
-    python3 check_text.py --rust              # talk --phonemes on 929 texts against text_to_phonemes.py
+    python3 check_text.py --rust              # talk --phonemes on 937 texts against text_to_phonemes.py
     python3 check_front.py --rust             # talk-phonemes and talk-frames on 23 sentences
     python3 check_voice.py --rust hello_tts mtv_tts fox_tts born1968_tts
     python3 check_voice.py --all-rust hello_tts mtv_tts fox_tts born1968_tts

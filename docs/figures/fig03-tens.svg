@@ -370,7 +370,7 @@ L 0 2
      </g>
     </g>
     <g id="text_24">
-     <text style="font-size: 12.5px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #101410" x="219.672" y="263.956822" transform="rotate(-0 219.672 263.956822)">Sample from the start of frame 90 (8 kHz)</text>
+     <text style="font-size: 12.5px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #101410" x="219.672" y="263.956822" transform="rotate(-0 219.672 263.956822)">Sample from the start of frame 108 (8 kHz)</text>
     </g>
    </g>
    <g id="matplotlib.axis_4">
@@ -508,11 +508,11 @@ z
     </g>
    </g>
    <g id="text_31">
-    <text style="font-size: 11.5px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif" transform="translate(70.208 211.293131)">frame 90</text>
+    <text style="font-size: 11.5px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif" transform="translate(70.208 211.293131)">frame 108</text>
     <text style="font-size: 11.5px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif" transform="translate(70.208 223.809488)">K1 = 362</text>
    </g>
    <g id="text_32">
-    <text style="font-size: 11.5px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif" transform="translate(227.672 118.936985)">frame 91</text>
+    <text style="font-size: 11.5px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif" transform="translate(227.672 118.936985)">frame 109</text>
     <text style="font-size: 11.5px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif" transform="translate(227.672 131.453342)">K1 = 830</text>
    </g>
    <g id="patch_7">

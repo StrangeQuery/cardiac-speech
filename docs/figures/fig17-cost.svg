@@ -194,65 +194,65 @@ L 369.36 50.544
    <g id="matplotlib.axis_2"/>
    <g id="patch_3">
     <path d="M 19.44 69.425379 
-L 20.295104 69.425379 
-L 20.295104 94.600552 
+L 20.158352 69.425379 
+L 20.158352 94.600552 
 L 19.44 94.600552 
 z
 " clip-path="url(#p978b8a4b38)" style="fill: #9fd9ab"/>
    </g>
    <g id="patch_4">
     <path d="M 19.44 111.384 
-L 21.635963 111.384 
-L 21.635963 136.559172 
+L 21.621645 111.384 
+L 21.621645 136.559172 
 L 19.44 136.559172 
 z
 " clip-path="url(#p978b8a4b38)" style="fill: #9fd9ab"/>
    </g>
    <g id="patch_5">
     <path d="M 19.44 153.342621 
-L 25.448635 153.342621 
-L 25.448635 178.517793 
+L 25.434891 153.342621 
+L 25.434891 178.517793 
 L 19.44 178.517793 
 z
 " clip-path="url(#p978b8a4b38)" style="fill: #9fd9ab"/>
    </g>
    <g id="patch_6">
     <path d="M 19.44 195.301241 
-L 20.635726 195.301241 
-L 20.635726 220.476414 
+L 20.633298 195.301241 
+L 20.633298 220.476414 
 L 19.44 220.476414 
 z
 " clip-path="url(#p978b8a4b38)" style="fill: #9fd9ab"/>
    </g>
    <g id="patch_7">
-    <path d="M 20.295104 69.425379 
-L 20.295104 69.425379 
-L 20.295104 94.600552 
-L 20.295104 94.600552 
+    <path d="M 20.158352 69.425379 
+L 20.158352 69.425379 
+L 20.158352 94.600552 
+L 20.158352 94.600552 
 z
 " clip-path="url(#p978b8a4b38)" style="fill: #087a2c"/>
    </g>
    <g id="patch_8">
-    <path d="M 21.635963 111.384 
-L 21.635963 111.384 
-L 21.635963 136.559172 
-L 21.635963 136.559172 
+    <path d="M 21.621645 111.384 
+L 21.621645 111.384 
+L 21.621645 136.559172 
+L 21.621645 136.559172 
 z
 " clip-path="url(#p978b8a4b38)" style="fill: #087a2c"/>
    </g>
    <g id="patch_9">
-    <path d="M 25.448635 153.342621 
-L 59.595776 153.342621 
-L 59.595776 178.517793 
-L 25.448635 178.517793 
+    <path d="M 25.434891 153.342621 
+L 59.374913 153.342621 
+L 59.374913 178.517793 
+L 25.434891 178.517793 
 z
 " clip-path="url(#p978b8a4b38)" style="fill: #087a2c"/>
    </g>
    <g id="patch_10">
-    <path d="M 20.635726 195.301241 
-L 326.408572 195.301241 
-L 326.408572 220.476414 
-L 20.635726 220.476414 
+    <path d="M 20.633298 195.301241 
+L 326.406841 195.301241 
+L 326.406841 220.476414 
+L 20.633298 220.476414 
 z
 " clip-path="url(#p978b8a4b38)" style="fill: #087a2c"/>
    </g>
@@ -262,25 +262,25 @@ L 369.36 233.064
 " style="fill: none; stroke: #101410; stroke-width: 0.9; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="text_12">
-    <text style="font-size: 11.5px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif; text-anchor: start" x="22.239104" y="84.98904" transform="rotate(-0 22.239104 84.98904)">0.11</text>
+    <text style="font-size: 11.5px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif; text-anchor: start" x="22.102352" y="84.98904" transform="rotate(-0 22.102352 84.98904)">0.09</text>
    </g>
    <g id="text_13">
     <text style="font-size: 11px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif; text-anchor: start" x="20.6064" y="62.075189" transform="rotate(-0 20.6064 62.075189)">Text to phonemes, 25 programs</text>
    </g>
    <g id="text_14">
-    <text style="font-size: 11.5px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif; text-anchor: start" x="23.579963" y="126.94766" transform="rotate(-0 23.579963 126.94766)">0.28</text>
+    <text style="font-size: 11.5px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif; text-anchor: start" x="23.565645" y="126.94766" transform="rotate(-0 23.565645 126.94766)">0.28</text>
    </g>
    <g id="text_15">
     <text style="font-size: 11px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif; text-anchor: start" x="20.6064" y="104.033809" transform="rotate(-0 20.6064 104.033809)">Phonemes to frames, 43 programs</text>
    </g>
    <g id="text_16">
-    <text style="font-size: 11.5px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif; text-anchor: start" x="61.539776" y="168.906281" transform="rotate(-0 61.539776 168.906281)">5.2</text>
+    <text style="font-size: 11.5px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif; text-anchor: start" x="61.318913" y="168.906281" transform="rotate(-0 61.318913 168.906281)">5.1</text>
    </g>
    <g id="text_17">
     <text style="font-size: 11px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif; text-anchor: start" x="20.6064" y="145.99243" transform="rotate(-0 20.6064 145.99243)">Voice box, 8 kHz, 11 programs</text>
    </g>
    <g id="text_18">
-    <text style="font-size: 11.5px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif; text-anchor: start" x="328.352572" y="210.864902" transform="rotate(-0 328.352572 210.864902)">39.5</text>
+    <text style="font-size: 11.5px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif; text-anchor: start" x="328.350841" y="210.864902" transform="rotate(-0 328.350841 210.864902)">39.5</text>
    </g>
    <g id="text_19">
     <text style="font-size: 11px; font-family:Arial, 'Helvetica Neue', Helvetica, sans-serif, 'Helvetica', 'DejaVu Sans', sans-serif; text-anchor: start" x="20.6064" y="187.951051" transform="rotate(-0 20.6064 187.951051)">Resampling to 48 kHz, 7 programs</text>
