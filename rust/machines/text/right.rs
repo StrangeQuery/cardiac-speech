@@ -15,15 +15,15 @@ fn main() {
             *x = inp();
         }
         let mut pos = i + 1;
-        let mut ok = 1;
+        let mut ok = true;
         loop {
             let most = inp();
             if most < 1 {
                 if most < -1 {
                     // the end of a rule
-                    out(ok);
+                    out(i16::from(ok));
                     pos = i + 1;
-                    ok = 1;
+                    ok = true;
                 } else if most < 0 {
                     break;
                 }
@@ -32,7 +32,7 @@ fn main() {
             let least = inp();
             let lo = inp();
             let hi = inp();
-            if ok > 0 {
+            if ok {
                 let start = pos;
                 while pos - start < most {
                     // SAFETY: pos stays within the word and its two edges (28). An element of letters
@@ -46,7 +46,7 @@ fn main() {
                     pos += 1;
                 }
                 if pos - start < least {
-                    ok = 0;
+                    ok = false;
                 }
             }
         }

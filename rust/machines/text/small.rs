@@ -4,7 +4,7 @@
 use cardiac::*;
 
 fn main() {
-    let mut small = 0;
+    let mut small = false;
     loop {
         let class = inp();
         let _value = inp();
@@ -12,8 +12,8 @@ fn main() {
             break;
         }
         if class == 2 {
-            small = 1;
+            small = true;
         }
     }
-    out(small);
+    out(i16::from(small));
 }

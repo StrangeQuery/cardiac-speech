@@ -7,7 +7,7 @@ use cardiac::*;
 fn main() {
     let mut buf = [0i16; 16];
     let mut n = 0;
-    let mut ah = 1;
+    let mut ah = true;
     loop {
         let c = inp();
         // phonemes are the only cards above 0 here
@@ -17,7 +17,7 @@ fn main() {
                 n += 1;
             }
             if c < 180 {
-                ah = 0;
+                ah = false;
             }
             continue;
         }
@@ -26,12 +26,12 @@ fn main() {
             out(-30);
             if c < -21 {
                 // a function word: no AH
-                ah = 0;
+                ah = false;
                 out(1);
             } else {
                 out(0);
             }
-            out(ah);
+            out(i16::from(ah));
             end = -20;
         }
         for i in 0..n {
@@ -40,6 +40,6 @@ fn main() {
         }
         out(end);
         n = 0;
-        ah = 1;
+        ah = true;
     }
 }

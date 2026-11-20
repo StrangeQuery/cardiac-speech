@@ -5,7 +5,7 @@
 use cardiac::*;
 
 fn main() {
-    let mut new_sentence = 1;
+    let mut new_sentence = true;
     loop {
         let n = inp();
         let send = inp();
@@ -22,13 +22,13 @@ fn main() {
             out(n);
             out(u);
             out(if send == 3 && k < 1 { 1 } else { 0 });
-            out(new_sentence);
-            new_sentence = 0;
+            out(i16::from(new_sentence));
+            new_sentence = false;
             r += 10;
             j += 1;
         }
         if send > 0 {
-            new_sentence = 1;
+            new_sentence = true;
         }
     }
 }
