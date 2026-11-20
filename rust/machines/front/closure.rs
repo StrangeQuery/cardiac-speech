@@ -1,7 +1,7 @@
 //! closure: each segment's kind and frames, and the CINH and CTOT cards of its row of the phoneme table, in;
 //! out how many of its frames are its closure (front_machines.f5_closure): all of a pause, all but the last of a
 //! stop, and of an affricate n CINH / CTOT of them, rounded, by adding CINH and taking away CTOT, at least one and
-//! not all; none otherwise.
+//! not all; none otherwise. The quotient is by repeated addition and subtraction, not `/`: see shared/arith.rs.
 use cardiac::*;
 
 const STOP: i16 = 4;

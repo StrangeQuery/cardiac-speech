@@ -2,6 +2,14 @@
 // ref/front_ref.py does it. A product of a card and a digit can pass a card, where the hand-written machines kept
 // it in the accumulator's fourth digit, so here the card is split into its tens and units, and a digit's product
 // is that many additions of each.
+//
+// Why not x * f / 100 and its like. First, these are not the same functions: each truncates at every shift, as
+// the reference does, and the speech is checked sample for sample against the reference, so rounding once at the
+// end would change frames. Second, a product of two cards can pass a card, which nothing on CARDIAC can hold.
+// Third, rust-cardiac's multiply and divide routines are 53 to 62 of a program's 96 cells: mulf with a digit-split
+// `*` is 124 cells and doesn't fit, and a plain Horner `*` fits (93 cells) but passes a card and runs ten times the
+// instructions (395,664 against 39,931 for mul on the README's sentence). The machines that count by repeated
+// addition or subtraction (rise, tailt, closure, period, psel) do it for the same reasons.
 
 /// x f / 100 for a factor f in hundredths (front_ref.mulf): Horner over f's three digits a, b and c, truncating at
 /// each shift: t = c x / 10, t = (t + b x) / 10, t + a x. x and f are 0 or more, and the product fits on a card.

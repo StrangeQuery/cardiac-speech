@@ -1,6 +1,8 @@
 //! period: f0 in Hz in, the pitch period out: P = (8000 + f0 / 2) / f0 samples rounded down, by taking f0 away as
 //! often as it goes (front_ref.period). 8000 + f0 / 2 is more than a card holds, so it is kept as thousands and
-//! units, a thousand borrowed when the units go below 0.
+//! units, a thousand borrowed when the units go below 0. Long division with `/` and `%` is 129 cells and doesn't fit
+//! in one machine; split over three machines it would run 0.39 of the instructions (see the README), at the cost
+//! of two more machines.
 use cardiac::*;
 
 fn main() {

@@ -1,7 +1,8 @@
 //! psel: a frame's snd, V and P in; the mode and factor for mulx4 out (front_machines.f8_chain): a sounding voiced
 //! frame mode 1 and 10 r, r = isqrt(60 P), so that one pulse a period carries the frame's power; else mode 0. The
 //! root counts the odd numbers 1, 3, 5 ... that can be taken away from 60 P, which is kept as hundreds and units
-//! since it can pass a card.
+//! since it can pass a card. Not `isqrt`: 60 P passes a card for P over 16, and Newton's method with `/` and `%`
+//! is 148 cells, which doesn't fit.
 use cardiac::*;
 
 fn main() {
