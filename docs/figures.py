@@ -1086,8 +1086,8 @@ def fig_spec48():
                 'programs, for comparison with the previous spectrogram, with the same analysis and the same '
                 'reference level. For this sentence the energy from 4 to 24 kHz (above the red line) is %.1f dB '
                 'relative to 0 to 4 kHz, against %.1f dB for the previous spectrogram (measured as in Figure 16), and '
-                'most of what remains is rounding noise rather than images. Data from upsample/target/release/talk '
-                'and talk --8k (heartburn).' % (up, rep))
+                'most of what remains is the noise of the arithmetic’s rounding and truncation rather than images. '
+                'Data from upsample/target/release/talk and talk --8k (heartburn).' % (up, rep))
 
 
 def fir_from_table(path):
@@ -1139,7 +1139,7 @@ def fig_responses():
     a3, a4 = at(f1, d1, 3000), at(f1, d1, 4000)
     s1 = -float(d1[f1 >= 4500].max())
     s2 = -float(d2[f2 >= 12000].max())
-    pass1 = float(np.abs(d1[f1 <= 3000]).max())
+    pass1 = float(np.abs(d1[f1 <= 3800]).max())
     fig, axs = plt.subplots(3, 1, figsize=(W_IN, 8.2))
     fig.subplots_adjust(left=0.16, right=0.97, top=0.96, bottom=0.07, hspace=0.62)
     for ax, f, d, lab, xl, rate in ((axs[0], f1, d1, 'a', 'Frequency at 16 kHz (kHz)', 16),
@@ -1157,13 +1157,13 @@ def fig_responses():
     axs[0].set_xticks(range(0, 9))
     axs[1].set_xticks(range(0, 25, 4))
     axs[2].set_xticks(range(0, 25, 4))
-    axs[0].set_title('Stage 1, 39 taps, 8 to 16 kHz', fontsize=12, loc='left', pad=6, x=0.03)
+    axs[0].set_title('Stage 1, 159 taps, 8 to 16 kHz', fontsize=12, loc='left', pad=6, x=0.03)
     axs[1].set_title('Stage 2, 19 taps, 16 to 48 kHz', fontsize=12, loc='left', pad=6, x=0.03)
     axs[2].set_title('Both stages', fontsize=12, loc='left', pad=6, x=0.03)
     cap = ('The frequency responses of the two resampling filters, computed from the coefficients in thousandths '
            'that the CARDIAC programs read (upsample/tables/fir1.cards and fir2.cards, which equal '
-           'ref/up_table.py’s design), each divided by its gain. (a) Stage 1, the 39-tap least-squares low-pass '
-           'at 16 kHz, is within %.1f dB of flat to 3 kHz, %.1f dB down at 4 kHz and at least %.1f dB down from '
+           'ref/up_table.py’s design), each divided by its gain. (a) Stage 1, the 159-tap least-squares low-pass '
+           'at 16 kHz, is within %.1f dB of flat to 3.8 kHz, %.1f dB down at 4 kHz and at least %.1f dB down from '
            '4.5 kHz. (b) Stage 2, the 19-tap Kaiser-windowed sinc at 48 kHz, is at least %.1f dB down from 12 to '
            '24 kHz. (c) The two together, stage 1’s response repeating every 16 kHz at the 48 kHz rate. The '
            'dashed line marks 4 kHz, the top of the 8 kHz speech band.' % (pass1, -a4, s1, s2))
@@ -1202,7 +1202,7 @@ def fig_host():
     card(0.42, yy + 0.35, 'y', fc=LIGHT)
     xs = [1.3 + g * 0.78 for g in range(5)]
     ax.plot([0.42 + cw, xs[-1] + cw / 2], [yy + 0.35 + ch / 2] * 2, color=ACCENT, lw=1)
-    for g, t in enumerate(['tap 1', 'tap 2', 'tap 3', '…', 'tap 39']):
+    for g, t in enumerate(['tap 1', 'tap 2', 'tap 3', '…', 'tap 159']):
         tx = xs[g]
         if t == '…':
             ax.text(tx + cw / 2, yy + ch / 2, t, ha='center', va='center', fontsize=13)
@@ -1339,7 +1339,7 @@ def fig_cost():
     mult = {'L1', 'L2', 'L3', 'L4', 'L5', 'fir1', 'fir2'}
     tot = [sum(c for _, c in s) for s in st]
     rows_ = [sum(c for n, c in s if n in mult) for s in st]
-    assert tot == [860492, 2209801, 40408815, 126353878], tot
+    assert tot == [860492, 2209801, 40408815, 308902916], tot
     fig, ax = plt.subplots(figsize=(W_IN, 3.9))
     fig.subplots_adjust(left=0.05, right=0.95, top=0.82, bottom=0.17)
     y = np.arange(4)
@@ -1352,7 +1352,7 @@ def fig_cost():
         ax.text(0.15, k - 0.42, '%s, %d programs' % (names[k], len(st[k])), va='bottom', fontsize=11)
     ax.set_yticks([])
     ax.set_ylim(3.6, -0.75)
-    ax.set_xlim(0, 18)
+    ax.set_xlim(0, 45)
     ax.set_xlabel('Million instructions per second of speech')
     ax.spines['left'].set_visible(False)
     ax.legend(loc='lower right', bbox_to_anchor=(1.0, 1.0), fontsize=10.5, ncol=1)

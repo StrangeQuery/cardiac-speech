@@ -50,11 +50,11 @@ Made by docs/figures.py from the programs’ own output and the tables they read
 
 `fig12-spectrogram-8k.svg`
 
-**Figure 13.** The frequency responses of the two resampling filters, computed from the coefficients in thousandths that the CARDIAC programs read (upsample/tables/fir1.cards and fir2.cards, which equal ref/up_table.py’s design), each divided by its gain. (a) Stage 1, the 39-tap least-squares low-pass at 16 kHz, is within 0.4 dB of flat to 3 kHz, 37.7 dB down at 4 kHz and at least 52.7 dB down from 4.5 kHz. (b) Stage 2, the 19-tap Kaiser-windowed sinc at 48 kHz, is at least 41.9 dB down from 12 to 24 kHz. (c) The two together, stage 1’s response repeating every 16 kHz at the 48 kHz rate. The dashed line marks 4 kHz, the top of the 8 kHz speech band.
+**Figure 13.** The frequency responses of the two resampling filters, computed from the coefficients in thousandths that the CARDIAC programs read (upsample/tables/fir1.cards and fir2.cards, which equal ref/up_table.py’s design), each divided by its gain. (a) Stage 1, the 159-tap least-squares low-pass at 16 kHz, is within 0.3 dB of flat to 3.8 kHz, 40.0 dB down at 4 kHz and at least 48.2 dB down from 4.5 kHz. (b) Stage 2, the 19-tap Kaiser-windowed sinc at 48 kHz, is at least 41.9 dB down from 12 to 24 kHz. (c) The two together, stage 1’s response repeating every 16 kHz at the 48 kHz rate. The dashed line marks 4 kHz, the top of the 8 kHz speech band.
 
 `fig13-resampler-filters.svg`
 
-**Figure 14.** Spectrogram of the README sentence as the 48 kHz version produces it, resampled by the seven CARDIAC programs, for comparison with the previous spectrogram, with the same analysis and the same reference level. For this sentence the energy from 4 to 24 kHz (above the red line) is -46.1 dB relative to 0 to 4 kHz, against -7.2 dB for the previous spectrogram (measured as in Figure 16), and most of what remains is rounding noise rather than images. Data from upsample/target/release/talk and talk --8k (heartburn).
+**Figure 14.** Spectrogram of the README sentence as the 48 kHz version produces it, resampled by the seven CARDIAC programs, for comparison with the previous spectrogram, with the same analysis and the same reference level. For this sentence the energy from 4 to 24 kHz (above the red line) is -44.6 dB relative to 0 to 4 kHz, against -7.2 dB for the previous spectrogram (measured as in Figure 16), and most of what remains is the noise of the arithmetic’s rounding and truncation rather than images. Data from upsample/target/release/talk and talk --8k (heartburn).
 
 `fig14-spectrogram-48k.svg`
 
@@ -62,10 +62,10 @@ Made by docs/figures.py from the programs’ own output and the tables they read
 
 `fig15-host.svg`
 
-**Figure 16.** Images above 4 kHz. (a) The power spectrum of "All your base" averaged over the whole utterance (Hann windows of 4,096 samples, half overlapping), for the 48 kHz output of the CARDIAC resampler and for the same 8 kHz samples each repeated six times; shading marks 4 to 24 kHz, where the 8 kHz speech has nothing. (b) The energy from 4 to 24 kHz relative to 0 to 4 kHz for the paper’s three sample texts, as in the table of Section 7.2, which is -46.6, -45.0, -44.7 dB for the resampler (green) against -7.0, -6.9, -6.8 dB for repetition (grey). Measured by ref/up_measure.py on the output of upsample/target/release/talk and talk --8k (heartburn).
+**Figure 16.** Images above 4 kHz. (a) The power spectrum of "All your base" averaged over the whole utterance (Hann windows of 4,096 samples, half overlapping), for the 48 kHz output of the CARDIAC resampler and for the same 8 kHz samples each repeated six times; shading marks 4 to 24 kHz, where the 8 kHz speech has nothing. (b) The energy from 4 to 24 kHz relative to 0 to 4 kHz for the paper’s three sample texts, as in the table of Section 7.2, which is -45.5, -43.6, -43.5 dB for the resampler (green) against -7.0, -6.9, -6.8 dB for repetition (grey). Measured by ref/up_measure.py on the output of upsample/target/release/talk and talk --8k (heartburn).
 
 `fig16-images.svg`
 
-**Figure 17.** CARDIAC instructions per second of speech for each stage, for the README sentence (7.83 s of speech; 169,832,986 instructions in all, loading included). The darker part of each bar is the programs that multiply by jumping into a row of ADDs. In the voice box they are the five lattice programs, 85 percent of its instructions and 79 percent of the whole 8 kHz pipeline’s, and in the resampler the two filter programs. Counts from talk -v of the 48 kHz version under heartburn.
+**Figure 17.** CARDIAC instructions per second of speech for each stage, for the README sentence (7.83 s of speech; 352,382,024 instructions in all, loading included). The darker part of each bar is the programs that multiply by jumping into a row of ADDs. In the voice box they are the five lattice programs, 85 percent of its instructions and 79 percent of the whole 8 kHz pipeline’s, and in the resampler the two filter programs. Counts from talk -v of the 48 kHz version under heartburn.
 
 `fig17-cost.svg`
