@@ -258,17 +258,191 @@ One thing that ought to compile didn't: [rust-cardiac#32](https://github.com/Str
 `iter().enumerate()` over a slice whose length is known only at run time is refused (RCE0018). spell and postb use
 an index loop instead.
 
-Writing the lattice multiply in Rust turned up the rest, all of them code that compiles but runs slower or takes more
-cells than it needs to. A loop that adds a value d times is a counter, a test and a jump an add
-([#33](https://github.com/StrangeQuery/rust-cardiac/issues/33)); a `match` with an arm for each value of a digit is a
-chain of tests, two instructions an arm passed, not a jump into a row of jumps
-([#34](https://github.com/StrangeQuery/rust-cardiac/issues/34)); arms that end with the same code each keep a copy
-([#35](https://github.com/StrangeQuery/rust-cardiac/issues/35)); a row of adds written with labelled blocks stores
-and loads the sum at every block ([#36](https://github.com/StrangeQuery/rust-cardiac/issues/36)); `m / 10 % 10` is
-two shifts where one does it ([#37](https://github.com/StrangeQuery/rust-cardiac/issues/37)); a `bool` const generic
-compared with a value is tested at run time ([#38](https://github.com/StrangeQuery/rust-cardiac/issues/38)); and a
-`static mut` is read through an address worked out at run time
-([#39](https://github.com/StrangeQuery/rust-cardiac/issues/39)). kmul works around the last two.
+Writing the lattice multiply in Rust turned up seven more, all of them code that compiles but runs slower or takes
+more cells than it needs to. A loop that adds a value d times was a counter, a test and a jump an add
+([#33](https://github.com/StrangeQuery/rust-cardiac/issues/33)); a `match` with an arm for each value of a digit was
+a chain of tests, two instructions an arm passed, not a jump into a row of jumps
+([#34](https://github.com/StrangeQuery/rust-cardiac/issues/34)); arms that end with the same code each kept a copy
+([#35](https://github.com/StrangeQuery/rust-cardiac/issues/35)); a row of adds written with labelled blocks stored
+and loaded the sum at every block ([#36](https://github.com/StrangeQuery/rust-cardiac/issues/36)); `m / 10 % 10`
+was two shifts where one does it ([#37](https://github.com/StrangeQuery/rust-cardiac/issues/37)); a `bool` const
+generic compared with a value was tested at run time
+([#38](https://github.com/StrangeQuery/rust-cardiac/issues/38)); and a `static mut` was read through an address
+worked out at run time ([#39](https://github.com/StrangeQuery/rust-cardiac/issues/39)).
+
+All seven are fixed on rust-cardiac's main branch, along with three others that landed at the same time: `x % 10`, `x % 2` and
+`x % 5` by shifting out the last digit ([#30](https://github.com/StrangeQuery/rust-cardiac/issues/30)), and multiply
+and divide routines that work digit by digit, with a row of nine ADDs, instead of adding or subtracting one at a time
+([#47](https://github.com/StrangeQuery/rust-cardiac/issues/47) and
+[#43](https://github.com/StrangeQuery/rust-cardiac/issues/43)). They aren't released yet, so the decks here are still
+built with cargo-cardiac 0.2.5, and every number in this README is 0.2.5's.
+
+Built with main, all 83 machines still fit and every check is still exact, and the speech comes out the same sample
+for sample. But the pipeline is barely faster:
+
+| | 0.2.5 | main |
+|---|---:|---:|
+| Text to phonemes (29 machines) | 930,875 | 926,326 |
+| Front end (49 machines) | 2,260,389 | 2,253,395 |
+| Voice box (11 machines) | 44,868,219 | 44,864,073 |
+| All 89 machines | 48,059,483 | 48,043,794 |
+| Program cards loaded | 11,080 | 10,812 |
+| The all-Rust lattice, a sample | 1,003.6 | 965.6 |
+
+Most machines are a few cells smaller (excp 83 to 70, tailf 81 to 72), and one is bigger: dur grew from 77 cells to
+86 for its new row of ADDs. The work that was slow in Rust was already written around the compiler's weaknesses, by
+table in the lattice and by hand in the output stage, so fixing the weaknesses changes little here.
+
+The better question is whether the fixes let plainly written Rust come close to the hand-written machines, so we
+tried it. Mostly they don't, because the new routines are big. Digit-by-digit multiply and divide take 53 to 62 of a
+program's 96 cells, and each call costs about 6 more, so a machine that does anything else as well rarely fits. The
+lattice multiply written as a plain `*` doesn't fit in one machine; split over two it runs 2,336 instructions a
+sample, worse than the table. The old loop lattice gets no rows of ADDs, because the compiler can't show its counts
+are small. psel's square root and mul's multiplies, written plainly, either don't fit or overflow a card. The one
+clear win is period: written as long division, split over three machines, it runs 104,711 instructions on the test
+sentence against 269,996 for the loop built with main, 0.39 as many, for two more machines.
+
+Those rewrites turned up two more findings. `a / b` followed by `a % b` calls the divide routine twice, though the
+first call leaves the remainder behind ([#60](https://github.com/StrangeQuery/rust-cardiac/issues/60)), and a
+signed `x % 25` calls the whole divide routine where `x / 25` beside it is four ADDs and a shift
+([#61](https://github.com/StrangeQuery/rust-cardiac/issues/61)).
+
+## Hand-written and compiled, side by side
+
+Two machines show where the compiler matches hand code and where it can't.
+
+**period** works out the pitch period, 8000 / f0 samples, by taking f0 away as often as it goes. 8000 is past a
+card, so both versions keep it as thousands and units and borrow a thousand when the units go below 0. The
+hand-written one, [`../front/period.cq`](../front/period.cq):
+
+    15            lp      CLA   hi       15-39: take f away until what is left is less than f
+    16                    SUB   00
+    17                    TAC   h0
+    18            sb      CLA   lo
+    19                    SUB   f
+    20                    TAC   bor
+    21                    STO   lo
+    22                    JMP   cnt
+    23            bor     ADD   c500
+    24                    ADD   c500
+    25                    STO   lo
+    26                    CLA   hi
+    27                    SUB   00
+    28                    STO   hi
+    29            cnt     CLA   p
+    30                    ADD   00
+    31                    STO   p
+    32                    JMP   lp
+    33            h0      CLA   lo
+    34                    SUB   f
+    35                    TAC   pl
+    36                    JMP   sb
+
+The Rust one, [machines/front/period.rs](machines/front/period.rs):
+
+    let f0 = inp();
+    let mut thousands = 8;
+    let mut units = f0 / 2;
+    let mut p = 0;
+    while thousands > 0 || units >= f0 {
+        units -= f0;
+        if units < 0 {
+            units += 500;
+            units += 500;
+            thousands -= 1;
+        }
+        p += 1;
+    }
+    out(p);
+
+and what cargo-cardiac 0.2.5 makes of the loop (`cargo cardiac build --emit listing`):
+
+    04	143		CLA	k7
+    05	640		STO	thousands	thousands = 7
+    ...
+    15	819		JMP	main_bb7	goto
+    16	141	main_bb5	CLA	units
+    17	739		SUB	f0	if units >= f0
+    18	337		TAC	main_bb11
+    19	141	main_bb7	CLA	units
+    20	739		SUB	f0	units = units - f0
+    21	641		STO	units
+    22	324		TAC	main_bb8
+    23	831		JMP	main_bb10
+    24	245	main_bb8	ADD	k500	units = units + 500
+    25	641		STO	units
+    26	245		ADD	k500	units = units + 500
+    27	641		STO	units
+    28	140		CLA	thousands
+    29	700		SUB	00	thousands = thousands - 1
+    30	640		STO	thousands
+    31	142	main_bb10	CLA	p
+    32	200		ADD	00	p = p + 1
+    33	642		STO	p
+    34	140		CLA	thousands
+    35	316		TAC	main_bb5
+    36	819		JMP	main_bb7
+
+The compiler beat the hand. CARDIAC can only test for less than zero, so the hand-written loop tests `hi > 0` as
+`hi - 1 < 0`, a subtraction every pass. The compiler keeps thousands one lower than the source says, starting it at
+7, so the same test is a bare TAC; and since the first pass is certain, it jumps straight into the loop's body. It
+takes 11 instructions a pass where the hand takes 12, and 272,503 instructions on the test sentence against
+296,163.
+
+**The lattice multiply** is the other way round. A multiply is k x for a coefficient k of two digits, and the
+hand-written lattice ([`hand/lattice.cq`](hand/lattice.cq)) never decides how to do it. reduce's cards are
+instructions, the sign word (ADD t or SUB t), a jump into a row of nine ADDs for each of k's digits and the last SFT,
+and the lattice reads them straight into its own program:
+
+    43            mulh    STO   t        43-58: k x for stage i, x in the accumulator
+    44                    CLA   99
+    45                    STO   reth
+    46                    CLA   z
+    47            sh      DATA  0        (ADD t or SUB t)
+    48                    STO   c
+    49                    CLA   z
+    50            t1h     DATA  0        (JMP into the row, d2 ADDs)
+    51                    SFT   01
+    52            t2h     DATA  0        (JMP into the row, d1 ADDs)
+    53                    TAC   negh
+    54                    ADD   hh
+    55            finh    DATA  0        (SFT 0L)
+    56            reth    DATA  0
+    ...
+    90            row     ADD   c        90-98: the row of nine ADDs, into 99
+    ...
+    98                    ADD   c
+
+A multiply is one instruction an add and no tests at all, about 31 instructions. Rust can't write a program that
+runs the cards it reads, so [kmul.rs](machines/voice/kmul.rs) multiplies by a table instead: ktable sends n times 0
+to 9 for each coefficient, and each multiply looks up the value's three digits and adds them a place apart:
+
+    let m = x.abs();
+    let (h, t, u) = (m / 100, m / 10 % 10, m % 10);
+    let (a, b, c) = unsafe { (*tab.get_unchecked(h as usize), *tab.get_unchecked(t as usize), *tab.get_unchecked(u as usize)) };
+    let mut r = a + (b + c / 10 + half) / 10;
+
+The compiler does well by it. It picks the digits out with SFT 33, and it reads `tab[h]` the only way CARDIAC can
+index memory, by building a CLA instruction and running it:
+
+    22	402	main_bb39	SFT	02	h = m / 100
+    23	682		STO	h
+    24	181		CLA	m
+    25	401		SFT	01	_20 = m / 10
+    26	433		SFT	33	t = _20 % 10
+    27	680		STO	t
+    28	181		CLA	m
+    29	433		SFT	33	m = m % 10
+    30	681		STO	m
+    31	182		CLA	h
+    32	297		ADD	rd_tab
+    33	634		STO	main_sm0	read through address
+    34	000	main_sm0	DATA	000
+    35	682		STO	h	h = tab[h]
+
+Still, three lookups, a sign test and the stores between them come to about 49 instructions a multiply on main against
+the hand's 31, and the table costs a machine of its own. The all-Rust lattice runs 966 instructions a sample on main,
+against 599 for the hand-written one, so the lattice stays hand-written.
 
 ## How it was checked
 
